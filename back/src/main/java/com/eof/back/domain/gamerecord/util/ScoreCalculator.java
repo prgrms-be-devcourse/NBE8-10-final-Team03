@@ -15,8 +15,8 @@ package com.eof.back.domain.gamerecord.util;
 
 public class ScoreCalculator {
 
-    private static final double PARTICIPANT_WEIGHT = 0.1;
-    private static final double QUESTION_WEIGHT = 0.05;
+    private static final int PARTICIPANT_WEIGHT_PERCENT = 10;;
+    private static final int QUESTION_WEIGHT_PERCENT = 5;
 
     private ScoreCalculator() {
     }
@@ -31,9 +31,9 @@ public class ScoreCalculator {
      */
     public static long calculateFinalScore(int sessionRanking, int participantCount, int maxQuestions) {
         long baseScore = getBaseScore(sessionRanking);
-        double participationBonus = 1 + (participantCount * PARTICIPANT_WEIGHT);
-        double questionBonus = 1 + (maxQuestions * QUESTION_WEIGHT);
-        return Math.round(baseScore * participationBonus * questionBonus);
+        long participantBonus = 100 + ((long) participantCount * PARTICIPANT_WEIGHT_PERCENT);
+        long questionBonus = 100 + ((long) maxQuestions * QUESTION_WEIGHT_PERCENT);
+        return Math.round((double) (baseScore * participantBonus * questionBonus) / 10000);
     }
 
     /**

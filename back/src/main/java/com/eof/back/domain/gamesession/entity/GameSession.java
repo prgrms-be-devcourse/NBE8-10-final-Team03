@@ -68,6 +68,7 @@ public class GameSession extends BaseEntity {
      *현재 게임 방의 최대 플레이어수
      * 최소 2명이상
      */
+    @Column(nullable = false)
     private Integer maxPlayers;
 
     /**

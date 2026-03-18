@@ -24,7 +24,7 @@ public record GameSessionCreateRequest(
 
         @NotNull(message = "최대 인원수는 필수입니다.")
         @Min(value = 2, message = "최소 2명 이상이어야 합니다.")
-        Integer maxPlayer,
+        Integer maxPlayers,
 
         @NotNull(message = "최대 문제 수는 필수입니다.")
         @Min(value = 1, message = "최소 1문제 이상이어야 합니다.")

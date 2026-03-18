@@ -1,9 +1,7 @@
 package com.eof.back.domain.user.entity;
 
 import com.eof.back.global.jpa.entity.BaseEntity;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -44,6 +42,13 @@ public class User extends BaseEntity {
     private String nickname;
 
     /**
+     * 사용자, 관리자를 구분하는 권한.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Role role;
+
+    /**
      * 모든 게임 세션을 통틀어 누적된 전체 랭킹 점수.
      * 기본값은 0이며, 게임 결과에 따라 가산됩니다.
      */
@@ -58,10 +63,11 @@ public class User extends BaseEntity {
      * @param nickname 사용자 닉네임
      */
     @Builder
-    private User(String username, String password, String nickname) {
+    private User(String username, String password, String nickname, Role role) {
         this.username = username;
         this.password = password;
         this.nickname = nickname;
+        this.role = role;
         this.totalRankingScore = 0L;
     }
 
@@ -78,6 +84,7 @@ public class User extends BaseEntity {
                 .username(username)
                 .password(password)
                 .nickname(nickname)
+                .role(Role.USER)
                 .build();
     }
 }

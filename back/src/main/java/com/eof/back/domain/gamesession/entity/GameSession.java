@@ -18,11 +18,11 @@ import lombok.NoArgsConstructor;
 
 /**
  * <p>실시간 게임이 진행되는 방(세션)의 설정과 상태를 관리하는 엔티티입니다.</p>
- * 방장 정보, 사용할 퀴즈 세트, 최대 문제 수 등을 설정하고
+ * 방장 정보, 사용할 퀴즈 세트, 최대 퀴즈 수 등을 설정하고
  * 현재 세션이 대기 중인지, 진행 중인지, 종료되었는지를 실시간으로 추적합니다.
  *
  * @author MintyU
- * @since 2026-03-17
+ * @since 2026-03-18
  */
 @Entity
 @Table(name = "game_sessions")
@@ -51,11 +51,11 @@ public class GameSession extends BaseEntity {
     private QuizSet quizSet;
 
     /**
-     * 한 세션 동안 출제할 총 문제 수입니다.
-     * 퀴즈 세트의 전체 문제 수보다 작거나 같을 수 있습니다.
+     * 한 세션 동안 출제할 총 퀴즈 수입니다.
+     * 퀴즈 세트의 전체 퀴즈 수보다 작거나 같을 수 있습니다.
      */
     @Column(nullable = false)
-    private Integer maxQuestions;
+    private Integer maxQuizzes;
 
     /**
      * 현재 게임 방의 진행 상태 (WAIT, START, END)
@@ -70,15 +70,15 @@ public class GameSession extends BaseEntity {
      * @param roomName 방 제목
      * @param host 방장
      * @param quizSet 퀴즈 세트
-     * @param maxQuestions 최대 문제 수
+     * @param maxQuizzes 최대 퀴즈 수
      * @param status 게임 상태
      */
     @Builder
-    private GameSession(String roomName, User host, QuizSet quizSet, Integer maxQuestions, GameSessionStatus status) {
+    private GameSession(String roomName, User host, QuizSet quizSet, Integer maxQuizzes, GameSessionStatus status) {
         this.roomName = roomName;
         this.host = host;
         this.quizSet = quizSet;
-        this.maxQuestions = maxQuestions;
+        this.maxQuizzes = maxQuizzes;
         this.status = status != null ? status : GameSessionStatus.WAIT;
     }
 
@@ -89,15 +89,15 @@ public class GameSession extends BaseEntity {
      * @param roomName 방 제목
      * @param host 방장 (User 엔티티)
      * @param quizSet 선택된 퀴즈 세트 (QuizSet 엔티티)
-     * @param maxQuestions 세션 내 최대 문제 수
+     * @param maxQuizzes 세션 내 최대 퀴즈 수
      * @return 생성된 GameSession 엔티티 객체
      */
-    public static GameSession of(String roomName, User host, QuizSet quizSet, Integer maxQuestions) {
+    public static GameSession of(String roomName, User host, QuizSet quizSet, Integer maxQuizzes) {
         return GameSession.builder()
                 .roomName(roomName)
                 .host(host)
                 .quizSet(quizSet)
-                .maxQuestions(maxQuestions)
+                .maxQuizzes(maxQuizzes)
                 .status(GameSessionStatus.WAIT)
                 .build();
     }

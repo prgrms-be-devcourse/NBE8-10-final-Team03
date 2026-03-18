@@ -14,12 +14,12 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
- * <p>여러 퀴즈 문제를 하나의 논리적 단위로 묶는 퀴즈 세트 엔티티입니다.</p>
+ * <p>여러 퀴즈를 하나의 논리적 단위로 묶는 퀴즈 세트 엔티티입니다.</p>
  * 퀴즈 세트의 기본 메타데이터(제목, 설명)와 제작자 정보,
- * 세트 내에 포함된 총 문제의 수 등을 관리합니다.
+ * 세트 내에 포함된 총 퀴즈의 수 등을 관리합니다.
  *
  * @author MintyU
- * @since 2026-03-17
+ * @since 2026-03-18
  */
 @Entity
 @Table(name = "quiz_sets")
@@ -34,7 +34,7 @@ public class QuizSet extends BaseEntity {
     private String title;
 
     /**
-     * 퀴즈 세트의 상세 설명. 문제의 주제나 대상 수준 등을 기재합니다.
+     * 퀴즈 세트의 상세 설명. 퀴즈의 주제나 대상 수준 등을 기재합니다.
      */
     @Column(length = 1000)
     private String description;
@@ -48,10 +48,10 @@ public class QuizSet extends BaseEntity {
     private User creator;
 
     /**
-     * 이 세트에 포함된 총 문제 개수. 퀴즈 세트 조회 시의 요약 정보로 사용됩니다.
+     * 이 세트에 포함된 총 퀴즈 개수. 퀴즈 세트 조회 시의 요약 정보로 사용됩니다.
      */
     @Column(nullable = false)
-    private Integer totalQuestionCount;
+    private Integer totalQuizCount;
 
     /**
      * 빌더 패턴을 이용한 생성자입니다.
@@ -59,14 +59,14 @@ public class QuizSet extends BaseEntity {
      * @param title 제목
      * @param description 설명
      * @param creator 제작자
-     * @param totalQuestionCount 총 문제 수
+     * @param totalQuizCount 총 퀴즈 수
      */
     @Builder
-    private QuizSet(String title, String description, User creator, Integer totalQuestionCount) {
+    private QuizSet(String title, String description, User creator, Integer totalQuizCount) {
         this.title = title;
         this.description = description;
         this.creator = creator;
-        this.totalQuestionCount = totalQuestionCount;
+        this.totalQuizCount = totalQuizCount;
     }
 
     /**
@@ -75,15 +75,15 @@ public class QuizSet extends BaseEntity {
      * @param title 퀴즈 세트 제목
      * @param description 퀴즈 세트 설명
      * @param creator 제작자 (User 엔티티)
-     * @param totalQuestionCount 세트 내 총 문제 수
+     * @param totalQuizCount 세트 내 총 퀴즈 수
      * @return 생성된 QuizSet 엔티티 객체
      */
-    public static QuizSet of(String title, String description, User creator, Integer totalQuestionCount) {
+    public static QuizSet of(String title, String description, User creator, Integer totalQuizCount) {
         return QuizSet.builder()
                 .title(title)
                 .description(description)
                 .creator(creator)
-                .totalQuestionCount(totalQuestionCount)
+                .totalQuizCount(totalQuizCount)
                 .build();
     }
 }

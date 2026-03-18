@@ -65,20 +65,29 @@ public class GameSession extends BaseEntity {
     private GameSessionStatus status;
 
     /**
+     *현재 게임 방의 최대 플레이어수
+     * 최소 2명이상
+     */
+    @Column(nullable = false)
+    private Integer maxPlayers;
+
+    /**
      * 빌더 패턴을 이용한 생성자입니다.
      *
      * @param roomName 방 제목
      * @param host 방장
      * @param quizSet 퀴즈 세트
      * @param maxQuizzes 최대 퀴즈 수
+     * @param maxPlayers 최대 플레이어 수
      * @param status 게임 상태
      */
     @Builder
-    private GameSession(String roomName, User host, QuizSet quizSet, Integer maxQuizzes, GameSessionStatus status) {
+    private GameSession(String roomName, User host, QuizSet quizSet, Integer maxQuizzes, Integer maxPlayers, GameSessionStatus status) {
         this.roomName = roomName;
         this.host = host;
         this.quizSet = quizSet;
         this.maxQuizzes = maxQuizzes;
+        this.maxPlayers = maxPlayers;
         this.status = status != null ? status : GameSessionStatus.WAIT;
     }
 
@@ -92,12 +101,13 @@ public class GameSession extends BaseEntity {
      * @param maxQuizzes 세션 내 최대 퀴즈 수
      * @return 생성된 GameSession 엔티티 객체
      */
-    public static GameSession of(String roomName, User host, QuizSet quizSet, Integer maxQuizzes) {
+    public static GameSession of(String roomName, User host, QuizSet quizSet, Integer maxQuizzes, Integer maxPlayers) {
         return GameSession.builder()
                 .roomName(roomName)
                 .host(host)
                 .quizSet(quizSet)
                 .maxQuizzes(maxQuizzes)
+                .maxPlayers(maxPlayers)
                 .status(GameSessionStatus.WAIT)
                 .build();
     }

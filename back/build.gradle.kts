@@ -37,6 +37,9 @@ dependencies {
     compileOnly("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok")
 
+    // Swagger (springdoc-openapi)
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.0")
+
     developmentOnly("org.springframework.boot:spring-boot-devtools")
 
     testImplementation("org.springframework.boot:spring-boot-starter-data-jpa-test")

@@ -1,4 +1,4 @@
-package com.eof.back.domain.question.entity;
+package com.eof.back.domain.quiz.entity;
 
 import com.eof.back.domain.quizset.entity.QuizSet;
 import com.eof.back.global.jpa.entity.BaseEntity;
@@ -14,21 +14,21 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
- * <p>퀴즈 세트 내에 속한 개별 문제의 상세 데이터를 관리하는 엔티티입니다.</p>
- * 문제의 발문(내용), 정답, 그리고 사지선다형 보기를 포함하며
+ * <p>퀴즈 세트 내에 속한 개별 퀴즈의 상세 데이터를 관리하는 엔티티입니다.</p>
+ * 퀴즈의 발문(내용), 정답, 그리고 사지선다형 보기를 포함하며
  * 세트 내에서의 순서를 결정하는 시퀀스 정보를 가집니다.
  *
  * @author MintyU
- * @since 2026-03-17
+ * @since 2026-03-18
  */
 @Entity
-@Table(name = "questions")
+@Table(name = "quizzes")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Question extends BaseEntity {
+public class Quiz extends BaseEntity {
 
     /**
-     * 이 문제가 속한 퀴즈 세트입니다.
+     * 이 퀴즈가 속한 퀴즈 세트입니다.
      * 지연 로딩(LAZY)을 통해 소속 정보를 관리합니다.
      */
     @ManyToOne(fetch = FetchType.LAZY)
@@ -36,13 +36,13 @@ public class Question extends BaseEntity {
     private QuizSet quizSet;
 
     /**
-     * 실제 문제의 지문 또는 발문 내용
+     * 실제 퀴즈의 지문 또는 발문 내용
      */
     @Column(nullable = false, length = 2000)
     private String content;
 
     /**
-     * 문제의 정답입니다. 보기에 적힌 텍스트와 일치해야 합니다.
+     * 퀴즈의 정답입니다. 보기에 적힌 텍스트와 일치해야 합니다.
      */
     @Column(nullable = false)
     private String answer;
@@ -72,7 +72,7 @@ public class Question extends BaseEntity {
     private String choice4;
 
     /**
-     * 퀴즈 세트 내에서 이 문제가 출제될 순서입니다.
+     * 퀴즈 세트 내에서 이 퀴즈가 출제될 순서입니다.
      */
     @Column(nullable = false)
     private Integer sequence;
@@ -90,7 +90,7 @@ public class Question extends BaseEntity {
      * @param sequence 순서
      */
     @Builder
-    private Question(QuizSet quizSet, String content, String answer, String choice1, String choice2, String choice3, String choice4, Integer sequence) {
+    private Quiz(QuizSet quizSet, String content, String answer, String choice1, String choice2, String choice3, String choice4, Integer sequence) {
         this.quizSet = quizSet;
         this.content = content;
         this.answer = answer;
@@ -102,20 +102,20 @@ public class Question extends BaseEntity {
     }
 
     /**
-     * Question 엔티티 생성을 위한 정적 팩토리 메서드입니다.
+     * Quiz 엔티티 생성을 위한 정적 팩토리 메서드입니다.
      *
      * @param quizSet 소속 퀴즈 세트 (QuizSet 엔티티)
-     * @param content 문제 발문 내용
+     * @param content 퀴즈 발문 내용
      * @param answer 정답 텍스트
      * @param choice1 선택지 1
      * @param choice2 선택지 2
      * @param choice3 선택지 3
      * @param choice4 선택지 4
      * @param sequence 출제 순서
-     * @return 생성된 Question 엔티티 객체
+     * @return 생성된 Quiz 엔티티 객체
      */
-    public static Question of(QuizSet quizSet, String content, String answer, String choice1, String choice2, String choice3, String choice4, Integer sequence) {
-        return Question.builder()
+    public static Quiz of(QuizSet quizSet, String content, String answer, String choice1, String choice2, String choice3, String choice4, Integer sequence) {
+        return Quiz.builder()
                 .quizSet(quizSet)
                 .content(content)
                 .answer(answer)

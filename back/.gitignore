@@ -35,3 +35,18 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### Docker ###
+mysql-data/
+redis-data/
+
+### Env ###
+.env
+
+### OS ###
+.DS_Store
+Thumbs.db
+
+### Logs ###
+*.log
+logs/

@@ -6,8 +6,8 @@ import org.springframework.http.HttpStatus;
 /**
  * 퀴즈 관리에서 발생하는 예외에 대한 상수 값을 정의합니다.
  *
- * <p>상황에 대한 코드, 클라이언트로의 응답 코드 및 메시지를 가지며, 그 명명 규칙은 문서를 참조해야 합니다. 해당 {@code QuizErrorCode} 는 {@link
- * com.eof.back.global.exception.exceptions.QuizException QuizException}에서 사용되며, <br>
+ * <p>상황에 대한 코드, 클라이언트로의 응답 코드 및 메시지를 가지며, 그 명명 규칙은 문서를 참조해야 합니다. 해당 {@code QuizErrorCode} 는
+ * {@link com.eof.back.global.exception.exceptions.QuizException QuizException}에서 사용되며, <br>
  * {@code NAME(HttpStatus.STATUS, "some message")}로 저장됩니다.
  *
  * <p><b>상속 정보:</b><br>

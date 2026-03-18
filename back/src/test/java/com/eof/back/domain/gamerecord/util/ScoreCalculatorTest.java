@@ -32,7 +32,7 @@ class ScoreCalculatorTest {
     }
 
     @Test
-    @DisplayName("2명 5문제 꼴찌면 15점")
+    @DisplayName("2명 5문제 2등(꼴찌)이면 90점")
     void 소규모_게임_꼴찌() {
         long result = ScoreCalculator.calculateFinalScore(2, 2, 5);
         // 60 × 1.2 × 1.25 = 90
@@ -40,12 +40,12 @@ class ScoreCalculatorTest {
     }
 
     @Test
-    @DisplayName("4등 이하는 전부 기본점수 10")
-    void 사등_이하() {
-        long result4 = ScoreCalculator.calculateFinalScore(4, 4, 10);
-        long result8 = ScoreCalculator.calculateFinalScore(8, 4, 10);
-        // 둘 다 10 × 1.4 × 1.5 = 21
-        assertThat(result4).isEqualTo(21);
-        assertThat(result8).isEqualTo(21);
+    @DisplayName("8명 10문제 4등 이하는 전부 동일 27점")
+    void 사등_이하_동일점수() {
+        long result4 = ScoreCalculator.calculateFinalScore(4, 8, 10);
+        long result8 = ScoreCalculator.calculateFinalScore(8, 8, 10);
+        // 둘 다 10 × 1.8 × 1.5 = 27
+        assertThat(result4).isEqualTo(27);
+        assertThat(result8).isEqualTo(27);
     }
 }

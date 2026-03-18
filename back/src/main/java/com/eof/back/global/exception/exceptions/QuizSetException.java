@@ -10,7 +10,7 @@ import com.eof.back.global.exception.errorCode.QuizSetErrorCode;
  * <p><b>상속 정보:</b><br>
  * {@link BaseException} 의 구현 클래스입니다.
  *
- * <p><b>주요 생성자:</b>
+ * <p><b>주요 생성자:</b></p>
  * <ul>
  *   <li>{@code QuizSetException(QuizSetErrorCode errorCode)}: 내부 로그 메시지를 담지 않는 예외를 생성합니다.</li>
  *   <li>{@code QuizSetException(QuizSetErrorCode errorCode, String logMessage)}: 내부 로그 메시지를 담는 예외를 생성합니다.</li>

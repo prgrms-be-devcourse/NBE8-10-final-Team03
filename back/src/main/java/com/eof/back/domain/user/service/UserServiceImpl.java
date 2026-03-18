@@ -1,8 +1,15 @@
 package com.eof.back.domain.user.service;
 
+import com.eof.back.domain.user.dto.UserSignupRequest;
+import com.eof.back.domain.user.dto.UserSignupResponse;
+import com.eof.back.domain.user.entity.User;
 import com.eof.back.domain.user.repository.UserRepository;
+import com.eof.back.global.exception.errorCode.AuthErrorCode;
+import com.eof.back.global.exception.exceptions.AuthException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 사용자 도메인과 관련된 비즈니스 로직을 처리하는 서비스입니다.
@@ -18,4 +25,34 @@ import org.springframework.stereotype.Service;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+
+    @Override
+    @Transactional
+    public UserSignupResponse signup(UserSignupRequest req) {
+        validateDuplicateUsername(req.username());
+        validateDuplicateNickname(req.nickname());
+
+        User user = User.of(req.username(), passwordEncoder.encode(req.password()), req.nickname());
+
+        User savedUser = userRepository.save(user);
+
+        return new UserSignupResponse(
+                savedUser.getId(),
+                savedUser.getUsername(),
+                savedUser.getNickname()
+        );
+    }
+
+    private void validateDuplicateUsername(String username) {
+        if (userRepository.existsByUsername(username)) {
+            throw new AuthException(AuthErrorCode.USER_ALREADY_EXIST, "중복 아이디: " + username);
+        }
+    }
+
+    private void validateDuplicateNickname(String nickname) {
+        if (userRepository.existsByNickname(nickname)) {
+            throw new AuthException(AuthErrorCode.USER_ALREADY_EXIST, "중복 닉네임: " + nickname);
+        }
+    }
 }

@@ -10,13 +10,13 @@ import com.eof.back.global.exception.errorCode.QuizErrorCode;
  * <p><b>상속 정보:</b><br>
  * {@link BaseException} 의 구현 클래스입니다.
  *
- * <p><b>주요 생성자:</b><br>
- * {@code QuizException(QuizErrorCode errorCode)} <br>
- * QuizErrorCode만 매개변수로 받도록 강제합니다. 내부 로그 메시지를 담지 않는 예외를 생성합니다. <br>
- * {@code QuizException(QuizErrorCode errorCode, String logMessage)} <br>
- * QuizErrorCode만 매개변수로 받도록 강제합니다. 내부 로그 메시지를 담는 예외를 생성합니다. <br>
- * {@code QuizException(QuizErrorCode errorCode, String logMessage, String clientMessage)} <br>
- * QuizErrorCode만 매개변수로 받도록 강제합니다. 클라이언트로의 메시지 및 내부 로그 메시지를 담는 예외를 생성합니다. <br>
+ * <p><b>주요 생성자:</b>
+ *   <ul>
+ *     <li>{@code QuizException(QuizErrorCode errorCode)}: 내부 로그 메시지를 담지 않는 예외를 생성합니다.</li>
+ *     <li>{@code QuizException(QuizErrorCode errorCode, String logMessage)}: 내부 로그 메시지를 담는 예외를 생성합니다.</li>
+ *     <li>{@code QuizException(QuizErrorCode errorCode, String logMessage, String clientMessage)}: 클라이언트로의 메시지 및 내부 로그 메시지를 담는 예외를 생성합니다.</li>
+ *   </ul>
+ * <br>
  *
  * @author MintyU
  * @see QuizErrorCode

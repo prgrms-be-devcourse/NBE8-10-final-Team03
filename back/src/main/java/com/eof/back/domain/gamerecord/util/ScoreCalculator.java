@@ -16,7 +16,7 @@ package com.eof.back.domain.gamerecord.util;
 public class ScoreCalculator {
 
     private static final int PARTICIPANT_WEIGHT_PERCENT = 10;;
-    private static final int QUESTION_WEIGHT_PERCENT = 5;
+    private static final int QUIZ_WEIGHT_PERCENT = 5;
 
     private ScoreCalculator() {
     }
@@ -26,14 +26,14 @@ public class ScoreCalculator {
      *
      * @param sessionRanking   최종 순위 (1위부터)
      * @param participantCount 참가 인원수
-     * @param maxQuestions      출제 문제수
+     * @param maxQuiz     출제 문제수
      * @return 가중치가 적용된 랭킹 포인트
      */
-    public static long calculateFinalScore(int sessionRanking, int participantCount, int maxQuestions) {
+    public static long calculateFinalScore(int sessionRanking, int participantCount, int maxQuiz) {
         long baseScore = getBaseScore(sessionRanking);
         long participantBonus = 100 + ((long) participantCount * PARTICIPANT_WEIGHT_PERCENT);
-        long questionBonus = 100 + ((long) maxQuestions * QUESTION_WEIGHT_PERCENT);
-        return Math.round((double) (baseScore * participantBonus * questionBonus) / 10000);
+        long quizBonus = 100 + ((long) maxQuiz * QUIZ_WEIGHT_PERCENT);
+        return Math.round((double) (baseScore * participantBonus * quizBonus) / 10000);
     }
 
     /**

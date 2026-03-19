@@ -2,7 +2,6 @@ package com.eof.back.global.config;
 
 import com.eof.back.global.jwt.JwtAuthenticationEntryPoint;
 import com.eof.back.global.jwt.JwtAuthenticationFilter;
-import com.eof.back.global.jwt.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -38,7 +37,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final JwtTokenProvider jwtTokenProvider;
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
 
     /**
@@ -83,7 +82,7 @@ public class SecurityConfig {
                         .authenticationEntryPoint(jwtAuthenticationEntryPoint)
                 )
                 .addFilterBefore(
-                        new JwtAuthenticationFilter(jwtTokenProvider),
+                        jwtAuthenticationFilter,
                         UsernamePasswordAuthenticationFilter.class
                 );
         return http.build();

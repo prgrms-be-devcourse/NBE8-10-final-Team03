@@ -2,12 +2,17 @@ package com.eof.back.domain.quizset.controller;
 
 import com.eof.back.domain.quizset.dto.QuizSetCreateRequest;
 import com.eof.back.domain.quizset.dto.QuizSetCreateResponse;
+import com.eof.back.domain.quizset.dto.QuizSetListResponse;
+import com.eof.back.domain.quizset.dto.QuizSetResponse;
 import com.eof.back.domain.quizset.service.QuizSetService;
 import com.eof.back.global.response.CommonResponse;
 import com.eof.back.global.response.Response;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -42,6 +47,29 @@ public class QuizSetController {
             @RequestBody @Valid QuizSetCreateRequest request) {
 
         QuizSetCreateResponse response = quizSetService.createQuizSet(request);
+        return ResponseEntity.ok(CommonResponse.success(response));
+    }
+
+    /**
+     * 특정 퀴즈 세트의 상세 정보를 조회합니다.
+     *
+     * @param id 조회할 퀴즈 세트의 식별자
+     * @return 퀴즈 목록을 포함한 퀴즈 세트 상세 정보
+     */
+    @GetMapping("/{id}")
+    public ResponseEntity<Response<QuizSetResponse>> getQuizSet(@PathVariable Long id) {
+        QuizSetResponse response = quizSetService.getQuizSet(id);
+        return ResponseEntity.ok(CommonResponse.success(response));
+    }
+
+    /**
+     * 전체 퀴즈 세트 목록을 조회합니다.
+     *
+     * @return 퀴즈 세트 요약 정보 목록
+     */
+    @GetMapping
+    public ResponseEntity<Response<List<QuizSetListResponse>>> getAllQuizSets() {
+        List<QuizSetListResponse> response = quizSetService.getAllQuizSets();
         return ResponseEntity.ok(CommonResponse.success(response));
     }
 }

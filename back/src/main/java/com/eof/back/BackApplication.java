@@ -2,7 +2,6 @@ package com.eof.back;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 
 /**
  * <p>애플리케이션의 메인 진입점입니다.</p>
@@ -11,7 +10,6 @@ import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
  * @author MintyU
  * @since 2026-03-17
  */
-@EnableJpaAuditing
 @SpringBootApplication
 public class BackApplication {
 

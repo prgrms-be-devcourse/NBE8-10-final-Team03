@@ -102,4 +102,25 @@ class QuizSetControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value("fail"));
     }
+
+    @Test
+    @DisplayName("퀴즈 세트 생성 실패 - 설명 1000자 초과")
+    void createQuizSet_Fail_TooLongDescription() throws Exception {
+        // given
+        String longDescription = "a".repeat(1001);
+        QuizSetCreateRequest request = QuizSetCreateRequest.builder()
+                .title("제목")
+                .description(longDescription)
+                .totalQuestionCount(5)
+                .build();
+
+        // when & then
+        mockMvc.perform(post("/api/v1/quizsets")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andDo(print())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value("fail"))
+                .andExpect(jsonPath("$.message").value("description: 퀴즈 세트 설명은 1000자를 초과할 수 없습니다."));
+    }
 }

@@ -3,6 +3,7 @@ package com.eof.back.domain.quizset.dto;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
+import jakarta.validation.constraints.Size;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -29,6 +30,7 @@ public class QuizSetCreateRequest {
     @NotBlank(message = "퀴즈 세트 제목은 필수입니다.")
     private String title;
 
+    @Size(max = 1000, message = "퀴즈 세트 설명은 1000자를 초과할 수 없습니다.")
     private String description;
 
     @NotNull(message = "총 문제 수는 필수입니다.")

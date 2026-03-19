@@ -11,6 +11,10 @@ import com.eof.back.domain.user.dto.UserSignupResponse;
  *
  * <p>회원가입, 로그인, 사용자 조회 등 사용자 관련 기능의 명세를 정의합니다.</p>
  *
+ * <p><b>주요 기능:</b><br>
+ * - 회원가입
+ * - 로그인
+ *
  * @author 5h6vm
  * @since 2026-03-18
  */
@@ -25,6 +29,12 @@ public interface UserService {
      */
     UserSignupResponse signup(UserSignupRequest req);
 
+    /**
+     * 로그인을 처리합니다.
+     *
+     * @param request 로그인 요청 데이터
+     * @return AccessToken, RefreshToken 및 사용자 정보
+     */
     UserLoginResponse login(UserLoginRequest request);
 
 }

@@ -12,7 +12,16 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
+
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -59,7 +68,7 @@ public class UserServiceTest {
 
         User savedUser = User.of("testUser", "encodedPassword", "tester");
 
-        when(userRepository.save(any(User.class))).thenReturn(savedUser);
+        when(userRepository.saveAndFlush(any(User.class))).thenReturn(savedUser);
 
         // when
         UserSignupResponse result = userService.signup(req);
@@ -68,7 +77,7 @@ public class UserServiceTest {
         assertThat(result.username()).isEqualTo("testUser");
         assertThat(result.nickname()).isEqualTo("tester");
 
-        verify(userRepository).save(any(User.class));
+        verify(userRepository).saveAndFlush(any(User.class));
         verify(passwordEncoder).encode("password123");
     }
 
@@ -90,7 +99,7 @@ public class UserServiceTest {
                 .satisfies(e -> assertThat(((AuthException) e).getErrorCode())
                         .isEqualTo(AuthErrorCode.USER_ALREADY_EXIST));
 
-        verify(userRepository, never()).save(any(User.class));
+        verify(userRepository, never()).saveAndFlush(any(User.class));
     }
 
     @Test
@@ -110,8 +119,102 @@ public class UserServiceTest {
         assertThatThrownBy(() -> userService.signup(req))
                 .isInstanceOf(AuthException.class)
                 .satisfies(e -> assertThat(((AuthException) e).getErrorCode())
-                        .isEqualTo(AuthErrorCode.USER_ALREADY_EXIST));
+                        .isEqualTo(AuthErrorCode.NICKNAME_ALREADY_EXIST));
 
-        verify(userRepository, never()).save(any(User.class));
+        verify(userRepository, never()).saveAndFlush(any(User.class));
+    }
+
+    @Test
+    @DisplayName("회원가입 동시 요청 - 아이디 중복 시 한 건만 성공하고 나머지는 SIGNUP_FAIL")
+    void signup_concurrent_duplicateUsername() throws InterruptedException {
+        // given
+        UserSignupRequest req = new UserSignupRequest("testUser", "password123", "tester");
+        User savedUser = User.of("testUser", "encodedPassword", "tester");
+
+        when(userRepository.existsByUsername("testUser")).thenReturn(false);
+        when(userRepository.existsByNickname("tester")).thenReturn(false);
+        when(passwordEncoder.encode("password123")).thenReturn("encodedPassword");
+        when(userRepository.saveAndFlush(any(User.class)))
+                .thenReturn(savedUser)
+                .thenThrow(new DataIntegrityViolationException("username unique constraint violation"));
+
+        int threadCount = 2;
+        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+        CountDownLatch startLatch = new CountDownLatch(1);
+        CountDownLatch doneLatch = new CountDownLatch(threadCount);
+
+        AtomicInteger successCount = new AtomicInteger(0);
+        List<AuthErrorCode> errorCodes = new CopyOnWriteArrayList<>();
+
+        for (int i = 0; i < threadCount; i++) {
+            executor.submit(() -> {
+                try {
+                    startLatch.await();
+                    userService.signup(req);
+                    successCount.incrementAndGet();
+                } catch (AuthException e) {
+                    errorCodes.add((AuthErrorCode) e.getErrorCode());
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                } finally {
+                    doneLatch.countDown();
+                }
+            });
+        }
+
+        startLatch.countDown();
+        doneLatch.await(5, TimeUnit.SECONDS);
+        executor.shutdown();
+
+        // then
+        assertThat(successCount.get()).isEqualTo(1);
+        assertThat(errorCodes).containsExactly(AuthErrorCode.SIGNUP_FAIL);
+    }
+
+    @Test
+    @DisplayName("회원가입 동시 요청 - 닉네임 중복 시 한 건만 성공하고 나머지는 SIGNUP_FAIL")
+    void signup_concurrent_duplicateNickname() throws InterruptedException {
+        // given
+        UserSignupRequest req = new UserSignupRequest("testUser", "password123", "tester");
+        User savedUser = User.of("testUser", "encodedPassword", "tester");
+
+        when(userRepository.existsByUsername("testUser")).thenReturn(false);
+        when(userRepository.existsByNickname("tester")).thenReturn(false);
+        when(passwordEncoder.encode("password123")).thenReturn("encodedPassword");
+        when(userRepository.saveAndFlush(any(User.class)))
+                .thenReturn(savedUser)
+                .thenThrow(new DataIntegrityViolationException("nickname unique constraint violation"));
+
+        int threadCount = 2;
+        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+        CountDownLatch startLatch = new CountDownLatch(1);
+        CountDownLatch doneLatch = new CountDownLatch(threadCount);
+
+        AtomicInteger successCount = new AtomicInteger(0);
+        List<AuthErrorCode> errorCodes = new CopyOnWriteArrayList<>();
+
+        for (int i = 0; i < threadCount; i++) {
+            executor.submit(() -> {
+                try {
+                    startLatch.await();
+                    userService.signup(req);
+                    successCount.incrementAndGet();
+                } catch (AuthException e) {
+                    errorCodes.add((AuthErrorCode) e.getErrorCode());
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                } finally {
+                    doneLatch.countDown();
+                }
+            });
+        }
+
+        startLatch.countDown();
+        doneLatch.await(5, TimeUnit.SECONDS);
+        executor.shutdown();
+
+        // then
+        assertThat(successCount.get()).isEqualTo(1);
+        assertThat(errorCodes).containsExactly(AuthErrorCode.SIGNUP_FAIL);
     }
 }

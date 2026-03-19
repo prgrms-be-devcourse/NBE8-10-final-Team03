@@ -1,0 +1,4 @@
+pull_request_opened:
+  summary: false      # PR 생성 시 자동 요약 생성 안 함
+  code_review: false   # PR 생성 시 자동 코드 리뷰 생성 안 함
+  help: false         # 도움말 메시지 자동 생성 안 함

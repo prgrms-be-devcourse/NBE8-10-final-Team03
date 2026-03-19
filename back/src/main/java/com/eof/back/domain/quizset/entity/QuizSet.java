@@ -14,12 +14,19 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
- * <p>여러 퀴즈를 하나의 논리적 단위로 묶는 퀴즈 세트 엔티티입니다.</p>
- * 퀴즈 세트의 기본 메타데이터(제목, 설명)와 제작자 정보,
- * 세트 내에 포함된 총 퀴즈의 수 등을 관리합니다.
+ * 여러 퀴즈를 하나의 논리적 단위로 묶는 퀴즈 세트 엔티티입니다.
+ * <p>
+ * 퀴즈 세트의 기본 메타데이터(제목, 설명)와 제작자 정보, 세트 내에 포함된 총 퀴즈의 수 등을 관리하며 데이터베이스의 quiz_sets 테이블과 매핑됩니다.
+ *
+ * <p><b>상속 정보:</b><br>
+ * {@link BaseEntity}를 상속받아 생성 및 수정 시간을 자동으로 관리합니다.
+ *
+ * <p><b>주요 생성자:</b><br>
+ * {@link #QuizSet(String, String, User, Integer)} <br>
+ * 빌더 패턴을 통해 제목, 설명, 제작자, 총 퀴즈 수를 입력받아 인스턴스를 생성합니다. <br>
  *
  * @author MintyU
- * @since 2026-03-18
+ * @since 2026-03-19
  */
 @Entity
 @Table(name = "quiz_sets")

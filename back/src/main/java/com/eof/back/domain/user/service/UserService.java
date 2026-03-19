@@ -25,6 +25,6 @@ public interface UserService {
      */
     UserSignupResponse signup(UserSignupRequest req);
 
-    //UserLoginResponse login(UserLoginRequest request);
+    UserLoginResponse login(UserLoginRequest request);
 
 }

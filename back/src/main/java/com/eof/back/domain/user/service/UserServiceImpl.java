@@ -7,8 +7,11 @@ import com.eof.back.domain.user.dto.UserSignupResponse;
 import com.eof.back.domain.user.entity.User;
 import com.eof.back.domain.user.repository.UserRepository;
 import com.eof.back.global.exception.errorCode.AuthErrorCode;
+import com.eof.back.global.exception.errorCode.ErrorCode;
 import com.eof.back.global.exception.exceptions.AuthException;
+import com.eof.back.global.jwt.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -29,6 +32,7 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtTokenProvider jwtTokenProvider;
 
     @Override
     @Transactional
@@ -63,9 +67,25 @@ public class UserServiceImpl implements UserService {
     }
 
 
-    /*@Override
-    @Transactional
+    @Override
+    @Transactional(readOnly = true)
     public UserLoginResponse login(UserLoginRequest req) {
-        return UserLoginResponse
-    }*/
+
+        User user = userRepository.findByUsername(req.username())
+                .orElseThrow(() -> new AuthException(AuthErrorCode.INVALID_CREDENTIALS));
+
+        if (!passwordEncoder.matches(req.password(), user.getPassword())) {
+            throw new AuthException(AuthErrorCode.INVALID_CREDENTIALS);
+        }
+
+        String accessToken = jwtTokenProvider.createAccessToken(user.getId(), user.getUsername(), user.getRole().name());
+        String refreshToken = jwtTokenProvider.createRefreshToken(user.getId());
+
+        return new UserLoginResponse(
+                accessToken,
+                refreshToken,
+                user.getId(),
+                user.getNickname()
+        );
+    }
 }

@@ -1,6 +1,5 @@
 package com.eof.back.domain.user.dto;
 
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 
 /**

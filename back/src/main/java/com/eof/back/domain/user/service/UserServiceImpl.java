@@ -31,7 +31,6 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public UserSignupResponse signup(UserSignupRequest req) {
         validateDuplicateUsername(req.username());
-        validateDuplicateNickname(req.nickname());
 
         User user = User.of(req.username(), passwordEncoder.encode(req.password()), req.nickname());
 
@@ -50,9 +49,4 @@ public class UserServiceImpl implements UserService {
         }
     }
 
-    private void validateDuplicateNickname(String nickname) {
-        if (userRepository.existsByNickname(nickname)) {
-            throw new AuthException(AuthErrorCode.USER_ALREADY_EXIST, "중복 닉네임: " + nickname);
-        }
-    }
 }

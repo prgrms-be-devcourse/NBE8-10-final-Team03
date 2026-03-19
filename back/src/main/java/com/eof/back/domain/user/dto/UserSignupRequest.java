@@ -10,8 +10,8 @@ import jakarta.validation.constraints.Size;
  *
  * <p>검증 규칙:</p>
  * <ul>
- *     <li>loginId : 4자 이상 20자 이하</li>
- *     <li>password : 8자 이상 20자 이하</li>
+ *     <li>username : 4자 이상 20자 이하, 영문/숫자만 사용</li>
+ *     <li>password : 8자 이상 20자 이하, 영문/숫자 포함</li>
  *     <li>nickname : 2자 이상 20자 이하</li>
  * </ul>
  *

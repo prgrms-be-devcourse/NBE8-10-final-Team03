@@ -15,3 +15,9 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: 6379
+
+custom:
+  jwt:
+    secretKey: ${JWT_SECRET}
+    accessTokenExpirationSeconds: 1200   # 20분
+    refreshTokenExpirationSeconds: 1209600  # 14일

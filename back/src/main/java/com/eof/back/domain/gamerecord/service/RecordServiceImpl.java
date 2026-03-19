@@ -54,7 +54,7 @@ public class RecordServiceImpl implements RecordService {
         long totalGames = gameRecordRepository.countByUserId(userId);
         long totalWins = gameRecordRepository.countByUserIdAndSessionRanking(userId, 1);
 
-        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending().and(Sort.by("id").descending()));
         Page<GameRecord> result = gameRecordRepository.findByUserIdWithSessionAndQuizSet(userId, pageable);
 
         return new UserRecordResponse(

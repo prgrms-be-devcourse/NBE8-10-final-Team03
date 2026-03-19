@@ -8,30 +8,30 @@ import com.eof.back.global.response.CommonResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
 
 /**
- * 코드에 대한 전체적인 역할을 적습니다.
+ * 게임 세션(방) 생성 및 관련 API 요청을 처리하는 REST 컨트롤러입니다.
  * <p>
- * 코드에 대한 작동 원리 등을 적습니다.
+ * 클라이언트로부터 게임 방 생성 요청(POST)을 받아 {@code GameSessionService}로 비즈니스 로직 처리를 위임합니다.
+ * 처리 완료 후, 생성된 리소스의 위치(Location URI)와 성공 상태를 포함한 표준 응답 객체를 클라이언트에게 반환합니다.
  *
- * <p><b>상속 정보:</b><br>
- * 상속 정보를 적습니다.
  *
  * <p><b>주요 생성자:</b><br>
- * {@code ExampleClass(String example)}  <br>
- * 주요 생성자와 그 매개변수에 대한 설명을 적습니다. <br>
+ * Lombok의 {@code @RequiredArgsConstructor}를 통해 다음 의존성을 주입받는 생성자가 자동 생성됩니다.<br>
+ * - {@code GameSessionController(GameSessionService gameSessionService)}: 게임 세션 비즈니스 로직 처리를 위한 서비스 객체 주입 <br>
  *
  * <p><b>빈 관리:</b><br>
- * 필요 시 빈 관리에 대한 내용을 적습니다.
+ * {@code @RestController} 어노테이션이 선언되어 있어 Spring ApplicationContext에 의해 싱글톤 빈(Bean)으로 자동 등록 및 관리됩니다.
  *
  * <p><b>외부 모듈:</b><br>
- * 필요 시 외부 모듈에 대한 내용을 적습니다.
+ * - Spring Security: {@code @AuthenticationPrincipal}을 사용하여 현재 인증된 사용자(User) 정보를 파라미터로 바인딩합니다.<br>
+ * - Spring Validation: {@code @Valid} 어노테이션을 사용하여 요청 본문({@code GameSessionCreateRequest})의 데이터 유효성을 검증합니다.
  *
  * @author 유재원
- * @see
  * @since 2026-03-18
  */
 
@@ -43,7 +43,7 @@ public class GameSessionController {
 
     @PostMapping
     public ResponseEntity<CommonResponse<GameSessionCreateResponse>> createPost(
-            User user,
+            @AuthenticationPrincipal User user,
             @Valid @RequestBody GameSessionCreateRequest request
     ) {
         GameSessionCreateResponse response = gameSessionService.createGameSession(user.getId(), request);

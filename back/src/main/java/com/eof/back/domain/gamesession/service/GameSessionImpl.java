@@ -8,6 +8,8 @@ import com.eof.back.domain.gamesession.repository.GameSessionRepository;
 import com.eof.back.domain.quizset.entity.QuizSet;
 import com.eof.back.domain.user.entity.User;
 import com.eof.back.domain.user.repository.UserRepository;
+import com.eof.back.global.exception.errorCode.AuthErrorCode;
+import com.eof.back.global.exception.exceptions.AuthException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -28,7 +30,9 @@ public class GameSessionImpl implements GameSessionService {
     @Override
     @Transactional
     public GameSessionCreateResponse createGameSession(Long userId, GameSessionCreateRequest request) {
-        User user = userRepository.getReferenceById(userId);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND, "유저가 없습니다"));
+        
         QuizSet quizSet = QuizSet.builder().build(); //Todo 퀴즈셋 찾아오기 추가
 
         GameSession gameSession = GameSession.of(request.roomName(), user, quizSet, request.maxQuizzes(), request.maxPlayers());

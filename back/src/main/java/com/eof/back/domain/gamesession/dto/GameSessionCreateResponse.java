@@ -38,7 +38,7 @@ public record GameSessionCreateResponse(
         Integer maxPlayers,
         String status,
         LocalDateTime createdAt,
-        Integer maxQuestions
+        Integer maxQuizzes
 ) {
 
     /**
@@ -53,7 +53,7 @@ public record GameSessionCreateResponse(
                 .maxPlayers(gameSession.getMaxPlayers())
                 .status(gameSession.getStatus().name())
                 .createdAt(gameSession.getCreatedAt())
-                .maxQuestions(gameSession.getMaxQuestions())
+                .maxQuizzes(gameSession.getMaxQuizzes())
                 .build();
     }
 }

@@ -146,32 +146,32 @@ public class JwtTokenProvider {
     }
 
     /**
-     * 토큰에서 사용자 ID를 추출합니다.
+     * Claims에서 사용자 ID를 추출합니다.
      *
-     * @param token JWT 토큰
+     * @param claims JWT Claims
      * @return 사용자 ID
      */
-    public Long getUserId(String token) {
-        return Long.valueOf(getClaims(token).getSubject());
+    public Long getUserId(Claims claims) {
+        return Long.valueOf(claims.getSubject());
     }
 
     /**
-     * 토큰에서 사용자 아이디를 추출합니다.
+     * Claims에서 사용자 아이디를 추출합니다.
      *
-     * @param token JWT 토큰
+     * @param claims JWT Claims
      * @return 사용자 아이디
      */
-    public String getUsername(String token) {
-        return getClaims(token).get("username", String.class);
+    public String getUsername(Claims claims) {
+        return claims.get("username", String.class);
     }
 
     /**
-     * 토큰에서 사용자 권한을 추출합니다.
+     * Claims에서 사용자 권한을 추출합니다.
      *
-     * @param token JWT 토큰
+     * @param claims JWT Claims
      * @return 사용자 권한
      */
-    public String getRole(String token) {
-        return getClaims(token).get("role", String.class);
+    public String getRole(Claims claims) {
+        return claims.get("role", String.class);
     }
 }

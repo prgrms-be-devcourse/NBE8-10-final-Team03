@@ -27,18 +27,20 @@ class JwtTokenProviderTest {
     @DisplayName("AccessToken 생성 후 userId, username, role 추출 성공")
     void createAccessToken_extractClaims_success() {
         String token = jwtTokenProvider.createAccessToken(1L, "testUser", "USER");
+        Claims claims = jwtTokenProvider.validateToken(token);
 
-        assertThat(jwtTokenProvider.getUserId(token)).isEqualTo(1L);
-        assertThat(jwtTokenProvider.getUsername(token)).isEqualTo("testUser");
-        assertThat(jwtTokenProvider.getRole(token)).isEqualTo("USER");
+        assertThat(jwtTokenProvider.getUserId(claims)).isEqualTo(1L);
+        assertThat(jwtTokenProvider.getUsername(claims)).isEqualTo("testUser");
+        assertThat(jwtTokenProvider.getRole(claims)).isEqualTo("USER");
     }
 
     @Test
     @DisplayName("RefreshToken 생성 후 userId 추출 성공")
     void createRefreshToken_extractUserId_success() {
         String token = jwtTokenProvider.createRefreshToken(2L);
+        Claims claims = jwtTokenProvider.validateToken(token);
 
-        assertThat(jwtTokenProvider.getUserId(token)).isEqualTo(2L);
+        assertThat(jwtTokenProvider.getUserId(claims)).isEqualTo(2L);
     }
 
     @Test

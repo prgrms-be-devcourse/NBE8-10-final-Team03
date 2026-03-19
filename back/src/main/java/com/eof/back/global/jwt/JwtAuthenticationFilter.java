@@ -77,8 +77,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 Claims claims = jwtTokenProvider.validateToken(token);
 
                 // 3. Claims에서 사용자 정보 추출
-                String username = claims.get("username", String.class);
-                String role = claims.get("role", String.class);
+                Long userId = jwtTokenProvider.getUserId(claims);
+                String username = jwtTokenProvider.getUsername(claims);
+                String role = jwtTokenProvider.getRole(claims);
 
                 // 4. 권한 생성
                 List<SimpleGrantedAuthority> authorities =
@@ -91,6 +92,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                 null,
                                 authorities
                         );
+
+                authentication.setDetails(userId);
 
                 // 6. SecurityContext에 저장
                 SecurityContextHolder.getContext().setAuthentication(authentication);

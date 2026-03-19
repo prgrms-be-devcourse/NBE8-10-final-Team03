@@ -48,9 +48,10 @@ class JwtAuthenticationFilterTest {
         MockHttpServletResponse response = new MockHttpServletResponse();
 
         Claims claims = mock(Claims.class);
-        when(claims.get("username", String.class)).thenReturn("testUser");
-        when(claims.get("role", String.class)).thenReturn("USER");
         when(jwtTokenProvider.validateToken("validToken")).thenReturn(claims);
+        when(jwtTokenProvider.getUserId(claims)).thenReturn(1L);
+        when(jwtTokenProvider.getUsername(claims)).thenReturn("testUser");
+        when(jwtTokenProvider.getRole(claims)).thenReturn("USER");
 
         filter.doFilter(request, response, filterChain);
 

@@ -4,6 +4,8 @@ import com.eof.back.domain.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+
 /**
  User 엔티티에 대한 데이터 접근을 담당하는 Repository입니다.
  *
@@ -24,4 +26,6 @@ public interface UserRepository extends JpaRepository<User,Long> {
     boolean existsByUsername(String username);
 
     boolean existsByNickname(String nickname);
+
+    Optional<User> findByUsername(String username);
 }

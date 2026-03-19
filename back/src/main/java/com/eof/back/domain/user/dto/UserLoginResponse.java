@@ -24,6 +24,7 @@ package com.eof.back.domain.user.dto;
  */
 public record UserLoginResponse(
         String accessToken,
+        String refreshToken,
         Long userId,
         String nickname
 ) {

@@ -1,8 +1,6 @@
 package com.eof.back.global.exception.exceptions;
 
-import com.eof.back.global.exception.errorCode.ErrorCode;
 import com.eof.back.global.exception.errorCode.GameSessionErrorCode;
-import com.eof.back.global.exception.errorCode.QuizErrorCode;
 
 /**
  * 게임 세션(방) 관리 및 비즈니스 로직 처리 중 발생하는 예외입니다.
@@ -27,15 +25,15 @@ import com.eof.back.global.exception.errorCode.QuizErrorCode;
  */
 public class GameSessionException extends BaseException {
 
-    public GameSessionException(QuizErrorCode errorCode) {
+    public GameSessionException(GameSessionErrorCode errorCode) {
         super(errorCode);
     }
 
-    public GameSessionException(QuizErrorCode errorCode, String logMessage) {
+    public GameSessionException(GameSessionErrorCode errorCode, String logMessage) {
         super(errorCode, logMessage);
     }
 
-    public GameSessionException(QuizErrorCode errorCode, String logMessage, String clientMessage) {
+    public GameSessionException(GameSessionErrorCode errorCode, String logMessage, String clientMessage) {
         super(errorCode, logMessage, clientMessage);
     }
 }

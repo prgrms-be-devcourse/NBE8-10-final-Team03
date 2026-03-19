@@ -6,11 +6,11 @@ import jakarta.validation.constraints.Size;
 /**
  * 회원가입 요청 데이터를 전달하는 DTO입니다.
  * <p>클라이언트로부터 전달받은 회원가입 정보를 캡슐화하며,
- *  * Validation 어노테이션을 통해 기본적인 입력값 검증을 수행합니다.</p>
+ * Validation 어노테이션을 통해 기본적인 입력값 검증을 수행합니다.</p>
  *
  * <p>검증 규칙:</p>
  * <ul>
- *     <li>username : 4자 이상 20자 이하, 영문/숫자만 사용</li>
+ *     <li>username : 4자 이상 20자 이하</li>
  *     <li>password : 8자 이상 20자 이하, 영문/숫자 포함</li>
  *     <li>nickname : 2자 이상 20자 이하</li>
  * </ul>

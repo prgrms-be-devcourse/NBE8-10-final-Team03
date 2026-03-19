@@ -22,10 +22,12 @@ import jakarta.validation.constraints.Size;
 public record UserSignupRequest(
         @NotBlank(message = "아이디는 필수입니다.")
         @Size(min = 4, max = 20, message = "아이디는 4자 이상 20자 이하로 입력해주세요.")
+        @jakarta.validation.constraints.Pattern(regexp = "^[a-zA-Z0-9]+$", message = "아이디는 영문과 숫자만 사용할 수 있습니다.")
         String username,
 
         @NotBlank(message = "비밀번호는 필수입니다.")
         @Size(min = 8, max = 20, message = "비밀번호는 8자 이상 20자 이하로 입력해주세요.")
+        @jakarta.validation.constraints.Pattern(regexp = "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{8,20}$", message = "비밀번호는 영문, 숫자를 포함하여 8자 이상 20자 이하로 입력해주세요.")
         String password,
 
         @NotBlank(message = "닉네임은 필수입니다.")

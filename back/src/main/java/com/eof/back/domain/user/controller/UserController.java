@@ -42,7 +42,7 @@ public class UserController {
     ) {
         UserSignupResponse response = userService.signup(request);
 
-        return ResponseEntity.created(URI.create(USERS_URI + response.userId()))
+        return ResponseEntity.created(URI.create(USERS_URI + "/" + response.userId()))
                 .body(CommonResponse.success(response, "회원가입이 완료되었습니다."));
     }
 }

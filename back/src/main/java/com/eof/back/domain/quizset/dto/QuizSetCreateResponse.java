@@ -30,7 +30,7 @@ public class QuizSetCreateResponse {
     private String title;
     private String description;
     private String creatorNickname;
-    private Integer totalQuestionCount;
+    private Integer totalQuizCount;
     private LocalDateTime createdAt;
 
     /**
@@ -45,7 +45,7 @@ public class QuizSetCreateResponse {
                 .title(quizSet.getTitle())
                 .description(quizSet.getDescription())
                 .creatorNickname(quizSet.getCreator().getNickname())
-                .totalQuestionCount(quizSet.getTotalQuizCount())
+                .totalQuizCount(quizSet.getTotalQuizCount())
                 .createdAt(quizSet.getCreatedAt())
                 .build();
     }

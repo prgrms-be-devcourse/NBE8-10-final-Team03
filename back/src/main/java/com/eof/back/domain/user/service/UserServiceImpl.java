@@ -7,6 +7,7 @@ import com.eof.back.domain.user.repository.UserRepository;
 import com.eof.back.global.exception.errorCode.AuthErrorCode;
 import com.eof.back.global.exception.exceptions.AuthException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,16 +32,20 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public UserSignupResponse signup(UserSignupRequest req) {
         validateDuplicateUsername(req.username());
+        validateDuplicateNickname(req.nickname());
 
         User user = User.of(req.username(), passwordEncoder.encode(req.password()), req.nickname());
 
-        User savedUser = userRepository.save(user);
-
-        return new UserSignupResponse(
-                savedUser.getId(),
-                savedUser.getUsername(),
-                savedUser.getNickname()
-        );
+        try {
+            User savedUser = userRepository.saveAndFlush(user);
+            return new UserSignupResponse(
+                    savedUser.getId(),
+                    savedUser.getUsername(),
+                    savedUser.getNickname()
+            );
+        } catch (DataIntegrityViolationException e) {
+            throw new AuthException(AuthErrorCode.SIGNUP_FAIL, "회원가입 중 충돌이 발생하였습니다.");
+        }
     }
 
     private void validateDuplicateUsername(String username) {
@@ -49,4 +54,9 @@ public class UserServiceImpl implements UserService {
         }
     }
 
+    private void validateDuplicateNickname(String nickname) {
+        if (userRepository.existsByNickname(nickname)) {
+            throw new AuthException(AuthErrorCode.NICKNAME_ALREADY_EXIST, "중복 닉네임: " + nickname);
+        }
+    }
 }

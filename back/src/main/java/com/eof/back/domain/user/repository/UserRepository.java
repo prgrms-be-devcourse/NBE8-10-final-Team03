@@ -4,6 +4,8 @@ import com.eof.back.domain.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+
 /**
  User 엔티티에 대한 데이터 접근을 담당하는 Repository입니다.
  *
@@ -11,7 +13,9 @@ import org.springframework.stereotype.Repository;
  *
  * <p>주요 기능:</p>
  * <ul>
- *     <li></li>
+ *     <li>아이디 중복 여부 확인</li>
+ *     <li>닉네임 중복 여부 확인</li>
+ *     <li>아이디로 사용자 조회</li>
  * </ul>
  *
  * <p>인증 및 회원 관련 서비스에서 사용자 정보를 조회할 때 사용됩니다.</p>
@@ -24,4 +28,6 @@ public interface UserRepository extends JpaRepository<User,Long> {
     boolean existsByUsername(String username);
 
     boolean existsByNickname(String nickname);
+
+    Optional<User> findByUsername(String username);
 }

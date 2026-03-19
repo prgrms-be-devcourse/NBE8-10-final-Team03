@@ -37,6 +37,7 @@ public class User extends BaseEntity {
 
     /**
      * 서비스 내에서 표시될 사용자의 별명.
+     * 시스템 내에서 중복될 수 없습니다.
      */
     @Column(nullable = false, unique = true)
     private String nickname;

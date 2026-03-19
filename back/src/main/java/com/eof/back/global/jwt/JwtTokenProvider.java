@@ -1,5 +1,11 @@
 package com.eof.back.global.jwt;
 
+import com.eof.back.global.exception.errorCode.AuthErrorCode;
+import com.eof.back.global.exception.errorCode.ErrorCode;
+import com.eof.back.global.exception.exceptions.AuthException;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
@@ -101,5 +107,69 @@ public class JwtTokenProvider {
                 .expiration(expiry)               // 만료 시간
                 .signWith(secretKey)              // 서명
                 .compact();                       // JWT 문자열 생성
+    }
+
+    /**
+     * 토큰에서 Claims를 추출합니다.
+     *
+     * <p>서명 검증이 함께 수행되며, 유효하지 않은 토큰이면 예외가 발생합니다.
+     *
+     * @param token JWT 토큰
+     * @return 토큰 내부 Claims 정보
+     */
+    public Claims getClaims(String token) {
+        return Jwts.parser()
+                .verifyWith(secretKey)         // 해당 secretKey로 서명을 검증합니다.
+                .build()
+                .parseSignedClaims(token)      // 서명된 JWT를 파싱합니다.
+                .getPayload();                 // payload(Claims)를 반환합니다.
+    }
+
+    /**
+     * 토큰의 유효성을 검증합니다.
+     *
+     * <p>서명, 형식, 만료 여부를 확인합니다.
+     *
+     * @param token JWT 토큰
+     * @return 유효하면 true, 그렇지 않으면 false
+     */
+    public void validateToken(String token) {
+        try {
+            getClaims(token);
+        } catch (ExpiredJwtException e) {
+            throw new AuthException(AuthErrorCode.TOKEN_EXPIRED);
+        } catch (JwtException | IllegalArgumentException e) {
+            throw new AuthException(AuthErrorCode.TOKEN_INVALID);
+        }
+    }
+
+    /**
+     * 토큰에서 사용자 ID를 추출합니다.
+     *
+     * @param token JWT 토큰
+     * @return 사용자 ID
+     */
+    public Long getUserId(String token) {
+        return Long.valueOf(getClaims(token).getSubject());
+    }
+
+    /**
+     * 토큰에서 사용자 아이디를 추출합니다.
+     *
+     * @param token JWT 토큰
+     * @return 사용자 아이디
+     */
+    public String getUsername(String token) {
+        return getClaims(token).get("username", String.class);
+    }
+
+    /**
+     * 토큰에서 사용자 권한을 추출합니다.
+     *
+     * @param token JWT 토큰
+     * @return 사용자 권한
+     */
+    public String getRole(String token) {
+        return getClaims(token).get("role", String.class);
     }
 }

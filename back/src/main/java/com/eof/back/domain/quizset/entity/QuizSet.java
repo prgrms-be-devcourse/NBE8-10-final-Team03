@@ -1,13 +1,18 @@
 package com.eof.back.domain.quizset.entity;
 
+import com.eof.back.domain.quiz.entity.Quiz;
 import com.eof.back.domain.user.entity.User;
 import com.eof.back.global.jpa.entity.BaseEntity;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -22,7 +27,7 @@ import lombok.NoArgsConstructor;
  * {@link BaseEntity}를 상속받아 생성 및 수정 시간을 자동으로 관리합니다.
  *
  * <p><b>주요 생성자:</b><br>
- * {@link #QuizSet(String, String, User, Integer)} <br>
+ * {@link #QuizSet(String, String, User, Integer, List)} <br>
  * 빌더 패턴을 통해 제목, 설명, 제작자, 총 퀴즈 수를 입력받아 인스턴스를 생성합니다. <br>
  *
  * @author MintyU
@@ -61,19 +66,29 @@ public class QuizSet extends BaseEntity {
     private Integer totalQuizCount;
 
     /**
+     * 이 퀴즈 세트에 포함된 개별 퀴즈 목록입니다.
+     */
+    @OneToMany(mappedBy = "quizSet", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Quiz> quizzes = new ArrayList<>();
+
+    /**
      * 빌더 패턴을 이용한 생성자입니다.
      *
      * @param title 제목
      * @param description 설명
      * @param creator 제작자
      * @param totalQuizCount 총 퀴즈 수
+     * @param quizzes 퀴즈 목록
      */
     @Builder
-    private QuizSet(String title, String description, User creator, Integer totalQuizCount) {
+    private QuizSet(String title, String description, User creator, Integer totalQuizCount, List<Quiz> quizzes) {
         this.title = title;
         this.description = description;
         this.creator = creator;
         this.totalQuizCount = totalQuizCount;
+        if (quizzes != null) {
+            this.quizzes = quizzes;
+        }
     }
 
     /**

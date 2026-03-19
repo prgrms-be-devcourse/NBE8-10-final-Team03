@@ -35,5 +35,5 @@ public class QuizSetCreateRequest {
 
     @NotNull(message = "총 문제 수는 필수입니다.")
     @PositiveOrZero(message = "총 문제 수는 0 이상이어야 합니다.")
-    private Integer totalQuestionCount;
+    private Integer totalQuizCount;
 }

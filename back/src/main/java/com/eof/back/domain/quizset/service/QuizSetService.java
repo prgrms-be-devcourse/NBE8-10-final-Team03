@@ -2,6 +2,9 @@ package com.eof.back.domain.quizset.service;
 
 import com.eof.back.domain.quizset.dto.QuizSetCreateRequest;
 import com.eof.back.domain.quizset.dto.QuizSetCreateResponse;
+import com.eof.back.domain.quizset.dto.QuizSetListResponse;
+import com.eof.back.domain.quizset.dto.QuizSetResponse;
+import java.util.List;
 
 /**
  * 퀴즈 세트(QuizSet) 도메인의 비즈니스 로직을 정의하는 서비스 인터페이스입니다.
@@ -40,4 +43,25 @@ public interface QuizSetService {
      * @throws RuntimeException (임시) 제작자 정보를 찾을 수 없을 경우 발생합니다.
      */
     QuizSetCreateResponse createQuizSet(QuizSetCreateRequest request);
+
+    /**
+     * 특정 식별자(ID)를 가진 퀴즈 세트의 상세 정보를 조회합니다.
+     * <p>
+     * 이 메서드는 퀴즈 세트의 기본 정보뿐만 아니라 소속된 모든 퀴즈 목록을 함께 반환합니다.
+     *
+     * @param id 조회할 퀴즈 세트의 식별자
+     * @return 퀴즈 목록을 포함한 퀴즈 세트 상세 정보
+     * @throws com.eof.back.global.exception.exceptions.QuizSetException 해당 ID의 퀴즈 세트가 존재하지 않을 경우 발생합니다.
+     */
+    QuizSetResponse getQuizSet(Long id);
+
+    /**
+     * 시스템에 등록된 모든 퀴즈 세트 목록을 조회합니다.
+     * <p>
+     * 목록 조회 시에는 데이터 전송 효율을 위해 개별 퀴즈들의 상세 목록은 제외하고,
+     * 각 퀴즈 세트의 요약 정보(제목, 제작자, 총 문제 수 등)만 반환합니다.
+     *
+     * @return 등록된 모든 퀴즈 세트의 요약 정보 목록
+     */
+    List<QuizSetListResponse> getAllQuizSets();
 }

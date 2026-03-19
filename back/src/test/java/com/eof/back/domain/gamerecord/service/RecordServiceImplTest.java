@@ -101,7 +101,7 @@ class RecordServiceImplTest {
         );
 
         given(userRepository.findById(userId)).willReturn(Optional.of(user));
-        given(gameRecordRepository.findByUserId(eq(userId), any(Pageable.class))).willReturn(page);
+        given(gameRecordRepository.findByUserIdWithSessionAndQuizSet(eq(userId), any(Pageable.class))).willReturn(page);
         given(gameRecordRepository.countByUserId(userId)).willReturn(1L);
         given(gameRecordRepository.countByUserIdAndSessionRanking(userId, 1)).willReturn(1L);
 

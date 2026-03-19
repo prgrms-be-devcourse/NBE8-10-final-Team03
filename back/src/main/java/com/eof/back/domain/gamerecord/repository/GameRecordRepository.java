@@ -1,9 +1,12 @@
 package com.eof.back.domain.gamerecord.repository;
 
 import com.eof.back.domain.gamerecord.entity.GameRecord;
+import io.lettuce.core.dynamic.annotation.Param;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+
 import java.util.List;
 
 /**
@@ -46,4 +49,13 @@ public interface GameRecordRepository extends JpaRepository<GameRecord, Long> {
      * @return 해당 유저의 게임 기록 목록 (최신순 정렬)
      */
     Page<GameRecord> findByUserId(Long userId, Pageable pageable);
+
+    @Query("SELECT gr FROM GameRecord gr " +
+            "JOIN FETCH gr.gameSession gs " +
+            "JOIN FETCH gs.quizSet " +
+            "WHERE gr.user.id = :userId")
+    Page<GameRecord> findByUserIdWithSessionAndQuizSet(
+            @Param("userId") Long userId,
+            Pageable pageable
+    );
 }

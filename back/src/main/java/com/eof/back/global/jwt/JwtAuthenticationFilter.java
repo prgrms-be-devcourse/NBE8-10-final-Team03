@@ -18,15 +18,11 @@ import java.util.List;
  * JWT 기반 사용자 인증을 처리하는 필터입니다.
  * <p>
  * 모든 HTTP 요청에 대해 Authorization 헤더의 Bearer 토큰을 확인하고,
- * 토큰이 유효한 경우 사용자 인증 정보를 생성하여 SecurityContext에 저장합니다.
+ * 토큰이 유효한 경우 사용자 정보를 생성하여 SecurityContext에 저장합니다.
  * 이를 통해 이후의 인가 처리에서 로그인된 사용자로 식별할 수 있도록 합니다.
  *
  * <p><b>상속 정보:</b><br>
  * {@link OncePerRequestFilter}를 상속하여 하나의 요청당 한 번만 실행되는 필터로 동작합니다.
- *
- * <p><b>주요 생성자:</b><br>
- * {@code JwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider)} <br>
- * JWT 검증 및 사용자 정보 추출에 필요한 {@link JwtTokenProvider}를 주입받습니다. <br>
  *
  * <p><b>빈 관리:</b><br>
  * SecurityConfig에서 필터 체인에 등록하여 사용합니다.
@@ -57,11 +53,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
      *
      * <p>토큰이 없거나 유효하지 않은 경우 인증 정보를 저장하지 않고 다음 필터로 전달합니다.
      *
-     * @param request HTTP 요청
-     * @param response HTTP 응답
+     * @param request     HTTP 요청
+     * @param response    HTTP 응답
      * @param filterChain 다음 필터 체인
      * @throws ServletException 서블릿 처리 중 예외가 발생한 경우
-     * @throws IOException I/O 예외가 발생한 경우
+     * @throws IOException      I/O 예외가 발생한 경우
      */
     @Override
     protected void doFilterInternal(HttpServletRequest request,

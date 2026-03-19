@@ -1,5 +1,6 @@
 package com.eof.back.global.config;
 
+import com.eof.back.global.jwt.JwtAuthenticationEntryPoint;
 import com.eof.back.global.jwt.JwtAuthenticationFilter;
 import com.eof.back.global.jwt.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +39,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtTokenProvider jwtTokenProvider;
+    private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
 
     /**
      * 비밀번호 암호화를 위한 PasswordEncoder Bean을 등록합니다.
@@ -76,6 +78,9 @@ public class SecurityConfig {
                                 "/api/v1/auth/login"
                         ).permitAll()
                         .anyRequest().authenticated()
+                )
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint(jwtAuthenticationEntryPoint)
                 )
                 .addFilterBefore(
                         new JwtAuthenticationFilter(jwtTokenProvider),

@@ -129,9 +129,10 @@ public class JwtTokenProvider {
      * 토큰의 유효성을 검증합니다.
      *
      * <p>서명, 형식, 만료 여부를 확인합니다.
+     * 유효하지 않은 경우 {@link AuthException}을 발생시킵니다.
      *
      * @param token JWT 토큰
-     * @return 유효하면 true, 그렇지 않으면 false
+     * @throws AuthException 토큰이 만료되었거나 유효하지 않은 경우
      */
     public void validateToken(String token) {
         try {

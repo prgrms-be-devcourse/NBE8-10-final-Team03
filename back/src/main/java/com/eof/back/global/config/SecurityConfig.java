@@ -3,6 +3,7 @@ package com.eof.back.global.config;
 import com.eof.back.global.jwt.JwtAuthenticationEntryPoint;
 import com.eof.back.global.jwt.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -48,6 +49,22 @@ public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    /**
+     * JwtAuthenticationFilter의 서블릿 자동 등록을 비활성화합니다.
+     *
+     * <p>@Component가 붙은 OncePerRequestFilter는 Spring Boot에 의해 서블릿 필터로
+     * 자동 등록됩니다. Security 필터 체인에도 등록되어 있으므로, 이중 실행을 방지합니다.
+     *
+     * @param filter JwtAuthenticationFilter 빈
+     * @return 자동 등록이 비활성화된 FilterRegistrationBean
+     */
+    @Bean
+    public FilterRegistrationBean<JwtAuthenticationFilter> jwtFilterRegistration(JwtAuthenticationFilter filter) {
+        FilterRegistrationBean<JwtAuthenticationFilter> registration = new FilterRegistrationBean<>(filter);
+        registration.setEnabled(false);
+        return registration;
     }
 
     /**

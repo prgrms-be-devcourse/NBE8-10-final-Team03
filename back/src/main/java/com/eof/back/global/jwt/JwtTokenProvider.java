@@ -1,7 +1,6 @@
 package com.eof.back.global.jwt;
 
 import com.eof.back.global.exception.errorCode.AuthErrorCode;
-import com.eof.back.global.exception.errorCode.ErrorCode;
 import com.eof.back.global.exception.exceptions.AuthException;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -16,7 +15,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
 /**
- * JWT 토큰을 생성하는 클래스입니다.
+ * JWT 토큰의 생성, 검증, 파싱을 담당하는 클래스입니다.
  *
  * <p>AccessToken / RefreshToken을 생성하며,
  * 토큰에는 사용자 식별 정보와 만료 시간(expiration)이 포함됩니다.
@@ -24,6 +23,7 @@ import java.util.Date;
  * <p><b>주요 역할:</b>
  * - AccessToken 생성 (인증용)
  * - RefreshToken 생성 (재발급용)
+ * - 토큰 검증 및 Claims 파싱
  *
  * @author 5h6vm
  * @since 2026-03-19
@@ -117,7 +117,7 @@ public class JwtTokenProvider {
      * @param token JWT 토큰
      * @return 토큰 내부 Claims 정보
      */
-    public Claims getClaims(String token) {
+    private Claims getClaims(String token) {
         return Jwts.parser()
                 .verifyWith(secretKey)         // 해당 secretKey로 서명을 검증합니다.
                 .build()

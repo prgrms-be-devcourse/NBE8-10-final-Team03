@@ -1,6 +1,7 @@
 package com.eof.back.global.jwt;
 
 import com.eof.back.global.exception.exceptions.AuthException;
+import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -69,13 +70,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String token = resolveToken(request);
 
         try {
-            // 2. 토큰이 존재하면 검증
+            // 2. 토큰이 존재하면 검증 후 Claims 반환 (파싱 1회)
             if (token != null) {
-                jwtTokenProvider.validateToken(token);
+                Claims claims = jwtTokenProvider.validateToken(token);
 
-                // 3. 토큰에서 사용자 정보 추출
-                String username = jwtTokenProvider.getUsername(token);
-                String role = jwtTokenProvider.getRole(token);
+                // 3. Claims에서 사용자 정보 추출
+                String username = claims.get("username", String.class);
+                String role = claims.get("role", String.class);
 
                 // 4. 권한 생성
                 List<SimpleGrantedAuthority> authorities =

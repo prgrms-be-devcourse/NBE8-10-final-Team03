@@ -6,6 +6,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import io.jsonwebtoken.Claims;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -40,12 +42,14 @@ class JwtTokenProviderTest {
     }
 
     @Test
-    @DisplayName("유효한 토큰 검증 성공")
+    @DisplayName("유효한 토큰 검증 성공 - Claims 반환")
     void validateToken_success() {
         String token = jwtTokenProvider.createAccessToken(1L, "testUser", "USER");
 
-        // 예외 없이 통과해야 함
-        jwtTokenProvider.validateToken(token);
+        Claims claims = jwtTokenProvider.validateToken(token);
+
+        assertThat(claims.get("username", String.class)).isEqualTo("testUser");
+        assertThat(claims.get("role", String.class)).isEqualTo("USER");
     }
 
     @Test

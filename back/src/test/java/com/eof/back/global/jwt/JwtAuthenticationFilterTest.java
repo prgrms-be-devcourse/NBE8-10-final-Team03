@@ -2,6 +2,7 @@ package com.eof.back.global.jwt;
 
 import com.eof.back.global.exception.errorCode.AuthErrorCode;
 import com.eof.back.global.exception.exceptions.AuthException;
+import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,9 +47,10 @@ class JwtAuthenticationFilterTest {
         request.addHeader("Authorization", "Bearer validToken");
         MockHttpServletResponse response = new MockHttpServletResponse();
 
-        doNothing().when(jwtTokenProvider).validateToken("validToken");
-        when(jwtTokenProvider.getUsername("validToken")).thenReturn("testUser");
-        when(jwtTokenProvider.getRole("validToken")).thenReturn("USER");
+        Claims claims = mock(Claims.class);
+        when(claims.get("username", String.class)).thenReturn("testUser");
+        when(claims.get("role", String.class)).thenReturn("USER");
+        when(jwtTokenProvider.validateToken("validToken")).thenReturn(claims);
 
         filter.doFilter(request, response, filterChain);
 

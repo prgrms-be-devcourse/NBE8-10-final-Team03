@@ -31,7 +31,7 @@ import java.time.LocalDateTime;
 
 @Builder
 public record GameSessionCreateResponse(
-        Long roomId,
+        Long gameSessionId,
         String roomName,
         Long hostUserId,
         Long quizSetId,
@@ -46,7 +46,7 @@ public record GameSessionCreateResponse(
      */
     public static GameSessionCreateResponse from(GameSession gameSession) {
         return GameSessionCreateResponse.builder()
-                .roomId(gameSession.getId())
+                .gameSessionId(gameSession.getId())
                 .roomName(gameSession.getRoomName())
                 .hostUserId(gameSession.getHost().getId())
                 .quizSetId(gameSession.getQuizSet().getId())

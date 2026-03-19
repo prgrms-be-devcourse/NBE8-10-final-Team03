@@ -4,6 +4,7 @@ import com.eof.back.domain.user.dto.UserSignupRequest;
 import com.eof.back.domain.user.dto.UserSignupResponse;
 import com.eof.back.domain.user.service.UserService;
 import com.eof.back.global.response.CommonResponse;
+import com.eof.back.global.response.Response;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -27,7 +28,7 @@ import java.net.URI;
 @RequestMapping(UserController.USERS_URI)
 @RequiredArgsConstructor
 public class UserController {
-    public static final String USERS_URI = "/api/v1/users";
+    public static final String USERS_URI = "/api/v1/auth";
     private final UserService userService;
 
     /**
@@ -37,7 +38,7 @@ public class UserController {
      * @return 생성된 사용자 정보
      */
     @PostMapping("/signup")
-    public ResponseEntity<CommonResponse<UserSignupResponse>> signup(
+    public ResponseEntity<Response<UserSignupResponse>> signup(
             @Valid @RequestBody UserSignupRequest request
     ) {
         UserSignupResponse response = userService.signup(request);

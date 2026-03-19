@@ -49,8 +49,6 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testRuntimeOnly("com.h2database:h2")
 
-    //스웨거 사용
-    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.2")
 }
 
 tasks.withType<Test> {

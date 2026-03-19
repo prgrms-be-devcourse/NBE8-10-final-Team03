@@ -5,6 +5,7 @@ import com.eof.back.domain.gamesession.dto.GameSessionCreateResponse;
 import com.eof.back.domain.gamesession.service.GameSessionService;
 import com.eof.back.domain.user.entity.User;
 import com.eof.back.global.response.CommonResponse;
+import com.eof.back.global.response.Response;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -42,7 +43,7 @@ public class GameSessionController {
     private final GameSessionService gameSessionService;
 
     @PostMapping
-    public ResponseEntity<CommonResponse<GameSessionCreateResponse>> createPost(
+    public ResponseEntity<Response<GameSessionCreateResponse>> createPost(
             @AuthenticationPrincipal User user,
             @Valid @RequestBody GameSessionCreateRequest request
     ) {

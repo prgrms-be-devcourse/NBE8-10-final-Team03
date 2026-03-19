@@ -24,10 +24,10 @@ import java.net.URI;
  * @since 2026-03-18
  */
 @RestController
-@RequestMapping("/api/v1/users")
+@RequestMapping(UserController.USERS_URI)
 @RequiredArgsConstructor
 public class UserController {
-
+    public static final String USERS_URI = "/api/v1/users";
     private final UserService userService;
 
     /**
@@ -42,7 +42,7 @@ public class UserController {
     ) {
         UserSignupResponse response = userService.signup(request);
 
-        return ResponseEntity.created(URI.create("/api/v1/users/" + response.userId()))
+        return ResponseEntity.created(URI.create(USERS_URI + response.userId()))
                 .body(CommonResponse.success(response, "회원가입이 완료되었습니다."));
     }
 }

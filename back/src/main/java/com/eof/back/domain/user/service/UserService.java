@@ -1,6 +1,8 @@
 package com.eof.back.domain.user.service;
 
 
+import com.eof.back.domain.user.dto.UserLoginRequest;
+import com.eof.back.domain.user.dto.UserLoginResponse;
 import com.eof.back.domain.user.dto.UserSignupRequest;
 import com.eof.back.domain.user.dto.UserSignupResponse;
 
@@ -22,5 +24,7 @@ public interface UserService {
      * @return 회원가입 결과 데이터
      */
     UserSignupResponse signup(UserSignupRequest req);
+
+    //UserLoginResponse login(UserLoginRequest request);
 
 }

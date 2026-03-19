@@ -1,5 +1,7 @@
 package com.eof.back.domain.user.service;
 
+import com.eof.back.domain.user.dto.UserLoginRequest;
+import com.eof.back.domain.user.dto.UserLoginResponse;
 import com.eof.back.domain.user.dto.UserSignupRequest;
 import com.eof.back.domain.user.dto.UserSignupResponse;
 import com.eof.back.domain.user.entity.User;
@@ -59,4 +61,11 @@ public class UserServiceImpl implements UserService {
             throw new AuthException(AuthErrorCode.NICKNAME_ALREADY_EXIST, "중복 닉네임: " + nickname);
         }
     }
+
+
+    /*@Override
+    @Transactional
+    public UserLoginResponse login(UserLoginRequest req) {
+        return UserLoginResponse
+    }*/
 }

@@ -26,7 +26,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 class QuizSetServiceTest {
 
     @InjectMocks
-    private QuizSetService quizSetService;
+    private QuizSetServiceImpl quizSetService;
 
     @Mock
     private QuizSetRepository quizSetRepository;

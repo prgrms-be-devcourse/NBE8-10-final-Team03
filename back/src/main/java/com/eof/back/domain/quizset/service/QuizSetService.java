@@ -2,57 +2,42 @@ package com.eof.back.domain.quizset.service;
 
 import com.eof.back.domain.quizset.dto.QuizSetCreateRequest;
 import com.eof.back.domain.quizset.dto.QuizSetCreateResponse;
-import com.eof.back.domain.quizset.entity.QuizSet;
-import com.eof.back.domain.quizset.repository.QuizSetRepository;
-import com.eof.back.domain.user.entity.User;
-import com.eof.back.domain.user.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 퀴즈 세트(QuizSet) 도메인의 비즈니스 로직을 처리하는 서비스입니다.
+ * 퀴즈 세트(QuizSet) 도메인의 비즈니스 로직을 정의하는 서비스 인터페이스입니다.
  * <p>
- * 퀴즈 세트의 생성, 조회, 수정, 삭제 등의 핵심 기능을 제공하며, 트랜잭션을 관리하여 데이터의 정합성을 보장합니다.
+ * 퀴즈 세트는 퀴즈들을 묶어 관리하는 최상위 엔티티로, 사용자들의 학습 및 게임 플레이의 중심이 됩니다.
+ * 이 인터페이스를 통해 퀴즈 세트의 생성, 조회, 수정, 삭제 등의 비즈니스 로직에 대한 규격을 정의합니다.
  *
- * <p><b>빈 관리:</b><br>
- * {@link org.springframework.stereotype.Service} 어노테이션을 통해 스프링 빈으로 관리됩니다. <br>
- * {@link lombok.RequiredArgsConstructor} 를 통한 생성자 주입을 사용합니다. <br>
+ * <p><b>주요 역할:</b><br>
+ * - 새로운 퀴즈 세트의 생성 및 초기 설정 <br>
+ * - 퀴즈 세트 정보의 조회 및 필터링 <br>
+ * - 퀴즈 세트의 소유권 및 권한 관리 (예정) <br>
+ * - 퀴즈 세트와 관련된 부가 기능(통계, 추천 등) 제공 (예정) <br>
+ *
+ * <p><b>예외 상황:</b><br>
+ * - 생성 요청 정보가 누락되거나 유효하지 않은 경우 예외가 발생할 수 있습니다. <br>
+ * - 제작자 정보를 찾을 수 없는 경우 예외가 발생할 수 있습니다. <br>
  *
  * @author MintyU
  * @since 2026-03-19
  */
-@Service
-@RequiredArgsConstructor
-@Transactional(readOnly = true)
-public class QuizSetService {
-
-    private final QuizSetRepository quizSetRepository;
-    private final UserRepository userRepository;
+public interface QuizSetService {
 
     /**
-     * 새로운 퀴즈 세트를 생성하고 저장합니다.
+     * 새로운 퀴즈 세트를 생성하고 영속성 컨텍스트에 저장합니다.
+     * <p>
+     * 전달받은 생성 요청 정보(DTO)를 바탕으로 {@link com.eof.back.domain.quizset.entity.QuizSet} 엔티티를 생성합니다.
+     * 생성 시 현재 로그인된 사용자를 제작자로 설정하며, 제목, 설명, 총 문제 수 등을 초기화합니다.
      *
-     * @param request 퀴즈 세트 생성 정보
-     * @return 생성된 퀴즈 세트 정보
+     * <p><b>비즈니스 규칙:</b><br>
+     * 1. 제목과 설명은 필수이며 공백일 수 없습니다. <br>
+     * 2. 총 문제 수는 1개 이상이어야 합니다. <br>
+     * 3. 제작자는 시스템에 등록된 유효한 사용자여야 합니다. <br>
+     *
+     * @param request 퀴즈 세트 생성에 필요한 정보 (제목, 설명, 총 문제 수 등)가 담긴 객체
+     * @return 생성된 퀴즈 세트의 식별자(ID)를 포함한 생성 결과 정보 (DTO)
+     * @throws RuntimeException (임시) 제작자 정보를 찾을 수 없을 경우 발생합니다.
      */
-    @Transactional
-    public QuizSetCreateResponse createQuizSet(QuizSetCreateRequest request) {
-        // TODO: 인증 기능 구현 후 현재 로그인된 사용자 정보를 가져오도록 수정
-        // 현재는 임시로 ID가 1L인 사용자를 제작자로 설정하거나, 없을 경우 에러 처리가 필요하나
-        // 여기서는 임시 Mock 로직으로 처리합니다.
-        User creator = userRepository.findById(1L)
-                .orElseThrow(() -> new RuntimeException("임시 사용자(ID: 1)를 찾을 수 없습니다."));
-
-        QuizSet quizSet = QuizSet.builder()
-                .title(request.getTitle())
-                .description(request.getDescription())
-                .creator(creator)
-                .totalQuizCount(request.getTotalQuestionCount())
-                .build();
-
-        QuizSet savedQuizSet = quizSetRepository.save(quizSet);
-
-        return QuizSetCreateResponse.from(savedQuizSet);
-    }
+    QuizSetCreateResponse createQuizSet(QuizSetCreateRequest request);
 }

@@ -7,11 +7,9 @@ import com.eof.back.domain.user.dto.UserSignupResponse;
 import com.eof.back.domain.user.entity.User;
 import com.eof.back.domain.user.repository.UserRepository;
 import com.eof.back.global.exception.errorCode.AuthErrorCode;
-import com.eof.back.global.exception.errorCode.ErrorCode;
 import com.eof.back.global.exception.exceptions.AuthException;
 import com.eof.back.global.jwt.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -22,6 +20,10 @@ import org.springframework.transaction.annotation.Transactional;
  *
  * {@link UserService}의 구현체로,
  * 사용자 도메인과 관련된 비즈니스 로직을 처리합니다.
+ *
+ * <p><b>주요 기능:</b><br>
+ * - 회원가입 (아이디/닉네임 중복 검증, 비밀번호 암호화, 동시성 충돌 처리)
+ * - 로그인 (비밀번호 검증, AccessToken/RefreshToken 발급)
  *
  * @author 5h6vm
  * @since 2026-03-18

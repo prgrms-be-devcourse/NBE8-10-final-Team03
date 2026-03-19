@@ -35,11 +35,14 @@ import static org.mockito.Mockito.*;
 /**
  * UserService의 비즈니스 로직을 검증하는 단위 테스트 클래스입니다.
  *
- * <p>Mockito를 사용하여 의존 객체(UserRepository, PasswordEncoder)를 Mock 처리하고
+ * <p>Mockito를 사용하여 의존 객체(UserRepository, PasswordEncoder, JwtTokenProvider)를 Mock 처리하고
  * 서비스 계층의 로직이 의도한 대로 동작하는지 검증합니다.</p>
  *
- * <p>현재는 회원가입(signup) 기능을 중심으로 테스트를 작성하며,
- * 향후 사용자 관련 비즈니스 로직이 추가될 경우 해당 테스트가 확장될 수 있습니다.</p>
+ * <p>테스트 범위:</p>
+ * <ul>
+ *     <li>회원가입 - 성공, 아이디/닉네임 중복 실패, 동시 요청 충돌</li>
+ *     <li>로그인 - 성공, 존재하지 않는 아이디, 비밀번호 불일치</li>
+ * </ul>
  *
  * @author 5h6vm
  * @since 2026-03-18

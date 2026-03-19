@@ -59,7 +59,7 @@ public class UserController {
      * <p>인증이 성공하면 JWT AccessToken 및 RefreshToken을 발급하여 반환합니다.
      *
      * @param request 로그인 요청 데이터 (username, password)
-     * @return 생성된 사용자 정보 (201 Created)
+     * @return AccessToken, RefreshToken 및 사용자 기본 정보 (200 OK)
      */
     @PostMapping("/login")
     public ResponseEntity<Response<UserLoginResponse>> login(

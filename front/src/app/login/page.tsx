@@ -1,0 +1,92 @@
+"use client";
+
+import Link from "next/link";
+
+export default function LoginPage() {
+  return (
+    <div className="flex min-h-screen">
+      {/* 좌측 비주얼 */}
+      <div className="relative w-1/2 bg-primary flex flex-col justify-center px-16 overflow-hidden">
+        <span className="absolute top-8 left-8 font-title text-[100px] text-white opacity-10 -rotate-12 select-none">?!</span>
+        <span className="absolute top-16 right-12 font-title text-[80px] text-white opacity-10 rotate-6 select-none">?</span>
+        <span className="absolute bottom-8 right-8 font-title text-[120px] text-white opacity-10 rotate-12 select-none">?!?</span>
+
+        <Link href="/" className="absolute top-8 left-8 font-title text-2xl z-10">
+          <span className="text-white">답</span>
+          <span className="text-white/80">정</span>
+          <span className="text-secondary">너</span>
+        </Link>
+
+        <h1 className="font-title text-5xl text-white mb-4 relative z-10">
+          다시 돌아왔구나!
+        </h1>
+        <p className="font-hand text-xl text-white/70 mb-10 relative z-10">
+          답을 맞출 준비 됐어?
+        </p>
+        <div className="flex gap-3 relative z-10">
+          <span className="px-4 py-2 border-2 border-white/40 rounded-full text-sm font-bold text-white bg-white/15">
+            실시간 대결
+          </span>
+          <span className="px-4 py-2 border-2 border-white/40 rounded-full text-sm font-bold text-white bg-white/15">
+            AI 채점
+          </span>
+          <span className="px-4 py-2 border-2 border-white/40 rounded-full text-sm font-bold text-white bg-white/15">
+            랭킹 경쟁
+          </span>
+        </div>
+      </div>
+
+      {/* 우측 폼 */}
+      <div className="w-1/2 bg-white flex items-center justify-center px-16">
+        <div className="w-full max-w-md">
+          <h2 className="font-title text-3xl mb-8">로그인</h2>
+
+          <div className="mb-4">
+            <label className="block text-sm font-bold mb-2">아이디</label>
+            <input
+              type="text"
+              placeholder="아이디를 입력하세요"
+              className="w-full px-4 py-3 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none transition-colors"
+            />
+          </div>
+          <div className="mb-6">
+            <label className="block text-sm font-bold mb-2">비밀번호</label>
+            <input
+              type="password"
+              placeholder="비밀번호를 입력하세요"
+              className="w-full px-4 py-3 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none transition-colors"
+            />
+          </div>
+
+          <button className="w-full py-4 bg-primary text-white font-bold text-lg border-[3px] border-dark rounded-xl shadow-kitsch hover:shadow-kitsch-lg hover:-translate-y-0.5 transition-all">
+            로그인
+          </button>
+
+          <div className="flex items-center my-6 gap-3">
+            <div className="flex-1 h-[2px] bg-gray-200"></div>
+            <span className="text-sm text-gray-400 font-bold">또는</span>
+            <div className="flex-1 h-[2px] bg-gray-200"></div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <button className="flex items-center justify-center gap-2 py-3 bg-[#FEE500] border-[3px] border-dark rounded-xl font-bold text-sm shadow-kitsch-sm hover:shadow-kitsch hover:-translate-y-0.5 transition-all">
+              <svg width="18" height="18" viewBox="0 0 18 18"><path d="M9 1C4.58 1 1 3.79 1 7.21c0 2.17 1.45 4.08 3.63 5.17l-.93 3.42c-.08.3.26.54.52.37l4.1-2.72c.22.02.44.03.68.03 4.42 0 8-2.79 8-6.27S13.42 1 9 1z" fill="#3C1E1E"/></svg>
+              카카오
+            </button>
+            <button className="flex items-center justify-center gap-2 py-3 bg-white border-[3px] border-dark rounded-xl font-bold text-sm shadow-kitsch-sm hover:shadow-kitsch hover:-translate-y-0.5 transition-all">
+              <svg width="18" height="18" viewBox="0 0 18 18"><path d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 01-1.8 2.72v2.26h2.92a8.78 8.78 0 002.68-6.62z" fill="#4285F4"/><path d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.8.54-1.83.86-3.04.86-2.34 0-4.32-1.58-5.03-3.71H.96v2.33A9 9 0 009 18z" fill="#34A853"/><path d="M3.97 10.71A5.41 5.41 0 013.68 9c0-.6.1-1.17.29-1.71V4.96H.96A9 9 0 000 9c0 1.45.35 2.82.96 4.04l3.01-2.33z" fill="#FBBC05"/><path d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.59C13.46.89 11.43 0 9 0A9 9 0 00.96 4.96l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58z" fill="#EA4335"/></svg>
+              Google
+            </button>
+          </div>
+
+          <p className="text-center mt-8 text-sm text-gray-500">
+            계정이 없다면?{" "}
+            <Link href="/signup" className="text-primary font-bold hover:underline">
+              회원가입
+            </Link>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}

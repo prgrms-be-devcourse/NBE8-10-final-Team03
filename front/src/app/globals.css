@@ -1,0 +1,24 @@
+@import url('https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Gaegu:wght@400;700&family=Noto+Sans+KR:wght@400;700&display=swap');
+
+@import "tailwindcss";
+
+@theme {
+  --color-cream: #FFF8E7;
+  --color-primary: #FF6B35;
+  --color-secondary: #FFD166;
+  --color-accent: #06D6A0;
+  --color-dark: #2B2D42;
+
+  --font-title: 'Black Han Sans', sans-serif;
+  --font-hand: 'Gaegu', cursive;
+  --font-body: 'Noto Sans KR', sans-serif;
+
+  --shadow-kitsch: 4px 4px 0px #2B2D42;
+  --shadow-kitsch-sm: 2px 2px 0px #2B2D42;
+  --shadow-kitsch-lg: 6px 6px 0px #2B2D42;
+}
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-3deg); }
+  75% { transform: rotate(3deg); }
+}

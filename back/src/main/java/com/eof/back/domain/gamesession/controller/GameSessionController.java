@@ -2,6 +2,7 @@ package com.eof.back.domain.gamesession.controller;
 
 import com.eof.back.domain.gamesession.dto.GameSessionCreateRequest;
 import com.eof.back.domain.gamesession.dto.GameSessionCreateResponse;
+import com.eof.back.domain.gamesession.dto.GameSessionListResponse;
 import com.eof.back.domain.gamesession.service.GameSessionService;
 import com.eof.back.domain.user.entity.User;
 import com.eof.back.global.response.CommonResponse;
@@ -13,6 +14,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
+import java.util.List;
 
 /**
  * 게임 세션(방) 생성 및 관련 API 요청을 처리하는 REST 컨트롤러입니다.
@@ -42,8 +44,15 @@ import java.net.URI;
 public class GameSessionController {
     private final GameSessionService gameSessionService;
 
+    /**
+     * 게임 세션을 만듭니다.
+     *
+     * @param user    호스트 유저 방장
+     * @param request GameSessionCreateRequest
+     * @return
+     */
     @PostMapping
-    public ResponseEntity<Response<GameSessionCreateResponse>> createPost(
+    public ResponseEntity<Response<GameSessionCreateResponse>> createGameSession(
             @AuthenticationPrincipal User user,
             @Valid @RequestBody GameSessionCreateRequest request
     ) {
@@ -51,5 +60,33 @@ public class GameSessionController {
 
         return ResponseEntity.created(URI.create("/api/v1/rooms/" + response.gameSessionId()))
                 .body(CommonResponse.success(response, "방 생성이 완료되었습니다."));
+    }
+
+    /**
+     * 전체 게임세션들을 리턴받습니다.
+     * GET /api/v1/rooms
+     *
+     * @return
+     */
+    @GetMapping
+    public ResponseEntity<Response<List<GameSessionListResponse>>> getAllGameSession() {
+        List<GameSessionListResponse> response = gameSessionService.getAllGameSessions();
+
+        return ResponseEntity.ok(CommonResponse.success(response));
+    }
+
+    /**
+     * 방 이름으로 검색하여 그에 해당하는 게임세션들을 리턴받습니다.
+     * GET /api/v1/rooms/search?roomName=방제목
+     *
+     * @param roomName 방 제목
+     * @return
+     */
+    @GetMapping("/search")
+    public ResponseEntity<Response<List<GameSessionListResponse>>> searchGameSessions(
+            @RequestParam("roomName") String roomName
+    ) {
+        List<GameSessionListResponse> response = gameSessionService.getGameSessionByRoomName(roomName);
+        return ResponseEntity.ok(CommonResponse.success(response));
     }
 }

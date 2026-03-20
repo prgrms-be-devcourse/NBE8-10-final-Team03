@@ -2,19 +2,17 @@ package com.eof.back.domain.gamesession.entity;
 
 import com.eof.back.domain.quizset.entity.QuizSet;
 import com.eof.back.domain.user.entity.User;
+import com.eof.back.global.exception.errorCode.GameSessionErrorCode;
+import com.eof.back.global.exception.exceptions.GameSessionException;
 import com.eof.back.global.jpa.entity.BaseEntity;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * <p>실시간 게임이 진행되는 방(세션)의 설정과 상태를 관리하는 엔티티입니다.</p>
@@ -65,21 +63,31 @@ public class GameSession extends BaseEntity {
     private GameSessionStatus status;
 
     /**
-     *현재 게임 방의 최대 플레이어수
+     * 현재 게임 방의 최대 플레이어수
      * 최소 2명이상
      */
     @Column(nullable = false)
     private Integer maxPlayers;
 
     /**
+     * 현재 게임 방의 플레이어 수
+     */
+    @Column(nullable = false)
+    private Integer currentPlayersCount;
+
+    @OneToMany(fetch = FetchType.LAZY)
+    @JoinColumn(name = "game_session_id")
+    private List<User> players = new ArrayList<>();
+
+    /**
      * 빌더 패턴을 이용한 생성자입니다.
      *
-     * @param roomName 방 제목
-     * @param host 방장
-     * @param quizSet 퀴즈 세트
+     * @param roomName   방 제목
+     * @param host       방장
+     * @param quizSet    퀴즈 세트
      * @param maxQuizzes 최대 퀴즈 수
      * @param maxPlayers 최대 플레이어 수
-     * @param status 게임 상태
+     * @param status     게임 상태
      */
     @Builder
     private GameSession(String roomName, User host, QuizSet quizSet, Integer maxQuizzes, Integer maxPlayers, GameSessionStatus status) {
@@ -88,6 +96,10 @@ public class GameSession extends BaseEntity {
         this.quizSet = quizSet;
         this.maxQuizzes = maxQuizzes;
         this.maxPlayers = maxPlayers;
+
+        // 방이 처음 생성될 때는 무조건 카운트를 0으로 초기화하고, 명단은 비워둡니다.
+        this.currentPlayersCount = 0;
+        this.players = new ArrayList<>();
         this.status = status != null ? status : GameSessionStatus.WAIT;
     }
 
@@ -95,14 +107,14 @@ public class GameSession extends BaseEntity {
      * GameSession 엔티티 생성을 위한 정적 팩토리 메서드입니다.
      * 생성 시 상태는 자동으로 WAIT으로 설정됩니다.
      *
-     * @param roomName 방 제목
-     * @param host 방장 (User 엔티티)
-     * @param quizSet 선택된 퀴즈 세트 (QuizSet 엔티티)
+     * @param roomName   방 제목
+     * @param host       방장 (User 엔티티)
+     * @param quizSet    선택된 퀴즈 세트 (QuizSet 엔티티)
      * @param maxQuizzes 세션 내 최대 퀴즈 수
      * @return 생성된 GameSession 엔티티 객체
      */
     public static GameSession of(String roomName, User host, QuizSet quizSet, Integer maxQuizzes, Integer maxPlayers) {
-        return GameSession.builder()
+        GameSession gameSession = GameSession.builder()
                 .roomName(roomName)
                 .host(host)
                 .quizSet(quizSet)
@@ -110,5 +122,36 @@ public class GameSession extends BaseEntity {
                 .maxPlayers(maxPlayers)
                 .status(GameSessionStatus.WAIT)
                 .build();
+
+        gameSession.join(host);
+
+        return gameSession;
+    }
+
+    /**
+     * 게임 세션에 참여할때 카운트를 증가시켜주고 List<User> players 리스트에 추가합니다.
+     *
+     * @param user
+     */
+
+    public void join(User user) {
+        if (this.currentPlayersCount >= this.maxPlayers) {
+            throw new GameSessionException(GameSessionErrorCode.PLAYERS_COUNT_EXCEEDED, "방이 가득 찼습니다.");
+        }
+        if (!this.players.contains(user)) {
+            this.players.add(user);
+            this.currentPlayersCount++;
+        }
+    }
+
+    /**
+     * 게임 세션에 나갈 때 카운트를 감소시켜주고 List<User> players 리스트에 제거합니다.
+     *
+     * @param user
+     */
+    public void leave(User user) {
+        if (this.players.remove(user)) {
+            this.currentPlayersCount--;
+        }
     }
 }

@@ -4,13 +4,11 @@ import com.eof.back.domain.gamesession.entity.GameSession;
 import com.eof.back.domain.gamesession.entity.GameSessionStatus;
 import lombok.Builder;
 
-import java.time.LocalDateTime;
-
 /**
- * 클라이언트에게 생성된 게임 세션(방)의 상세 정보를 전달하는 응답용 DTO입니다.
+ * 클라이언트에게 게임 세션(방) 목록의 요약 정보를 전달하는 응답용 DTO입니다.
  * <p>
- * 데이터베이스에 성공적으로 저장된 {@code GameSession} 엔티티 객체를 입력받아,
- * 클라이언트가 필요로 하는 응답 스펙에 맞춰 데이터를 매핑하고 불변 객체로 반환합니다.
+ * 데이터베이스에서 조회한 {@code GameSession} 엔티티 객체를 입력받아,
+ * 로비 화면 등에서 필요로 하는 응답 스펙에 맞춰 데이터를 매핑하고 불변 객체로 반환합니다.
  * 정적 팩토리 메서드({@code from})를 통해 엔티티와 DTO 간의 변환 로직을 캡슐화합니다.
  *
  * <p><b>상속 정보:</b><br>
@@ -27,34 +25,33 @@ import java.time.LocalDateTime;
  *
  * @author 유재원
  * @see com.eof.back.domain.gamesession.entity.GameSession
- * @since 2026-03-18
+ * @since 2026-03-20
  */
 
 @Builder
-public record GameSessionCreateResponse(
+public record GameSessionListResponse(
         Long gameSessionId,
         String roomName,
-        Long hostUserId,
+        String hostNickname,
         Long quizSetId,
-        Integer maxPlayers,
-        GameSessionStatus status,
-        LocalDateTime createdAt,
-        Integer maxQuizzes
+        String quizSetTitle,
+        int currentPlayerCount,
+        int maxPlayer,
+        GameSessionStatus status
 ) {
-
     /**
      * 엔티티(GameSession)를 받아서 응답용 DTO로 변환하는 정적 팩토리 메서드입니다.
      */
-    public static GameSessionCreateResponse from(GameSession gameSession) {
-        return GameSessionCreateResponse.builder()
+    public static GameSessionListResponse from(GameSession gameSession) {
+        return GameSessionListResponse.builder()
                 .gameSessionId(gameSession.getId())
                 .roomName(gameSession.getRoomName())
-                .hostUserId(gameSession.getHost().getId())
+                .hostNickname(gameSession.getHost().getNickname())
                 .quizSetId(gameSession.getQuizSet().getId())
-                .maxPlayers(gameSession.getMaxPlayers())
+                .quizSetTitle(gameSession.getQuizSet().getTitle())
+                .currentPlayerCount(gameSession.getCurrentPlayersCount())
+                .maxPlayer(gameSession.getMaxPlayers())
                 .status(gameSession.getStatus())
-                .createdAt(gameSession.getCreatedAt())
-                .maxQuizzes(gameSession.getMaxQuizzes())
                 .build();
     }
 }

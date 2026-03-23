@@ -6,6 +6,7 @@ import com.eof.back.global.response.CommonResponse;
 import com.eof.back.global.response.Response;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -43,7 +44,12 @@ public class RecordController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
-        Long userId = 1L; // TODO: 인증된 사용자 ID로 변경
+        if (page < 0) page = 0;
+        if (size < 1) size = 10;
+
+        Long userId = (Long) SecurityContextHolder.getContext()
+                .getAuthentication().getDetails();
+
         return ResponseEntity.ok(
                 CommonResponse.success(
                         recordService.getMyRecords(userId, page, size),

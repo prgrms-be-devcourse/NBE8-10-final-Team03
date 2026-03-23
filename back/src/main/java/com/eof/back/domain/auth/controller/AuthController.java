@@ -5,6 +5,7 @@ import com.eof.back.domain.auth.dto.ReissueRequest;
 import com.eof.back.domain.auth.dto.ReissueResponse;
 import com.eof.back.domain.auth.service.AuthService;
 import com.eof.back.global.response.CommonResponse;
+import com.eof.back.global.response.Response;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -48,7 +49,7 @@ public class AuthController {
      * @return 새로 발급된 Access Token, Refresh Token
      */
     @PostMapping("/reissue")
-    public ResponseEntity<CommonResponse<ReissueResponse>> reissue(
+    public ResponseEntity<Response<ReissueResponse>> reissue(
             @Valid @RequestBody ReissueRequest request
     ) {
         ReissueResponse response = authService.reissue(request.refreshToken());
@@ -65,7 +66,7 @@ public class AuthController {
      * @return 로그아웃 성공 응답
      */
     @PostMapping("/logout")
-    public ResponseEntity<CommonResponse<Void>> logout(
+    public ResponseEntity<Response<Void>> logout(
             @Valid @RequestBody LogoutRequest request
     ) {
         authService.logout(request.refreshToken());

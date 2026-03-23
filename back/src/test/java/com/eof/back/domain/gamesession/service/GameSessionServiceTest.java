@@ -10,6 +10,7 @@ import com.eof.back.domain.quizset.entity.QuizSet;
 import com.eof.back.domain.quizset.repository.QuizSetRepository;
 import com.eof.back.domain.user.entity.User;
 import com.eof.back.domain.user.repository.UserRepository;
+import com.eof.back.global.exception.exceptions.GameSessionException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -144,9 +145,9 @@ public class GameSessionServiceTest {
 
         // 지정한 예외가 발생하는지 검증
         assertThatThrownBy(() -> gameSessionService.deleteGameSession(userId, gameSessionId))
-                .isInstanceOf(RuntimeException.class); // Custom Exception 클래스로 변경해주세요 (예: GameSessionException.class)
+                .isInstanceOf(GameSessionException.class);
 
-        // delete 메서드가 절대 호출되지 않아야 함
+        // delete 메서드 호출 안됨
         verify(gameSessionRepository, never()).delete(any());
     }
 
@@ -164,11 +165,11 @@ public class GameSessionServiceTest {
         given(mockHost.getId()).willReturn(hostId);
         given(mockSession.getHost()).willReturn(mockHost);
         given(gameSessionRepository.findById(gameSessionId)).willReturn(Optional.of(mockSession));
-        
-        assertThatThrownBy(() -> gameSessionService.deleteGameSession(userId, gameSessionId))
-                .isInstanceOf(RuntimeException.class); // Custom Exception 클래스로 변경해주세요 (예: GameSessionException.class)
 
-        // delete 메서드가 절대 호출되지 않아야 함
+        assertThatThrownBy(() -> gameSessionService.deleteGameSession(userId, gameSessionId))
+                .isInstanceOf(GameSessionException.class);
+
+        // delete 메서드 호출 안됨
         verify(gameSessionRepository, never()).delete(any());
     }
 

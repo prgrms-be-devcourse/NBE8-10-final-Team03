@@ -33,7 +33,7 @@ jobs:
         run: |
           pip install google-genai PyGithub
 
-      - name: 🤖 Run Modern Gemini Review
+      - name: 🤖 Run Gemini Review
         shell: python
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
@@ -68,21 +68,37 @@ jobs:
                   client = genai.Client(api_key=os.environ['GEMINI_API_KEY'])
                   
                   all_comments = []
-                  for file_path, patch in diffs.items():
+                  emoji_map = {
+                      "HIGH": "🚨",   
+                      "MEDIUM": "⚠️", 
+                      "LOW": "💡"      
+                  }
+
+                  for file_path, patch in list(diffs.items())[:10]:
                       print(f"🔍 Analyzing: {file_path}")
                       
                       prompt = f"""
                       당신은 시니어 백엔드 개발자입니다. 다음 diff 내용을 리뷰하고 JSON 배열로만 응답하세요.
-                      심각한 보안, 성능, 로직 오류만 지적하세요. (파일: {file_path})
                       
-                      형식: [{{"line": 10, "message": "내용", "severity": "HIGH"}}]
+                      [리뷰 지침]
+                      1. 보안, 성능, 로직 오류 등 실질적인 문제를 우선 지적하세요.
+                      2. 수정이 필요한 경우, `suggestion` 필드에 해당 라인을 교체할 '완성된 코드'만 적어주세요.
+                      3. `suggestion` 필드는 마크다운 형식을 제외한 순수 코드 텍스트여야 합니다. 
+                      4. 수정 제안이 없으면 `suggestion` 필드를 비워두세요.
                       
-                      [diff]
+                      형식: [{{
+                        "line": 10, 
+                        "message": "리뷰 내용", 
+                        "severity": "HIGH", 
+                        "suggestion": "수정된 코드"
+                      }}]
+                      
+                      [파일: {file_path}]
                       {patch}
                       """
                       
                       response = client.models.generate_content(
-                          model="gemini-3.1-flash-lite-preview", 
+                          model="gemini-3.1-flash-lite", 
                           contents=prompt
                       )
                       
@@ -90,20 +106,29 @@ jobs:
                       if json_match:
                           reviews = json.loads(json_match.group())
                           for rev in reviews:
+                              sev = rev.get('severity', 'LOW').upper()
+                              icon = emoji_map.get(sev, "✨")
+                              
+                              body = f"{icon} **[{sev}]** {rev['message']}"
+                              
+                              if rev.get('suggestion'):
+                                  body += f"\n\n```suggestion\n{rev['suggestion']}\n```"
+                              
                               all_comments.append({
                                   "path": file_path,
                                   "line": int(rev['line']),
-                                  "body": f"🤖 **[{rev['severity']}]** {rev['message']}",
+                                  "body": body,
                                   "side": "RIGHT"
                               })
-                      time.sleep(1)
+                      
+                      time.sleep(4.1)
 
                   if all_comments:
                       commit = pr.get_commits().reversed[0]
-                      pr.create_review(commit=commit, body="Gemini Code Review 완료", 
+                      pr.create_review(commit=commit, body="⚡ **Gemini 3.1 Flash Lite Review**\n리뷰가 완료되었습니다. 제안된 수정 사항을 검토해 보세요.", 
                                        event="COMMENT", comments=all_comments[:15])
                   else:
-                      pr.create_issue_comment("✅ 분석 결과, 크리티컬한 이슈는 발견되지 않았습니다.")
+                      pr.create_issue_comment("✨ 분석 결과, 특별한 이슈가 발견되지 않았습니다. 깔끔한 코드네요!")
 
               except Exception as e:
                   print(f"💥 Error: {e}")

@@ -1,5 +1,6 @@
 package com.eof.back.global.jwt;
 
+import com.eof.back.domain.user.dto.UserPrincipal;
 import com.eof.back.global.exception.errorCode.AuthErrorCode;
 import com.eof.back.global.exception.exceptions.AuthException;
 import io.jsonwebtoken.Claims;
@@ -56,7 +57,13 @@ class JwtAuthenticationFilterTest {
         filter.doFilter(request, response, filterChain);
 
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isNotNull();
-        assertThat(SecurityContextHolder.getContext().getAuthentication().getName()).isEqualTo("testUser");
+        assertThat(SecurityContextHolder.getContext().getAuthentication().getPrincipal())
+                .isInstanceOf(UserPrincipal.class)
+                .satisfies(p -> {
+                    UserPrincipal principal = (UserPrincipal) p;
+                    assertThat(principal.id()).isEqualTo(1L);
+                    assertThat(principal.username()).isEqualTo("testUser");
+                });
         assertThat(SecurityContextHolder.getContext().getAuthentication().getAuthorities())
                 .anyMatch(a -> a.getAuthority().equals("ROLE_USER"));
         verify(filterChain).doFilter(request, response);

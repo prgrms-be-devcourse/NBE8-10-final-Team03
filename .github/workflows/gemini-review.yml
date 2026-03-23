@@ -155,7 +155,7 @@ jobs:
                               if rev.get('suggestion'):
                                   body += f"\n\n```suggestion\n{rev['suggestion']}\n```"
                               
-                              all_comments.append({{"path": path, "line": line, "body": body, "side": "RIGHT"}})
+                              all_comments.append({"path": path, "line": line, "body": body, "side": "RIGHT"})
                   else:
                       print("❌ Gemini 응답에서 유효한 JSON을 찾지 못했습니다.")
 

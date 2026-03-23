@@ -12,25 +12,17 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * 코드에 대한 전체적인 역할을 적습니다.
+ * 랭킹 조회 기능의 MySQL 기반 구현체입니다.
  * <p>
- * 코드에 대한 작동 원리 등을 적습니다.
- *
- * <p><b>상속 정보:</b><br>
- * 상속 정보를 적습니다.
- *
- * <p><b>주요 생성자:</b><br>
- * {@code RankingServiceImpl(String example)} <br>
- * 주요 생성자와 그 매개변수에 대한 설명을 적습니다. <br>
+ * {@link UserRepository}를 통해 User 테이블의
+ * totalRankingScore 기준 상위 10명을 조회합니다.
  *
  * <p><b>빈 관리:</b><br>
- * 필요 시 빈 관리에 대한 내용을 적습니다.
- *
- * <p><b>외부 모듈:</b><br>
- * 필요 시 외부 모듈에 대한 내용을 적습니다.
+ * {@code @Service}로 등록되며, 생성자 주입을 통해 의존성을 주입받습니다.
  *
  * @author Jaewon Ryu
- * @see
+ * @see RankingService
+ * @see UserRepository
  * @since 2026-03-23
  */
 @Service
@@ -40,6 +32,14 @@ public class RankingServiceImpl implements RankingService {
 
     private final UserRepository userRepository;
 
+    /**
+     * 상위 10명의 랭킹을 조회합니다.
+     * <p>
+     * User 테이블의 totalRankingScore를 기준으로
+     * 내림차순 정렬하여 상위 10명을 반환합니다.
+     *
+     * @return 상위 10명의 랭킹 정보 (순위, 닉네임, 점수)
+     */
     @Override
     public RankingResponseDto getTopRankings() {
 

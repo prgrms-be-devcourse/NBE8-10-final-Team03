@@ -11,25 +11,16 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 코드에 대한 전체적인 역할을 적습니다.
+ * 랭킹 조회 API를 처리하는 REST 컨트롤러입니다.
  * <p>
- * 코드에 대한 작동 원리 등을 적습니다.
- *
- * <p><b>상속 정보:</b><br>
- * 상속 정보를 적습니다.
- *
- * <p><b>주요 생성자:</b><br>
- * {@code RankingController(String example)} <br>
- * 주요 생성자와 그 매개변수에 대한 설명을 적습니다. <br>
- *
- * <p><b>빈 관리:</b><br>
- * 필요 시 빈 관리에 대한 내용을 적습니다.
- *
- * <p><b>외부 모듈:</b><br>
- * 필요 시 외부 모듈에 대한 내용을 적습니다.
+ * {@code /api/v1/rankings} 경로로 들어오는 요청을 처리하며,
+ * {@link RankingService}를 통해 상위 랭킹 데이터를 조회하여 반환합니다.
+ * <p>
+ * 비로그인 사용자도 접근 가능합니다.
  *
  * @author Jaewon Ryu
- * @see
+ * @see RankingService
+ * @see RankingResponseDto
  * @since 2026-03-23
  */
 @RestController

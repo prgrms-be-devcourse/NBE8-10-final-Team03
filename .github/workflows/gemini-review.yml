@@ -15,9 +15,7 @@ permissions:
 
 jobs:
   gemini-review:
-    if: |
-      github.event.issue.pull_request &&
-      contains(github.event.comment.body, '/gemini')
+    if: github.event.issue.pull_request && contains(github.event.comment.body, '/gemini')
     runs-on: ubuntu-latest
 
     steps:
@@ -26,16 +24,16 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: 🐍 Setup Python
+      - name: 🐍 Setup Python 3.12
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.12'
 
-      - name: 📦 Install dependencies
+      - name: 📦 Install Modern SDKs
         run: |
-          pip install google-generativeai PyGithub
+          pip install google-genai PyGithub
 
-      - name: 🤖 Run Gemini Review Script
+      - name: 🤖 Run Modern Gemini Review
         shell: python
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
@@ -46,69 +44,51 @@ jobs:
           import os
           import time
           import json
-          import subprocess
-          import google.generativeai as genai
-          from github import Github
           import re
+          from google import genai
+          from github import Github, Auth
 
-          def get_diff():
-              g = Github(os.environ['GITHUB_TOKEN'])
+          def get_diff_and_pr():
+              auth = Auth.Token(os.environ['GITHUB_TOKEN'])
+              g = Github(auth=auth)
               repo = g.get_repo(os.environ['REPO_NAME'])
               pr = repo.get_pull(int(os.environ['PR_NUMBER']))
               
-              files = pr.get_files()
-              diffs = {}
-              for f in files:
-                  if f.filename.endswith(('.java', '.kt', '.scala')):
-                      diffs[f.filename] = f.patch
+              diffs = {f.filename: f.patch for f in pr.get_files() 
+                       if f.filename.endswith(('.java', '.kt', '.scala')) and f.patch}
               return diffs, pr
-
-          def extract_json(text):
-              match = re.search(r'\[\s*\{.*\}\s*\]', text, re.DOTALL)
-              if match:
-                  return json.loads(match.group())
-              return []
 
           def main():
               try:
-                  diffs, pr = get_diff()
+                  diffs, pr = get_diff_and_pr()
                   if not diffs:
-                      print("ℹ️ 리뷰할 변경된 파일이 없습니다.")
+                      print("ℹ️ No target files to review.")
                       return
 
-                  genai.configure(api_key=os.environ['GEMINI_API_KEY'])
-                  model = genai.GenerativeModel('gemini-1.5-flash')
+                  client = genai.Client(api_key=os.environ['GEMINI_API_KEY'])
                   
                   all_comments = []
-                  commit = pr.get_commits().reversed[0]
-
                   for file_path, patch in diffs.items():
-                      if not patch: continue
-                      print(f"🔍 분석 중: {file_path}")
-
+                      print(f"🔍 Analyzing: {file_path}")
+                      
                       prompt = f"""
-                      당신은 시니어 백엔드 개발자입니다. 다음 Java/Kotlin 코드의 변경사항(diff)을 리뷰해주세요.
+                      당신은 시니어 백엔드 개발자입니다. 다음 diff 내용을 리뷰하고 JSON 배열로만 응답하세요.
+                      심각한 보안, 성능, 로직 오류만 지적하세요. (파일: {file_path})
                       
-                      [리뷰 가이드]
-                      1. 논리적 오류, 성능 이슈(N+1 쿼리 등), 보안 위협을 우선적으로 찾으세요.
-                      2. 사소한 컨벤션보다는 코드의 의도와 안정성을 중심으로 리뷰하세요.
-                      3. 반드시 아래 JSON 배열 형식으로만 응답하세요.
+                      형식: [{{"line": 10, "message": "내용", "severity": "HIGH"}}]
                       
-                      형식:
-                      [
-                        {{"line": 10, "message": "설명", "severity": "HIGH"}}
-                      ]
-
-                      [대상 파일: {file_path}]
+                      [diff]
                       {patch}
                       """
                       
-                      time.sleep(2)
-                      response = model.generate_content(prompt)
-                      print(f"🤖 Gemini 응답 ({file_path}): {response.text}")
-
-                      try:
-                          reviews = extract_json(response.text)
+                      response = client.models.generate_content(
+                          model="gemini-2.5-flash", 
+                          contents=prompt
+                      )
+                      
+                      json_match = re.search(r'\[.*\]', response.text, re.DOTALL)
+                      if json_match:
+                          reviews = json.loads(json_match.group())
                           for rev in reviews:
                               all_comments.append({
                                   "path": file_path,
@@ -116,18 +96,17 @@ jobs:
                                   "body": f"🤖 **[{rev['severity']}]** {rev['message']}",
                                   "side": "RIGHT"
                               })
-                      except Exception as e:
-                          print(f"❌ JSON 파싱 실패: {e}")
+                      time.sleep(1)
 
                   if all_comments:
-                      pr.create_review(commit=commit, body="🤖 Gemini AI 코드 리뷰 결과입니다.", 
+                      commit = pr.get_commits().reversed[0]
+                      pr.create_review(commit=commit, body="Gemini Code Review 완료", 
                                        event="COMMENT", comments=all_comments[:15])
-                      print(f"✅ {len(all_comments)}개의 댓글 작성 완료")
                   else:
-                      pr.create_issue_comment("✅ Gemini 분석 결과, 이번 변경사항에서 특이사항을 발견하지 못했습니다. (Diff 크기: {}자)".format(sum(len(p) for p in diffs.values() if p)))
+                      pr.create_issue_comment("✅ 분석 결과, 크리티컬한 이슈는 발견되지 않았습니다.")
 
               except Exception as e:
-                  print(f"💥 치명적 에러: {e}")
+                  print(f"💥 Error: {e}")
 
           if __name__ == "__main__":
               main()

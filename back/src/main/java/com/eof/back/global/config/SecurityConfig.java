@@ -95,8 +95,8 @@ public class SecurityConfig {
                                 "/api/v1/auth/reissue",
                                 "/api/v1/auth/logout",
 
-                                "/api/v1/quizsets"
-                                //TODO : 랭킹 추가
+                                "/api/v1/quizsets",
+                                "/api/v1/rankings"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

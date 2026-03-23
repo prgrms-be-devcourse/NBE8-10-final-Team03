@@ -1,10 +1,7 @@
 package com.eof.back.domain.user.service;
 
 
-import com.eof.back.domain.user.dto.UserLoginRequest;
-import com.eof.back.domain.user.dto.UserLoginResponse;
-import com.eof.back.domain.user.dto.UserSignupRequest;
-import com.eof.back.domain.user.dto.UserSignupResponse;
+import com.eof.back.domain.user.dto.*;
 
 /**
  * 사용자 도메인과 관련된 기능의 계약을 정의하는 서비스 인터페이스입니다.
@@ -37,4 +34,11 @@ public interface UserService {
      */
     UserLoginResponse login(UserLoginRequest request);
 
+    /**
+     * 로그인한 사용자의 정보를 조회합니다.
+     *
+     * @param userId 로그인한 사용자 ID
+     * @return 사용자 기본 정보
+     */
+    UserInfoResponse getMyInfo(Long userId);
 }

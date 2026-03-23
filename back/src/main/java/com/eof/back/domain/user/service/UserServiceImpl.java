@@ -1,9 +1,6 @@
 package com.eof.back.domain.user.service;
 
-import com.eof.back.domain.user.dto.UserLoginRequest;
-import com.eof.back.domain.user.dto.UserLoginResponse;
-import com.eof.back.domain.user.dto.UserSignupRequest;
-import com.eof.back.domain.user.dto.UserSignupResponse;
+import com.eof.back.domain.user.dto.*;
 import com.eof.back.domain.user.entity.User;
 import com.eof.back.domain.user.repository.UserRepository;
 import com.eof.back.global.exception.errorCode.AuthErrorCode;
@@ -88,6 +85,20 @@ public class UserServiceImpl implements UserService {
                 refreshToken,
                 user.getId(),
                 user.getNickname()
+        );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public UserInfoResponse getMyInfo(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND));
+
+        return new UserInfoResponse(
+                user.getId(),
+                user.getUsername(),
+                user.getNickname(),
+                user.getRole().name()
         );
     }
 }

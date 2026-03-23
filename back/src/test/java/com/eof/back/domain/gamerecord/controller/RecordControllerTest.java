@@ -20,6 +20,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.List;
 
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -35,9 +36,6 @@ class RecordControllerTest {
 
     @MockitoBean
     private JwtTokenProvider jwtTokenProvider;
-
-    @MockitoBean
-    private JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @BeforeEach
     void setUpAuth() {
@@ -95,5 +93,6 @@ class RecordControllerTest {
                         .param("page", "0")
                         .param("size", "0"))
                 .andExpect(status().isOk());
+        verify(recordService).getMyRecords(1L, 0, 10);
     }
 }

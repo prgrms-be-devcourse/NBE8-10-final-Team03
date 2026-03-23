@@ -125,7 +125,7 @@ jobs:
 
                 print("🚀 Gemini 3.1 Flash Lite에게 전체 맥락 분석 요청 중...")
                 response = client.models.generate_content(
-                    model="gemini-3.1-flash-lite", 
+                    model="gemini-3.1-flash-lite-preview", 
                     contents=prompt
                 )
 

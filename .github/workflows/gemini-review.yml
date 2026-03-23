@@ -44,6 +44,7 @@ jobs:
           import time
           import json
           import re
+          import sys
           from google import genai
           from github import Github, Auth
 
@@ -58,40 +59,39 @@ jobs:
               return diffs, pr
 
           def parse_numbered_patch(file_path, patch):
-            """각 줄 앞에 파일 경로와 줄 번호를 붙여 AI가 맥락을 잃지 않게 합니다."""
-            lines = patch.split('\n')
-            numbered_lines = [f"--- FILE: {file_path} ---"]
-            current_line = 0
-            valid_ranges = []
+              lines = patch.split('\n')
+              numbered_lines = [f"--- FILE: {file_path} ---"]
+              current_line = 0
+              valid_ranges = []
 
-            for line in lines:
-                if line.startswith('@@'):
-                    match = re.search(r'\+(\d+),(\d+)', line)
-                    if match:
-                        start, length = int(match.group(1)), int(match.group(2))
-                        current_line = start
-                        valid_ranges.append((start, start + length - 1))
-                    numbered_lines.append(line)
-                elif line.startswith('+'):
-                    numbered_lines.append(f"{current_line}: {line}")
-                    current_line += 1
-                elif line.startswith('-'):
-                    numbered_lines.append(line)
-                else:
-                    numbered_lines.append(f"{current_line}: {line}")
-                    current_line += 1
-                    
-            return "\n".join(numbered_lines), valid_ranges
+              for line in lines:
+                  if line.startswith('@@'):
+                      match = re.search(r'\+(\d+),(\d+)', line)
+                      if match:
+                          start, length = int(match.group(1)), int(match.group(2))
+                          current_line = start
+                          valid_ranges.append((start, start + length - 1))
+                      numbered_lines.append(line)
+                  elif line.startswith('+'):
+                      numbered_lines.append(f"{current_line}: {line}")
+                      current_line += 1
+                  elif line.startswith('-'):
+                      numbered_lines.append(line)
+                  else:
+                      numbered_lines.append(f"{current_line}: {line}")
+                      current_line += 1
+                      
+              return "\n".join(numbered_lines), valid_ranges
+
           def main():
               try:
                   print("📡 GitHub에서 PR 정보를 가져오는 중...")
                   diffs, pr = get_diff_and_pr()
                   
-                  # 디버깅: 찾은 파일 목록 출력
                   print(f"📁 감지된 리뷰 대상 파일: {list(diffs.keys())}")
                   
                   if not diffs:
-                      print("ℹ️ 리뷰할 대상 파일(.java, .kt, .scala)이나 변경 사항(patch)이 없습니다. 종료합니다.")
+                      print("ℹ️ 리뷰할 대상 파일이나 변경 사항이 없습니다. 종료합니다.")
                       return
 
                   client = genai.Client(api_key=os.environ['GEMINI_API_KEY'])
@@ -100,7 +100,6 @@ jobs:
                   all_valid_ranges = {}
 
                   for file_path, patch in diffs.items():
-                      # patch가 None인 경우 예외 처리
                       if not patch:
                           print(f"⚠️ {file_path} 의 patch 데이터가 없습니다. 스킵합니다.")
                           continue
@@ -117,36 +116,25 @@ jobs:
                   response = client.models.generate_content(
                       model="gemini-3.1-flash-lite-preview", 
                       contents=f"""
-                      당신은 시니어 백엔드 개발자입니다. 아래는 이번 PR에 포함된 **모든 파일**의 변경사항입니다.
+                      당신은 시니어 백엔드 개발자입니다. 아래는 이번 PR에 포함된 모든 파일의 변경사항입니다.
+                      파일 간의 연관 관계를 고려하여 심층 리뷰를 진행하세요.
 
-                파일 간의 연관 관계(호출부 변경, 인터페이스 일치 여부 등)를 고려하여 심층 리뷰를 진행하세요.
+                      [지침]
+                      1. 반드시 한국어로 응답하세요.
+                      2. 각 줄 앞의 숫자를 line 번호로 사용하고, path는 해당 파일의 경로를 정확히 기입하세요.
+                      3. 보안, 성능(N+1 쿼리 등), 파일 간 정합성 오류를 우선적으로 지적하세요.
+                      4. 수정이 필요한 경우, suggestion 필드에 교체할 완성된 코드만 적어주세요.
+                      5. 수정 제안이 없으면 suggestion 필드를 비워두세요.
+                      6. 결과는 반드시 아래 JSON 배열 형식으로만 출력하세요.
 
-                [지침]
-                1. 반드시 **한국어**로 응답하세요.
-                2. 각 줄 앞의 숫자를 `line` 번호로 사용하고, `path`는 해당 파일의 경로를 정확히 기입하세요.
-                3. 보안, 성능(N+1 쿼리 등), 파일 간 정합성 오류를 우선적으로 지적하세요.
-                4. 수정이 필요한 경우, `suggestion` 필드에 해당 라인을 교체할 '완성된 코드'만 적어주세요.
-                5. 수정 제안이 없으면 `suggestion` 필드를 비워두세요.
-                6. 결과는 반드시 아래 JSON 배열 형식으로만 출력하세요.
+                      형식: [{{"path": "파일경로", "line": 숫자, "message": "내용", "severity": "HIGH", "suggestion": "수정코드"}}]
 
-                형식: [{{
-                  "path": "파일경로",
-                  "line": 숫자,
-                  "message": "내용",
-                  "severity": "HIGH",
-                  "suggestion": "수정코드"
-                }}
-
-
-                [전체 변경사항]
-                {full_context_patch}
-                """
+                      [전체 변경사항]
+                      {full_context_patch}
+                      """
                   )
 
-                  # 디버깅: 응답 원문 로그 출력 (API 호출 성공 확인용)
                   print("📥 Gemini 응답 수신 완료.")
-                  print(f"DEBUG Response: {response.text}")
-
                   all_comments = []
                   emoji_map = {"HIGH": "🚨", "MEDIUM": "⚠️", "LOW": "💡"}
                   
@@ -167,9 +155,9 @@ jobs:
                               if rev.get('suggestion'):
                                   body += f"\n\n```suggestion\n{rev['suggestion']}\n```"
                               
-                              all_comments.append({"path": path, "line": line, "body": body, "side": "RIGHT"})
+                              all_comments.append({{"path": path, "line": line, "body": body, "side": "RIGHT"}})
                   else:
-                      print("❌ Gemini의 응답에서 유효한 JSON 형식을 찾을 수 없습니다.")
+                      print("❌ Gemini 응답에서 유효한 JSON을 찾지 못했습니다.")
 
                   if all_comments:
                       commit = pr.get_commits().reversed[0]
@@ -185,7 +173,6 @@ jobs:
 
               except Exception as e:
                   print(f"💥 실행 중 치명적 에러 발생: {e}")
-                  # 에러 발생 시 워크플로우를 명시적으로 실패 처리하려면 아래 주석 해제
                   raise e
 
           if __name__ == "__main__":

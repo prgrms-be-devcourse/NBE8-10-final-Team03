@@ -1,5 +1,7 @@
 package com.eof.back.domain.auth.service;
 
+import com.eof.back.domain.auth.dto.LoginRequest;
+import com.eof.back.domain.auth.dto.LoginResponse;
 import com.eof.back.domain.auth.dto.ReissueResponse;
 import com.eof.back.domain.auth.entity.RefreshToken;
 import com.eof.back.domain.auth.store.RefreshTokenStore;
@@ -11,6 +13,7 @@ import com.eof.back.global.jwt.JwtTokenProvider;
 import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,9 +49,33 @@ public class AuthServiceImpl implements AuthService {
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenStore refreshTokenStore;
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Value("${custom.jwt.refreshTokenExpirationSeconds}")
     private long refreshTokenExpireSeconds;
+
+    @Override
+    public LoginResponse login(LoginRequest req) {
+
+        // 1. username으로 사용자 조회
+        User user = userRepository.findByUsername(req.username())
+                .orElseThrow(() -> new AuthException(AuthErrorCode.INVALID_CREDENTIALS));
+
+        // 2. 비밀번호 검증
+        if (!passwordEncoder.matches(req.password(), user.getPassword())) {
+            throw new AuthException(AuthErrorCode.INVALID_CREDENTIALS);
+        }
+
+        // 3. AccessToken, RefreshToken 생성
+        String accessToken = jwtTokenProvider.createAccessToken(user.getId(), user.getUsername(), user.getRole().name());
+        String refreshToken = jwtTokenProvider.createRefreshToken(user.getId());
+
+        // 4. RefreshToken 저장
+        LocalDateTime refreshTokenExpiredAt = LocalDateTime.now().plusSeconds(refreshTokenExpireSeconds);
+        refreshTokenStore.save(user.getId(), refreshToken, refreshTokenExpiredAt);
+
+        return new LoginResponse(accessToken, refreshToken, user.getId(), user.getNickname());
+    }
 
     @Override
     public ReissueResponse reissue(String refreshToken) {

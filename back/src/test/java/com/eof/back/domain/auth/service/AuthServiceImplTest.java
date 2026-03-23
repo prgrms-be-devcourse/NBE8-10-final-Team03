@@ -1,5 +1,7 @@
 package com.eof.back.domain.auth.service;
 
+import com.eof.back.domain.auth.dto.LoginRequest;
+import com.eof.back.domain.auth.dto.LoginResponse;
 import com.eof.back.domain.auth.dto.ReissueResponse;
 import com.eof.back.domain.auth.entity.RefreshToken;
 import com.eof.back.domain.auth.store.RefreshTokenStore;
@@ -18,6 +20,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
@@ -29,6 +32,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 /**
@@ -51,6 +55,9 @@ public class AuthServiceImplTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private PasswordEncoder passwordEncoder;
+
     @InjectMocks
     private AuthServiceImpl authService;
 
@@ -62,6 +69,74 @@ public class AuthServiceImplTest {
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(authService, "refreshTokenExpireSeconds", 604800L);
+    }
+
+    @Nested
+    @DisplayName("login")
+    class Login {
+
+        @Test
+        @DisplayName("성공 - AccessToken과 RefreshToken을 반환한다")
+        void success() {
+            // given
+            LoginRequest req = new LoginRequest("testUser", "password123");
+            User user = mock(User.class);
+
+            given(userRepository.findByUsername("testUser")).willReturn(Optional.of(user));
+            given(user.getPassword()).willReturn("encodedPassword");
+            given(passwordEncoder.matches("password123", "encodedPassword")).willReturn(true);
+            given(user.getId()).willReturn(USER_ID);
+            given(user.getUsername()).willReturn("testUser");
+            given(user.getRole()).willReturn(Role.USER);
+            given(user.getNickname()).willReturn("tester");
+            given(jwtTokenProvider.createAccessToken(USER_ID, "testUser", "USER")).willReturn(NEW_ACCESS_TOKEN);
+            given(jwtTokenProvider.createRefreshToken(USER_ID)).willReturn(NEW_REFRESH_TOKEN);
+
+            // when
+            LoginResponse response = authService.login(req);
+
+            // then
+            assertThat(response.accessToken()).isEqualTo(NEW_ACCESS_TOKEN);
+            assertThat(response.refreshToken()).isEqualTo(NEW_REFRESH_TOKEN);
+            assertThat(response.nickname()).isEqualTo("tester");
+            verify(refreshTokenStore).save(eq(USER_ID), eq(NEW_REFRESH_TOKEN), any(LocalDateTime.class));
+        }
+
+        @Test
+        @DisplayName("실패 - 존재하지 않는 아이디면 INVALID_CREDENTIALS 예외가 발생한다")
+        void fail_userNotFound() {
+            // given
+            LoginRequest req = new LoginRequest("testUser", "password123");
+            given(userRepository.findByUsername("testUser")).willReturn(Optional.empty());
+
+            // when & then
+            assertThatThrownBy(() -> authService.login(req))
+                    .isInstanceOf(AuthException.class)
+                    .satisfies(e -> assertThat(((AuthException) e).getErrorCode())
+                            .isEqualTo(AuthErrorCode.INVALID_CREDENTIALS));
+
+            verify(passwordEncoder, never()).matches(any(), any());
+        }
+
+        @Test
+        @DisplayName("실패 - 비밀번호가 일치하지 않으면 INVALID_CREDENTIALS 예외가 발생한다")
+        void fail_invalidPassword() {
+            // given
+            LoginRequest req = new LoginRequest("testUser", "wrongPassword");
+            User user = mock(User.class);
+
+            given(userRepository.findByUsername("testUser")).willReturn(Optional.of(user));
+            given(user.getPassword()).willReturn("encodedPassword");
+            given(passwordEncoder.matches("wrongPassword", "encodedPassword")).willReturn(false);
+
+            // when & then
+            assertThatThrownBy(() -> authService.login(req))
+                    .isInstanceOf(AuthException.class)
+                    .satisfies(e -> assertThat(((AuthException) e).getErrorCode())
+                            .isEqualTo(AuthErrorCode.INVALID_CREDENTIALS));
+
+            verify(jwtTokenProvider, never()).createAccessToken(any(), any(), any());
+        }
     }
 
     @Nested

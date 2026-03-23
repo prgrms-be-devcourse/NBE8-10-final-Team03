@@ -1,4 +1,4 @@
-package com.eof.back.domain.user.dto;
+package com.eof.back.domain.auth.dto;
 
 import jakarta.validation.constraints.NotBlank;
 
@@ -9,9 +9,9 @@ import jakarta.validation.constraints.NotBlank;
  * Validation 어노테이션을 통해 기본적인 입력값 검증을 수행합니다.</p>
  *
  * @author 5h6vm
- * @since 2026-03-19
+ * @since 2026-03-23
  */
-public record UserLoginRequest(
+public record LoginRequest(
         @NotBlank(message = "아이디는 필수입니다.")
         String username,
 

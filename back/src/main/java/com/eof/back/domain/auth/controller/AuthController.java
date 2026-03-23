@@ -1,5 +1,7 @@
 package com.eof.back.domain.auth.controller;
 
+import com.eof.back.domain.auth.dto.LoginRequest;
+import com.eof.back.domain.auth.dto.LoginResponse;
 import com.eof.back.domain.auth.dto.LogoutRequest;
 import com.eof.back.domain.auth.dto.ReissueRequest;
 import com.eof.back.domain.auth.dto.ReissueResponse;
@@ -17,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * 인증 관련 요청을 처리하는 컨트롤러입니다.
  * <p>
- * Refresh Token을 이용한 토큰 재발급과 로그아웃 요청을 처리합니다.
+ * 로그인, Refresh Token을 이용한 토큰 재발급과 로그아웃 요청을 처리합니다.
  *
  * <p><b>상속 정보:</b><br>
  * 별도의 상속 없이 인증 API 엔드포인트를 제공하는 컨트롤러입니다.
@@ -41,6 +43,23 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final AuthService authService;
+
+    /**
+     * 사용자 자격증명을 검증하고 AccessToken과 RefreshToken을 발급합니다.
+     *
+     * @param request 로그인 요청 DTO (username, password)
+     * @return 발급된 AccessToken, RefreshToken 및 사용자 기본 정보
+     */
+    @PostMapping("/login")
+    public ResponseEntity<Response<LoginResponse>> login(
+            @Valid @RequestBody LoginRequest request
+    ) {
+        LoginResponse response = authService.login(request);
+
+        return ResponseEntity.ok(
+                CommonResponse.success(response, "로그인에 성공했습니다.")
+        );
+    }
 
     /**
      * Refresh Token을 이용해 Access Token과 Refresh Token을 재발급합니다.

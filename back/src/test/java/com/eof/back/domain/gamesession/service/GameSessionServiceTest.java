@@ -10,6 +10,7 @@ import com.eof.back.domain.quizset.entity.QuizSet;
 import com.eof.back.domain.quizset.repository.QuizSetRepository;
 import com.eof.back.domain.user.entity.User;
 import com.eof.back.domain.user.repository.UserRepository;
+import com.eof.back.global.exception.exceptions.GameSessionException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,9 +22,13 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.never;
 
 @ExtendWith(MockitoExtension.class)
 public class GameSessionServiceTest {
@@ -104,6 +109,68 @@ public class GameSessionServiceTest {
 
         assertThat(responses).hasSize(1);
         assertThat(responses.get(0).roomName()).isEqualTo("상식 배틀방");
+    }
+
+    @Test
+    @DisplayName("게임 세션 삭제 성공 테스트")
+    void deleteGameSession_Success() {
+        // given
+        Long userId = 1L; // 삭제를 요청한 유저 아이디
+        Long gameSessionId = 10L;
+
+        GameSession mockSession = mock(GameSession.class);
+        User mockHost = mock(User.class);
+
+        // 방장의 ID가 요청한 유저의 ID와 동일하도록 설정
+        given(mockHost.getId()).willReturn(userId);
+        given(mockSession.getHost()).willReturn(mockHost);
+        given(gameSessionRepository.findById(gameSessionId)).willReturn(Optional.of(mockSession));
+
+        // when
+        gameSessionService.deleteGameSession(userId, gameSessionId);
+
+        // then
+        // delete 메서드가 정확히 1번 호출되었는지 검증
+        verify(gameSessionRepository, times(1)).delete(mockSession);
+    }
+
+    @Test
+    @DisplayName("게임 세션 삭제 실패 - 존재하지 않는 방")
+    void deleteGameSession_Fail_NotFound() {
+        Long userId = 1L;
+        Long gameSessionId = 10L;
+
+        // DB에서 방을 찾지 못한 상황 설정
+        given(gameSessionRepository.findById(gameSessionId)).willReturn(Optional.empty());
+
+        // 지정한 예외가 발생하는지 검증
+        assertThatThrownBy(() -> gameSessionService.deleteGameSession(userId, gameSessionId))
+                .isInstanceOf(GameSessionException.class);
+
+        // delete 메서드 호출 안됨
+        verify(gameSessionRepository, never()).delete(any());
+    }
+
+    @Test
+    @DisplayName("게임 세션 삭제 실패 - 방장이 아닌 유저가 요청")
+    void deleteGameSession_Fail_Unauthorized() {
+        Long userId = 1L; // 삭제를 요청한 유저 아이디 (일반 참가자)
+        Long hostId = 2L; // 실제 방장의 아이디
+        Long gameSessionId = 10L;
+
+        GameSession mockSession = mock(GameSession.class);
+        User mockHost = mock(User.class);
+
+        // 방장의 ID가 요청한 유저와 다르게 설정
+        given(mockHost.getId()).willReturn(hostId);
+        given(mockSession.getHost()).willReturn(mockHost);
+        given(gameSessionRepository.findById(gameSessionId)).willReturn(Optional.of(mockSession));
+
+        assertThatThrownBy(() -> gameSessionService.deleteGameSession(userId, gameSessionId))
+                .isInstanceOf(GameSessionException.class);
+
+        // delete 메서드 호출 안됨
+        verify(gameSessionRepository, never()).delete(any());
     }
 
     private void setupMockSession(GameSession session, Long id, String roomName, String hostName, Long quizId, String quizTitle) {

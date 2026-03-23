@@ -3,7 +3,6 @@ package com.eof.back.domain.gamesession.service;
 import com.eof.back.domain.gamesession.dto.GameSessionCreateRequest;
 import com.eof.back.domain.gamesession.dto.GameSessionCreateResponse;
 import com.eof.back.domain.gamesession.dto.GameSessionListResponse;
-import com.eof.back.domain.quizset.dto.QuizSetResponse;
 
 import java.util.List;
 
@@ -39,4 +38,12 @@ public interface GameSessionService {
      * @return 전체 게임 세션 정보 DTO 목록을 리턴합니다.
      */
     List<GameSessionListResponse> getAllGameSessions();
+
+    /**
+     * 유저가 호스트인지 검증하고 게임세션을 삭제합니다.
+     *
+     * @param userId        삭제요청을 보낸 유저의 아이디
+     * @param gameSessionId 게임세션의 아이디
+     */
+    void deleteGameSession(Long userId, Long gameSessionId);
 }

@@ -6,6 +6,7 @@ import com.eof.back.domain.gamesession.dto.GameSessionCreateResponse;
 import com.eof.back.domain.gamesession.dto.GameSessionListResponse;
 import com.eof.back.domain.gamesession.entity.GameSessionStatus;
 import com.eof.back.domain.gamesession.service.GameSessionService;
+import com.eof.back.global.jwt.JwtTokenProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -21,11 +22,14 @@ import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 
 @WebMvcTest(GameSessionController.class)
 public class GameSessionControllerTest {
@@ -38,6 +42,9 @@ public class GameSessionControllerTest {
 
     @MockitoBean
     private GameSessionService gameSessionService;
+
+    @MockitoBean
+    private JwtTokenProvider jwtTokenProvider;
 
     @Test
     @WithMockUser
@@ -114,5 +121,21 @@ public class GameSessionControllerTest {
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data[0].roomName").value("상식 배틀방"));
+    }
+
+    @Test
+    @WithMockUser
+    @DisplayName("게임 세션 삭제 성공 테스트")
+    void deleteGameSession_Success() throws Exception {
+        Long gameSessionId = 10L;
+
+
+        mockMvc.perform(delete("/api/v1/rooms/{gameSessionId}", gameSessionId)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isNoContent());
+
+        verify(gameSessionService).deleteGameSession(any(), eq(gameSessionId));
     }
 }

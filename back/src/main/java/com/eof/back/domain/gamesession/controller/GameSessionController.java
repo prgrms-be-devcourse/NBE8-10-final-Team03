@@ -46,6 +46,7 @@ public class GameSessionController {
 
     /**
      * 게임 세션을 만듭니다.
+     * POST /api/v1/rooms
      *
      * @param user    호스트 유저 방장
      * @param request GameSessionCreateRequest
@@ -88,5 +89,25 @@ public class GameSessionController {
     ) {
         List<GameSessionListResponse> response = gameSessionService.getGameSessionByRoomName(roomName);
         return ResponseEntity.ok(CommonResponse.success(response));
+    }
+
+    /**
+     * 게임세션을 삭제합니다.
+     * DELETE /api/v1/rooms/{gameSession_Id}
+     *
+     * @param user          해당 게임세션을 삭제요청 보낸 유저
+     * @param gameSessionId 해당 게임세션의 아이디
+     * @return
+     */
+
+    @DeleteMapping("/{gameSessionId}")
+    public ResponseEntity<Void> deleteGameSession(
+            @AuthenticationPrincipal User user,
+            @PathVariable Long gameSessionId
+    ) {
+        gameSessionService.deleteGameSession(user.getId(), gameSessionId);
+
+        // 204 No Content 상태 코드를 반환
+        return ResponseEntity.noContent().build();
     }
 }

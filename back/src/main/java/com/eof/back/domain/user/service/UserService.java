@@ -11,6 +11,7 @@ import com.eof.back.domain.user.dto.*;
  * <p><b>주요 기능:</b><br>
  * - 회원가입
  * - 로그인
+ * - 내 정보 조회
  *
  * @author 5h6vm
  * @since 2026-03-18

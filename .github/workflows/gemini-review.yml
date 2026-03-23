@@ -186,4 +186,11 @@ jobs:
               except Exception as e:
                   print(f"💥 실행 중 치명적 에러 발생: {e}")
                   # 에러 발생 시 워크플로우를 명시적으로 실패 처리하려면 아래 주석 해제
-                  # raise e
+                  raise e
+
+          if __name__ == "__main__":
+              try:
+                  main()
+              except KeyboardInterrupt:
+                  print("\n⚡ 작업이 중단되었습니다.")
+                  sys.exit(0)

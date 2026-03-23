@@ -4,6 +4,7 @@ import com.eof.back.domain.gamesession.dto.GameSessionCreateRequest;
 import com.eof.back.domain.gamesession.dto.GameSessionCreateResponse;
 import com.eof.back.domain.gamesession.dto.GameSessionListResponse;
 import com.eof.back.domain.gamesession.service.GameSessionService;
+import com.eof.back.domain.user.dto.UserPrincipal;
 import com.eof.back.domain.user.entity.User;
 import com.eof.back.global.response.CommonResponse;
 import com.eof.back.global.response.Response;
@@ -48,16 +49,16 @@ public class GameSessionController {
      * 게임 세션을 만듭니다.
      * POST /api/v1/rooms
      *
-     * @param user    호스트 유저 방장
-     * @param request GameSessionCreateRequest
+     * @param userPrincipal 호스트 유저 방장
+     * @param request       GameSessionCreateRequest
      * @return
      */
     @PostMapping
     public ResponseEntity<Response<GameSessionCreateResponse>> createGameSession(
-            @AuthenticationPrincipal User user,
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
             @Valid @RequestBody GameSessionCreateRequest request
     ) {
-        GameSessionCreateResponse response = gameSessionService.createGameSession(user.getId(), request);
+        GameSessionCreateResponse response = gameSessionService.createGameSession(userPrincipal.id(), request);
 
         return ResponseEntity.created(URI.create("/api/v1/rooms/" + response.gameSessionId()))
                 .body(CommonResponse.success(response, "방 생성이 완료되었습니다."));
@@ -95,17 +96,17 @@ public class GameSessionController {
      * 게임세션을 삭제합니다.
      * DELETE /api/v1/rooms/{gameSession_Id}
      *
-     * @param user          해당 게임세션을 삭제요청 보낸 유저
+     * @param userPrincipal 해당 게임세션을 삭제요청 보낸 유저
      * @param gameSessionId 해당 게임세션의 아이디
      * @return
      */
 
     @DeleteMapping("/{gameSessionId}")
     public ResponseEntity<Void> deleteGameSession(
-            @AuthenticationPrincipal User user,
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
             @PathVariable Long gameSessionId
     ) {
-        gameSessionService.deleteGameSession(user.getId(), gameSessionId);
+        gameSessionService.deleteGameSession(userPrincipal.id(), gameSessionId);
 
         // 204 No Content 상태 코드를 반환
         return ResponseEntity.noContent().build();

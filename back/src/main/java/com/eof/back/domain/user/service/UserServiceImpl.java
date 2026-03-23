@@ -1,9 +1,6 @@
 package com.eof.back.domain.user.service;
 
-import com.eof.back.domain.user.dto.UserLoginRequest;
-import com.eof.back.domain.user.dto.UserLoginResponse;
-import com.eof.back.domain.user.dto.UserSignupRequest;
-import com.eof.back.domain.user.dto.UserSignupResponse;
+import com.eof.back.domain.user.dto.*;
 import com.eof.back.domain.user.entity.User;
 import com.eof.back.domain.user.repository.UserRepository;
 import com.eof.back.global.exception.errorCode.AuthErrorCode;
@@ -24,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
  * <p><b>주요 기능:</b><br>
  * - 회원가입 (아이디/닉네임 중복 검증, 비밀번호 암호화, 동시성 충돌 처리)
  * - 로그인 (비밀번호 검증, AccessToken/RefreshToken 발급)
+ * - 내 정보 조회 (사용자 ID로 조회)
  *
  * @author 5h6vm
  * @since 2026-03-18
@@ -88,6 +86,20 @@ public class UserServiceImpl implements UserService {
                 refreshToken,
                 user.getId(),
                 user.getNickname()
+        );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public UserInfoResponse getMyInfo(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND));
+
+        return new UserInfoResponse(
+                user.getId(),
+                user.getUsername(),
+                user.getNickname(),
+                user.getRole().name()
         );
     }
 }

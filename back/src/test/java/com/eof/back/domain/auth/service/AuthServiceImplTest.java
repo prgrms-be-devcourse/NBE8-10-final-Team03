@@ -14,6 +14,7 @@ import com.eof.back.global.exception.errorCode.AuthErrorCode;
 import com.eof.back.global.exception.exceptions.AuthException;
 import com.eof.back.global.jwt.JwtTokenProvider;
 import io.jsonwebtoken.Claims;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -33,11 +34,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 /**
  * AuthServiceImpl의 단위 테스트입니다.
@@ -144,7 +143,7 @@ public class AuthServiceImplTest {
             given(userRepository.existsByNickname("tester")).willReturn(false);
             given(passwordEncoder.encode("password1")).willReturn("encodedPassword");
             given(userRepository.saveAndFlush(any(User.class)))
-                    .willThrow(new org.springframework.dao.DataIntegrityViolationException("unique constraint violation"));
+                    .willThrow(new DataIntegrityViolationException("unique constraint violation"));
 
             // when & then
             assertThatThrownBy(() -> authService.signup(req))
@@ -302,6 +301,28 @@ public class AuthServiceImplTest {
         }
 
         @Test
+        @DisplayName("실패 - DB에 저장된 RefreshToken이 만료되면 TOKEN_EXPIRED 예외가 발생한다")
+        void fail_tokenExpiredInDb() {
+            // given
+            Claims claims = mock(Claims.class);
+            RefreshToken expiredToken = RefreshToken.builder()
+                    .userId(USER_ID)
+                    .token(REFRESH_TOKEN)
+                    .expiredAt(LocalDateTime.now().minusDays(1))
+                    .build();
+
+            given(jwtTokenProvider.validateToken(REFRESH_TOKEN)).willReturn(claims);
+            given(jwtTokenProvider.getUserId(claims)).willReturn(USER_ID);
+            given(refreshTokenStore.findByUserId(USER_ID)).willReturn(Optional.of(expiredToken));
+
+            // when & then
+            assertThatThrownBy(() -> authService.reissue(REFRESH_TOKEN))
+                    .isInstanceOf(AuthException.class)
+                    .satisfies(e -> assertThat(((AuthException) e).getErrorCode())
+                            .isEqualTo(AuthErrorCode.TOKEN_EXPIRED));
+        }
+
+        @Test
         @DisplayName("실패 - 저장된 토큰과 요청 토큰이 다르면 TOKEN_INVALID 예외가 발생한다")
         void fail_tokenMismatch() {
             // given
@@ -324,7 +345,7 @@ public class AuthServiceImplTest {
         }
 
         @Test
-        @DisplayName("실패 - 사용자가 존재하지 않으면 INVALID_CREDENTIALS 예외가 발생한다")
+        @DisplayName("실패 - 사용자가 존재하지 않으면 USER_NOT_FOUND 예외가 발생한다")
         void fail_userNotFound() {
             // given
             Claims claims = mock(Claims.class);
@@ -343,7 +364,7 @@ public class AuthServiceImplTest {
             assertThatThrownBy(() -> authService.reissue(REFRESH_TOKEN))
                     .isInstanceOf(AuthException.class)
                     .satisfies(e -> assertThat(((AuthException) e).getErrorCode())
-                            .isEqualTo(AuthErrorCode.INVALID_CREDENTIALS));
+                            .isEqualTo(AuthErrorCode.USER_NOT_FOUND));
         }
     }
 
@@ -401,6 +422,28 @@ public class AuthServiceImplTest {
                     .isInstanceOf(AuthException.class)
                     .satisfies(e -> assertThat(((AuthException) e).getErrorCode())
                             .isEqualTo(AuthErrorCode.TOKEN_INVALID));
+        }
+
+        @Test
+        @DisplayName("실패 - DB에 저장된 RefreshToken이 만료되면 TOKEN_EXPIRED 예외가 발생한다")
+        void fail_tokenExpiredInDb() {
+            // given
+            Claims claims = mock(Claims.class);
+            RefreshToken expiredToken = RefreshToken.builder()
+                    .userId(USER_ID)
+                    .token(REFRESH_TOKEN)
+                    .expiredAt(LocalDateTime.now().minusDays(1))
+                    .build();
+
+            given(jwtTokenProvider.validateToken(REFRESH_TOKEN)).willReturn(claims);
+            given(jwtTokenProvider.getUserId(claims)).willReturn(USER_ID);
+            given(refreshTokenStore.findByUserId(USER_ID)).willReturn(Optional.of(expiredToken));
+
+            // when & then
+            assertThatThrownBy(() -> authService.logout(REFRESH_TOKEN))
+                    .isInstanceOf(AuthException.class)
+                    .satisfies(e -> assertThat(((AuthException) e).getErrorCode())
+                            .isEqualTo(AuthErrorCode.TOKEN_EXPIRED));
         }
 
         @Test

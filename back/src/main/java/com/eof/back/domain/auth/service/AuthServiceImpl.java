@@ -106,72 +106,58 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public ReissueResponse reissue(String refreshToken) {
 
-        // 1. JWT 서명 및 만료 검증 → 유효하지 않으면 예외 발생
-        Claims claims = jwtTokenProvider.validateToken(refreshToken);
+        // 1. Refresh Token 검증 및 저장된 토큰 조회
+        RefreshToken savedRefreshToken = validateAndGetRefreshToken(refreshToken);
 
-        // 2. Claims에서 사용자 ID 추출
-        Long userId = jwtTokenProvider.getUserId(claims);
-
-        // 3. DB에 저장된 Refresh Token 조회
-        RefreshToken savedRefreshToken = refreshTokenStore.findByUserId(userId)
-                .orElseThrow(() -> new AuthException(AuthErrorCode.TOKEN_INVALID));
-
-        // 4. DB 저장 만료 시간 검증
-        if (savedRefreshToken.isExpired()) {
-            throw new AuthException(AuthErrorCode.TOKEN_EXPIRED);
-        }
-
-        // 5. 저장된 토큰과 요청 토큰 비교 (재사용/위변조 방지)
-        if (!savedRefreshToken.getToken().equals(refreshToken)) {
-            throw new AuthException(AuthErrorCode.TOKEN_INVALID);
-        }
-
-        // 6. 사용자 존재 여부 확인
-        User user = userRepository.findById(userId)
+        // 2. 사용자 존재 여부 확인
+        User user = userRepository.findById(savedRefreshToken.getUserId())
                 .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND));
 
-        // 7. 새로운 Access Token 생성
+        // 3. 새로운 Access Token, Refresh Token 생성
         String newAccessToken = jwtTokenProvider.createAccessToken(
                 user.getId(),
                 user.getUsername(),
                 user.getRole().name()
         );
-
-        // 8. 새로운 Refresh Token 생성
         String newRefreshToken = jwtTokenProvider.createRefreshToken(user.getId());
 
-        // 9. Refresh Token 만료 시간 계산 및 저장소 갱신
+        // 4. Refresh Token 저장소 갱신
         LocalDateTime refreshTokenExpiredAt = LocalDateTime.now().plusSeconds(refreshTokenExpireSeconds);
         refreshTokenStore.save(user.getId(), newRefreshToken, refreshTokenExpiredAt);
 
-        // 10. 새 토큰 반환
         return new ReissueResponse(newAccessToken, newRefreshToken);
     }
 
     @Override
     public void logout(String refreshToken) {
 
-        // 1. JWT 서명 및 만료 검증 → 유효하지 않으면 예외 발생
-        Claims claims = jwtTokenProvider.validateToken(refreshToken);
+        // 1. Refresh Token 검증 및 저장된 토큰 조회
+        RefreshToken savedRefreshToken = validateAndGetRefreshToken(refreshToken);
 
-        // 2. Claims에서 사용자 ID 추출
+        // 2. 저장소에서 Refresh Token 삭제
+        refreshTokenStore.delete(savedRefreshToken.getUserId());
+    }
+
+    private RefreshToken validateAndGetRefreshToken(String refreshToken) {
+
+        // JWT 서명 및 만료 검증
+        Claims claims = jwtTokenProvider.validateToken(refreshToken);
         Long userId = jwtTokenProvider.getUserId(claims);
 
-        // 3. DB에 저장된 Refresh Token 조회
+        // DB에 저장된 Refresh Token 조회
         RefreshToken savedRefreshToken = refreshTokenStore.findByUserId(userId)
                 .orElseThrow(() -> new AuthException(AuthErrorCode.TOKEN_INVALID));
 
-        // 4. DB 저장 만료 시간 검증
+        // DB 저장 만료 시간 검증
         if (savedRefreshToken.isExpired()) {
             throw new AuthException(AuthErrorCode.TOKEN_EXPIRED);
         }
 
-        // 5. 저장된 토큰과 요청 토큰 비교
+        // 저장된 토큰과 요청 토큰 비교 (재사용/위변조 방지)
         if (!savedRefreshToken.getToken().equals(refreshToken)) {
             throw new AuthException(AuthErrorCode.TOKEN_INVALID);
         }
 
-        // 6. 저장소에서 Refresh Token 삭제
-        refreshTokenStore.delete(userId);
+        return savedRefreshToken;
     }
 }

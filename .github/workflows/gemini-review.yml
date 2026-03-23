@@ -1,0 +1,122 @@
+name: Gemini Command-based Review
+
+on:
+  issue_comment:
+    types: [created]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.issue.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: read
+
+jobs:
+  gemini-review:
+    if: |
+      github.event.issue.pull_request &&
+      contains(github.event.comment.body, '/gemini')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🔍 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: 📦 Install dependencies
+        run: |
+          pip install google-generativeai PyGithub
+
+      - name: 🤖 Run Gemini Review Script
+        shell: python
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO_NAME: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          import os
+          import time
+          import json
+          import subprocess
+          import google.generativeai as genai
+          from github import Github
+
+          def get_diff(repo, pr, file_path):
+              # PR의 base와 head 사이의 정확한 diff 추출
+              result = subprocess.run(
+                  ['git', 'diff', f'origin/{pr.base.ref}', f'origin/{pr.head.ref}', '--', file_path],
+                  capture_output=True, text=True
+              )
+              return result.stdout
+
+          def analyze_code(model, file_path, diff_content):
+              prompt = f"""
+              당신은 시니어 백엔드 개발자입니다. 다음 '{file_path}'의 변경사항을 리뷰해주세요.
+              
+              [필수 규칙]
+              1. 보안, 성능(JPA N+1 등), 로직 오류 등 '매우 중요한' 이슈만 지적하세요.
+              2. 사소한 컨벤션은 무시하여 댓글 도배를 방지하세요.
+              3. 반드시 아래 JSON 배열 형식으로만 응답하세요. (설명 생략)
+              
+              형식:
+              [
+                {{"line": 15, "message": "내용", "severity": "HIGH"}},
+                {{"line": 22, "message": "내용", "severity": "MEDIUM"}}
+              ]
+
+              [diff]
+              {diff_content}
+              """
+              try:
+                  response = model.generate_content(prompt)
+                  json_text = response.text.replace('```json', '').replace('```', '').strip()
+                  return json.loads(json_text)
+              except:
+                  return []
+
+          def main():
+              g = Github(os.environ['GITHUB_TOKEN'])
+              repo = g.get_repo(os.environ['REPO_NAME'])
+              pr = repo.get_pull(int(os.environ['PR_NUMBER']))
+              commit = pr.get_commits().reversed[0]
+
+              genai.configure(api_key=os.environ['GEMINI_API_KEY'])
+              model = genai.GenerativeModel('gemini-1.5-flash')
+              
+              changed_files = [f.filename for f in pr.get_files() 
+                               if f.filename.endswith(('.java', '.kt', '.scala'))]
+              
+              all_comments = []
+              for file_path in changed_files[:6]:
+                  diff = get_diff(repo, pr, file_path)
+                  if not diff: continue
+                  
+                  time.sleep(2)
+                  reviews = analyze_code(model, file_path, diff)
+                  
+                  for rev in sorted(reviews, key=lambda x: x.get('severity', 'LOW'), reverse=True)[:4]:
+                      all_comments.append({
+                          "path": file_path,
+                          "line": rev['line'],
+                          "body": f"🤖 **[{rev['severity']}]** {rev['message']}",
+                          "side": "RIGHT"
+                      })
+
+              if all_comments:
+                  pr.create_review(commit=commit, body="✅ `/gemini` 명령에 따른 코드 리뷰 결과입니다.", 
+                                   event="COMMENT", comments=all_comments)
+              else:
+                  pr.create_issue_comment("✅ Gemini 분석 결과, 중요한 이슈가 발견되지 않았습니다.")
+
+          if __name__ == "__main__":
+              main()

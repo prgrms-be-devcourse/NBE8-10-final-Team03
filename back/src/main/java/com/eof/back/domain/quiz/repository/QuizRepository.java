@@ -1,6 +1,6 @@
 package com.eof.back.domain.quiz.repository;
 
-import com.eof.back.domain.quizset.entity.QuizSet;
+import com.eof.back.domain.quiz.entity.Quiz;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 /**
@@ -17,5 +17,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
  * @author MintyU
  * @since 2026-03-20
  */
-public interface QuizRepository extends JpaRepository<QuizSet, Long> {
+public interface QuizRepository extends JpaRepository<Quiz, Long> {
 }

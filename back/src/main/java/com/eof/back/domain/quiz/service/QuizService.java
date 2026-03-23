@@ -1,4 +1,7 @@
 package com.eof.back.domain.quiz.service;
 
-public class QuizService {
+import com.eof.back.domain.quiz.dto.QuizCreateRequest;
+
+public interface QuizService {
+    Long createQuiz(Long quizSetId, QuizCreateRequest request);
 }

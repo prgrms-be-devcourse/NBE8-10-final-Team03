@@ -163,7 +163,7 @@ jobs:
                       commit = pr.get_commits().reversed[0]
                       pr.create_review(
                           commit=commit, 
-                          body="⚡ **Gemini 3.1 Flash Lite Review**\n맥락 분석이 완료되었습니다.", 
+                          body="⚡ **Gemini 3.1 Flash Lite Review**\n리뷰가 완료되었습니다. 제안된 수정 사항을 검토해 보세요.", 
                           event="COMMENT", 
                           comments=all_comments[:15]
                       )

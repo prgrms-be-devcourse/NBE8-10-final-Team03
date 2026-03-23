@@ -1,6 +1,6 @@
 package com.eof.back.domain.ranking.service;
 
-import com.eof.back.domain.ranking.dto.RankingResponseDto;
+import com.eof.back.domain.ranking.dto.RankingResponse;
 
 /**
  * 랭킹 조회 기능을 정의하는 서비스 인터페이스입니다.
@@ -13,5 +13,5 @@ import com.eof.back.domain.ranking.dto.RankingResponseDto;
  * @since 2026-03-23
  */
 public interface RankingService {
-    RankingResponseDto getTopRankings();
+    RankingResponse getTopRankings();
 }

@@ -1,6 +1,6 @@
 package com.eof.back.domain.ranking.controller;
 
-import com.eof.back.domain.ranking.dto.RankingResponseDto;
+import com.eof.back.domain.ranking.dto.RankingResponse;
 import com.eof.back.domain.ranking.service.RankingService;
 import com.eof.back.global.response.CommonResponse;
 import com.eof.back.global.response.Response;
@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
  *
  * @author Jaewon Ryu
  * @see RankingService
- * @see RankingResponseDto
+ * @see RankingResponse
  * @since 2026-03-23
  */
 @RestController
@@ -36,7 +36,7 @@ public class RankingController {
      * @return 랭킹 조회 결과 (순위, 닉네임, 점수)
      */
     @GetMapping
-    public ResponseEntity<Response<RankingResponseDto>> getTopRankings() {
+    public ResponseEntity<Response<RankingResponse>> getTopRankings() {
         return ResponseEntity.ok(
                 CommonResponse.success(
                         rankingService.getTopRankings(),

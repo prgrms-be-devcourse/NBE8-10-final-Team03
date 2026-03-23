@@ -11,7 +11,7 @@ import java.util.List;
  * @see RankingItem
  * @since 2026-03-23
  */
-public record RankingResponseDto (
+public record RankingResponse(
         List<RankingItem> rankings
 ) {
     /**

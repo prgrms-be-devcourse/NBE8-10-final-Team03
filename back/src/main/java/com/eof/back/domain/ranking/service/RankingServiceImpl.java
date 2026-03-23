@@ -1,6 +1,6 @@
 package com.eof.back.domain.ranking.service;
 
-import com.eof.back.domain.ranking.dto.RankingResponseDto;
+import com.eof.back.domain.ranking.dto.RankingResponse;
 import com.eof.back.domain.user.entity.User;
 import com.eof.back.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -9,7 +9,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * 랭킹 조회 기능의 MySQL 기반 구현체입니다.
@@ -41,20 +40,20 @@ public class RankingServiceImpl implements RankingService {
      * @return 상위 10명의 랭킹 정보 (순위, 닉네임, 점수)
      */
     @Override
-    public RankingResponseDto getTopRankings() {
+    public RankingResponse getTopRankings() {
 
-        List<RankingResponseDto.RankingItem> rankings = new ArrayList<>();
+        List<RankingResponse.RankingItem> rankings = new ArrayList<>();
         List<User> topUsers = userRepository.findTop10ByOrderByTotalRankingScoreDesc();
 
         for (int i = 0; i < topUsers.size(); i++) {
             User user = topUsers.get(i);
-            rankings.add(new RankingResponseDto.RankingItem(
+            rankings.add(new RankingResponse.RankingItem(
                     i + 1,
                     user.getNickname(),
                     user.getTotalRankingScore()
             ));
         }
 
-        return new RankingResponseDto(rankings);
+        return new RankingResponse(rankings);
     }
 }

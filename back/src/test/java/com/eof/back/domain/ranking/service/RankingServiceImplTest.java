@@ -1,6 +1,6 @@
 package com.eof.back.domain.ranking.service;
 
-import com.eof.back.domain.ranking.dto.RankingResponseDto;
+import com.eof.back.domain.ranking.dto.RankingResponse;
 import com.eof.back.domain.user.entity.Role;
 import com.eof.back.domain.user.entity.User;
 import com.eof.back.domain.user.repository.UserRepository;
@@ -35,7 +35,7 @@ class RankingServiceImplTest {
         );
         given(userRepository.findTop10ByOrderByTotalRankingScoreDesc()).willReturn(users);
 
-        RankingResponseDto response = rankingService.getTopRankings();
+        RankingResponse response = rankingService.getTopRankings();
 
         assertThat(response.rankings()).hasSize(3);
         assertThat(response.rankings().get(0).rank()).isEqualTo(1);
@@ -49,7 +49,7 @@ class RankingServiceImplTest {
     void getTopRankings_empty() {
         given(userRepository.findTop10ByOrderByTotalRankingScoreDesc()).willReturn(List.of());
 
-        RankingResponseDto response = rankingService.getTopRankings();
+        RankingResponse response = rankingService.getTopRankings();
 
         assertThat(response.rankings()).isEmpty();
     }

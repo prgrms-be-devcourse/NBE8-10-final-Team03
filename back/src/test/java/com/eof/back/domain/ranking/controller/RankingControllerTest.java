@@ -1,6 +1,6 @@
 package com.eof.back.domain.ranking.controller;
 
-import com.eof.back.domain.ranking.dto.RankingResponseDto;
+import com.eof.back.domain.ranking.dto.RankingResponse;
 import com.eof.back.domain.ranking.service.RankingService;
 import com.eof.back.global.jwt.JwtTokenProvider;
 import org.junit.jupiter.api.AfterEach;
@@ -51,9 +51,9 @@ class RankingControllerTest {
     @Test
     @DisplayName("랭킹 조회 - 정상")
     void getTopRankings_success() throws Exception {
-        RankingResponseDto response = new RankingResponseDto(List.of(
-                new RankingResponseDto.RankingItem(1, "유저1", 5000L),
-                new RankingResponseDto.RankingItem(2, "유저2", 3000L)
+        RankingResponse response = new RankingResponse(List.of(
+                new RankingResponse.RankingItem(1, "유저1", 5000L),
+                new RankingResponse.RankingItem(2, "유저2", 3000L)
         ));
         given(rankingService.getTopRankings()).willReturn(response);
 
@@ -69,7 +69,7 @@ class RankingControllerTest {
     @Test
     @DisplayName("랭킹 조회 - 빈 결과")
     void getTopRankings_empty() throws Exception {
-        given(rankingService.getTopRankings()).willReturn(new RankingResponseDto(List.of()));
+        given(rankingService.getTopRankings()).willReturn(new RankingResponse(List.of()));
 
         mockMvc.perform(get("/api/v1/rankings"))
                 .andExpect(status().isOk())

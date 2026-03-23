@@ -89,4 +89,26 @@ public class AuthServiceImpl implements AuthService {
         // 9. 새 토큰 반환
         return new ReissueResponse(newAccessToken, newRefreshToken);
     }
+
+    @Override
+    public void logout(String refreshToken) {
+
+        // 1. JWT 서명 및 만료 검증 → 유효하지 않으면 예외 발생
+        Claims claims = jwtTokenProvider.validateToken(refreshToken);
+
+        // 2. Claims에서 사용자 ID 추출
+        Long userId = jwtTokenProvider.getUserId(claims);
+
+        // 3. DB에 저장된 Refresh Token 조회
+        RefreshToken savedRefreshToken = refreshTokenStore.findByUserId(userId)
+                .orElseThrow(() -> new AuthException(AuthErrorCode.TOKEN_INVALID));
+
+        // 4. 저장된 토큰과 요청 토큰 비교
+        if (!savedRefreshToken.getToken().equals(refreshToken)) {
+            throw new AuthException(AuthErrorCode.TOKEN_INVALID);
+        }
+
+        // 5. 저장소에서 Refresh Token 삭제
+        refreshTokenStore.delete(userId);
+    }
 }

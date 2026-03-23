@@ -20,4 +20,6 @@ import com.eof.back.domain.auth.dto.ReissueResponse;
 public interface AuthService {
 
     ReissueResponse reissue(String refreshToken);
+
+    void logout(String refreshToken);
 }

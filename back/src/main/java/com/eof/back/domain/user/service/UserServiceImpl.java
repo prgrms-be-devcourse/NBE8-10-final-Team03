@@ -1,5 +1,6 @@
 package com.eof.back.domain.user.service;
 
+import com.eof.back.domain.auth.store.RefreshTokenStore;
 import com.eof.back.domain.user.dto.*;
 import com.eof.back.domain.user.entity.User;
 import com.eof.back.domain.user.repository.UserRepository;
@@ -7,10 +8,13 @@ import com.eof.back.global.exception.errorCode.AuthErrorCode;
 import com.eof.back.global.exception.exceptions.AuthException;
 import com.eof.back.global.jwt.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
 
 /**
  * 사용자 도메인과 관련된 비즈니스 로직을 처리하는 서비스입니다.
@@ -33,6 +37,10 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+    private final RefreshTokenStore refreshTokenStore;
+
+    @Value("${custom.jwt.refreshTokenExpirationSeconds}")
+    private long refreshTokenExpireSeconds;
 
     @Override
     @Transactional
@@ -68,7 +76,7 @@ public class UserServiceImpl implements UserService {
 
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public UserLoginResponse login(UserLoginRequest req) {
 
         User user = userRepository.findByUsername(req.username())
@@ -80,6 +88,9 @@ public class UserServiceImpl implements UserService {
 
         String accessToken = jwtTokenProvider.createAccessToken(user.getId(), user.getUsername(), user.getRole().name());
         String refreshToken = jwtTokenProvider.createRefreshToken(user.getId());
+
+        LocalDateTime refreshTokenExpiredAt = LocalDateTime.now().plusSeconds(refreshTokenExpireSeconds);
+        refreshTokenStore.save(user.getId(), refreshToken, refreshTokenExpiredAt);
 
         return new UserLoginResponse(
                 accessToken,

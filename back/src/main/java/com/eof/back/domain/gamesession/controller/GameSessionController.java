@@ -2,6 +2,7 @@ package com.eof.back.domain.gamesession.controller;
 
 import com.eof.back.domain.gamesession.dto.GameSessionCreateRequest;
 import com.eof.back.domain.gamesession.dto.GameSessionCreateResponse;
+import com.eof.back.domain.gamesession.dto.GameSessionJoinResponse;
 import com.eof.back.domain.gamesession.dto.GameSessionListResponse;
 import com.eof.back.domain.gamesession.service.GameSessionService;
 import com.eof.back.domain.user.dto.UserPrincipal;
@@ -109,6 +110,41 @@ public class GameSessionController {
         gameSessionService.deleteGameSession(userPrincipal.id(), gameSessionId);
 
         // 204 No Content 상태 코드를 반환
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * 게임 세션(방)에 입장합니다.
+     *
+     * @param userPrincipal 현재 로그인한 유저의 인증 정보 (ID, Username)
+     * @param roomId        입장하려는 게임 세션의 ID
+     * @return 입장 완료된 방의 최신 상태 및 참가자 목록 DTO
+     */
+    @PostMapping("/{roomId}/join")
+    public ResponseEntity<Response<GameSessionJoinResponse>> joinGameSession(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable Long roomId
+    ) {
+        GameSessionJoinResponse response = gameSessionService.joinRoom(userPrincipal.id(), roomId);
+
+        return ResponseEntity.ok(CommonResponse.success(response, "방에 입장하셨습니다."));
+    }
+
+    /**
+     * 게임 세션(방)에서 퇴장합니다.
+     *
+     * @param userPrincipal 현재 로그인한 유저의 인증 정보
+     * @param roomId        퇴장하려는 게임 세션의 ID
+     */
+    @DeleteMapping("/{roomId}/leave")
+    public ResponseEntity<Void> leaveGameSession(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable Long roomId
+    ) {
+        // 서비스의 퇴장 로직 호출
+        gameSessionService.leaveRoom(userPrincipal.id(), roomId);
+
+        // 퇴장 성공 시 204 No Content 반환
         return ResponseEntity.noContent().build();
     }
 }

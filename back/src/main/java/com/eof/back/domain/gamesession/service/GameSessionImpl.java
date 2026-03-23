@@ -2,8 +2,10 @@ package com.eof.back.domain.gamesession.service;
 
 import com.eof.back.domain.gamesession.dto.GameSessionCreateRequest;
 import com.eof.back.domain.gamesession.dto.GameSessionCreateResponse;
+import com.eof.back.domain.gamesession.dto.GameSessionJoinResponse;
 import com.eof.back.domain.gamesession.dto.GameSessionListResponse;
 import com.eof.back.domain.gamesession.entity.GameSession;
+import com.eof.back.domain.gamesession.entity.GameSessionStatus;
 import com.eof.back.domain.gamesession.repository.GameSessionRepository;
 import com.eof.back.domain.quizset.entity.QuizSet;
 import com.eof.back.domain.quizset.repository.QuizSetRepository;
@@ -77,5 +79,53 @@ public class GameSessionImpl implements GameSessionService {
         }
         // 검증 후 삭제
         gameSessionRepository.delete(gameSession);
+    }
+
+    @Override
+    @Transactional
+    public GameSessionJoinResponse joinRoom(Long userId, Long gameSessionId) {
+        // 1. 들어오는 유저 조회
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND, "유저를 찾을 수 없습니다."));
+
+        // 2. 방 조회
+        GameSession gameSession = gameSessionRepository.findByIdWithPlayers(gameSessionId)
+                .orElseThrow(() -> new GameSessionException(GameSessionErrorCode.GAME_SESSION_NOT_FOUND, "방을 찾을 수 없습니다."));
+
+        // 3. 방 들어오기 처리
+        if (gameSession.getStatus() != GameSessionStatus.WAIT) {
+            throw new GameSessionException(GameSessionErrorCode.INVALID_GAME_STATUS, "이미 게임이 시작되었거나 종료된 방입니다.");
+        }
+
+        gameSession.join(user);
+        // TODO : STOMP로 "유저님이 입장하셨습니다." 라고 메시지와 최신 방 인원 정보를  쏘는 로직 추가
+
+        return GameSessionJoinResponse.from(gameSession);
+    }
+
+    @Override
+    @Transactional
+    public void leaveRoom(Long userId, Long roomId) {
+
+        // 1. 나가는 유저 조회
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("유저를 찾을 수 없습니다."));
+
+        // 2. 방 조회
+        GameSession gameSession = gameSessionRepository.findByIdWithPlayers(roomId)
+                .orElseThrow(() -> new GameSessionException(GameSessionErrorCode.GAME_SESSION_NOT_FOUND, "방을 찾을 수 없습니다."));
+
+        // 3. 방장 여부 확인 및 분기 처리
+        if (gameSession.getHost().getId().equals(userId)) {
+            // [CASE 1] 나가는 사람이 방장인 경우: 방 자체를 DB에서 완전히 삭제
+            gameSessionRepository.delete(gameSession);
+            // TODO : STOMP로 "방에서 나가졌습니다" 라고 메시지를 쏘는 로직 추가
+
+        } else {
+            // [CASE 2] 일반 참가자가 나가는 경우: 방 명단에서 해당 유저만 제거 및 카운트 감소
+            gameSession.leave(user);
+            // TODO : STOMP로 "유저님이 퇴장하셨습니다." 라고 메시지와 최신 방 인원 정보를  쏘는 로직 추가
+
+        }
     }
 }

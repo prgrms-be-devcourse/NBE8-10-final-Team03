@@ -1,5 +1,6 @@
 package com.eof.back.domain.user.service;
 
+import com.eof.back.domain.user.dto.UserInfoResponse;
 import com.eof.back.domain.user.dto.UserLoginRequest;
 import com.eof.back.domain.user.dto.UserLoginResponse;
 import com.eof.back.domain.user.dto.UserSignupRequest;
@@ -17,6 +18,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Optional;
 
@@ -285,4 +287,41 @@ public class UserServiceTest {
 
         verify(jwtTokenProvider, never()).createAccessToken(any(), any(), any());
     }
+
+    @Test
+    @DisplayName("내 정보 조회 성공")
+    void getMyInfo_success() {
+        // given
+        User user = User.of("testUser", "encodedPassword", "tester");
+        ReflectionTestUtils.setField(user, "id", 1L);
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+        // when
+        UserInfoResponse result = userService.getMyInfo(1L);
+
+        // then
+        assertThat(result.id()).isEqualTo(1L);
+        assertThat(result.username()).isEqualTo("testUser");
+        assertThat(result.nickname()).isEqualTo("tester");
+        assertThat(result.role()).isEqualTo("USER");
+
+        verify(userRepository).findById(1L);
+    }
+
+    @Test
+    @DisplayName("내 정보 조회 실패 - 존재하지 않는 사용자")
+    void getMyInfo_fail_userNotFound() {
+        // given
+        when(userRepository.findById(1L)).thenReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> userService.getMyInfo(1L))
+                .isInstanceOf(AuthException.class)
+                .satisfies(e -> assertThat(((AuthException) e).getErrorCode())
+                        .isEqualTo(AuthErrorCode.USER_NOT_FOUND));
+
+        verify(userRepository).findById(1L);
+    }
+
 }

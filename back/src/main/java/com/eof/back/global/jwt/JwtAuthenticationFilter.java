@@ -1,5 +1,6 @@
 package com.eof.back.global.jwt;
 
+import com.eof.back.domain.user.dto.UserPrincipal;
 import com.eof.back.global.exception.exceptions.AuthException;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
@@ -88,12 +89,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 // 5. 인증 객체 생성
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(
-                                username,
+                                new UserPrincipal(userId, username),
                                 null,
                                 authorities
                         );
-
-                authentication.setDetails(userId);
 
                 // 6. SecurityContext에 저장
                 SecurityContextHolder.getContext().setAuthentication(authentication);

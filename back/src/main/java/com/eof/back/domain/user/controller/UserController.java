@@ -69,14 +69,14 @@ public class UserController {
     /**
      * 로그인한 사용자의 정보를 조회합니다.
      *
-     * @param userId 로그인한 사용자 ID
+     * @param principal 로그인한 사용자 인증 정보
      * @return 사용자 기본 정보
      */
     @GetMapping("/me")
     public ResponseEntity<Response<UserInfoResponse>> getMyInfo(
-            @AuthenticationPrincipal(expression = "id") Long userId
+            @AuthenticationPrincipal UserPrincipal principal
     ) {
-        UserInfoResponse response = userService.getMyInfo(userId);
+        UserInfoResponse response = userService.getMyInfo(principal.id());
 
         return ResponseEntity.ok(
                 CommonResponse.success(response, "내 정보 조회에 성공했습니다.")

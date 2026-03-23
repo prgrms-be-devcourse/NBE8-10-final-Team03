@@ -91,7 +91,12 @@ public class SecurityConfig {
                                 "/v3/api-docs/**",
 
                                 "/api/v1/auth/signup",
-                                "/api/v1/auth/login"
+                                "/api/v1/auth/login",
+                                "/api/v1/auth/reissue",
+                                "/api/v1/auth/logout",
+
+                                "/api/v1/quizsets"
+                                //TODO : 랭킹 추가
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

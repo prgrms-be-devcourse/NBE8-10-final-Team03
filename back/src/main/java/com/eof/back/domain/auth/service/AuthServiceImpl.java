@@ -47,7 +47,7 @@ public class AuthServiceImpl implements AuthService {
     private final RefreshTokenStore refreshTokenStore;
     private final UserRepository userRepository;
 
-    @Value("${custom.jwt.refresh-token-expire-seconds}")
+    @Value("${custom.jwt.refreshTokenExpirationSeconds}")
     private long refreshTokenExpireSeconds;
 
     @Override

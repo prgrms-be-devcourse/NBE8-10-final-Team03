@@ -3,6 +3,8 @@ package com.eof.back.domain.auth.service;
 import com.eof.back.domain.auth.dto.LoginRequest;
 import com.eof.back.domain.auth.dto.LoginResponse;
 import com.eof.back.domain.auth.dto.ReissueResponse;
+import com.eof.back.domain.auth.dto.SignupRequest;
+import com.eof.back.domain.auth.dto.SignupResponse;
 
 /**
  * 인증 관련 비즈니스 로직을 정의하는 서비스 인터페이스입니다.
@@ -13,6 +15,9 @@ import com.eof.back.domain.auth.dto.ReissueResponse;
  * 별도의 상속 없이 인증 서비스의 계약을 정의하는 인터페이스입니다.
  *
  * <p><b>주요 메서드:</b><br>
+ * {@code signup(SignupRequest)} <br>
+ * 사용자 정보를 검증하고 계정을 생성합니다. <br>
+ *
  * {@code login(LoginRequest)} <br>
  * 사용자 자격증명을 검증하고 AccessToken과 RefreshToken을 발급합니다. <br>
  *
@@ -23,6 +28,8 @@ import com.eof.back.domain.auth.dto.ReissueResponse;
  * @since 2026-03-23
  */
 public interface AuthService {
+
+    SignupResponse signup(SignupRequest request);
 
     LoginResponse login(LoginRequest request);
 

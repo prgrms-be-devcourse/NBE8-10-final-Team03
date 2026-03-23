@@ -3,6 +3,8 @@ package com.eof.back.domain.auth.service;
 import com.eof.back.domain.auth.dto.LoginRequest;
 import com.eof.back.domain.auth.dto.LoginResponse;
 import com.eof.back.domain.auth.dto.ReissueResponse;
+import com.eof.back.domain.auth.dto.SignupRequest;
+import com.eof.back.domain.auth.dto.SignupResponse;
 import com.eof.back.domain.auth.entity.RefreshToken;
 import com.eof.back.domain.auth.store.RefreshTokenStore;
 import com.eof.back.domain.user.entity.Role;
@@ -31,14 +33,16 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * AuthServiceImpl의 단위 테스트입니다.
  * <p>
- * reissue, logout 두 메서드의 성공 및 실패 시나리오를 검증합니다.
+ * signup, login, reissue, logout 메서드의 성공 및 실패 시나리오를 검증합니다.
  *
  * @author 5h6vm
  * @since 2026-03-23
@@ -69,6 +73,85 @@ public class AuthServiceImplTest {
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(authService, "refreshTokenExpireSeconds", 604800L);
+    }
+
+    @Nested
+    @DisplayName("signup")
+    class Signup {
+
+        @Test
+        @DisplayName("성공 - 사용자를 생성하고 기본 정보를 반환한다")
+        void success() {
+            // given
+            SignupRequest req = new SignupRequest("testUser", "password1", "tester");
+            User savedUser = mock(User.class);
+
+            given(userRepository.existsByUsername("testUser")).willReturn(false);
+            given(userRepository.existsByNickname("tester")).willReturn(false);
+            given(passwordEncoder.encode("password1")).willReturn("encodedPassword");
+            given(userRepository.saveAndFlush(any(User.class))).willReturn(savedUser);
+            given(savedUser.getId()).willReturn(1L);
+            given(savedUser.getUsername()).willReturn("testUser");
+            given(savedUser.getNickname()).willReturn("tester");
+
+            // when
+            SignupResponse response = authService.signup(req);
+
+            // then
+            assertThat(response.username()).isEqualTo("testUser");
+            assertThat(response.nickname()).isEqualTo("tester");
+        }
+
+        @Test
+        @DisplayName("실패 - 아이디 중복이면 USER_ALREADY_EXIST 예외가 발생한다")
+        void fail_duplicateUsername() {
+            // given
+            SignupRequest req = new SignupRequest("testUser", "password1", "tester");
+            given(userRepository.existsByUsername("testUser")).willReturn(true);
+
+            // when & then
+            assertThatThrownBy(() -> authService.signup(req))
+                    .isInstanceOf(AuthException.class)
+                    .satisfies(e -> assertThat(((AuthException) e).getErrorCode())
+                            .isEqualTo(AuthErrorCode.USER_ALREADY_EXIST));
+
+            verify(userRepository, never()).saveAndFlush(any(User.class));
+        }
+
+        @Test
+        @DisplayName("실패 - 닉네임 중복이면 NICKNAME_ALREADY_EXIST 예외가 발생한다")
+        void fail_duplicateNickname() {
+            // given
+            SignupRequest req = new SignupRequest("testUser", "password1", "tester");
+            given(userRepository.existsByUsername("testUser")).willReturn(false);
+            given(userRepository.existsByNickname("tester")).willReturn(true);
+
+            // when & then
+            assertThatThrownBy(() -> authService.signup(req))
+                    .isInstanceOf(AuthException.class)
+                    .satisfies(e -> assertThat(((AuthException) e).getErrorCode())
+                            .isEqualTo(AuthErrorCode.NICKNAME_ALREADY_EXIST));
+
+            verify(userRepository, never()).saveAndFlush(any(User.class));
+        }
+
+        @Test
+        @DisplayName("실패 - 동시 요청 충돌 시 SIGNUP_FAIL 예외가 발생한다")
+        void fail_concurrentConflict() {
+            // given
+            SignupRequest req = new SignupRequest("testUser", "password1", "tester");
+            given(userRepository.existsByUsername("testUser")).willReturn(false);
+            given(userRepository.existsByNickname("tester")).willReturn(false);
+            given(passwordEncoder.encode("password1")).willReturn("encodedPassword");
+            given(userRepository.saveAndFlush(any(User.class)))
+                    .willThrow(new org.springframework.dao.DataIntegrityViolationException("unique constraint violation"));
+
+            // when & then
+            assertThatThrownBy(() -> authService.signup(req))
+                    .isInstanceOf(AuthException.class)
+                    .satisfies(e -> assertThat(((AuthException) e).getErrorCode())
+                            .isEqualTo(AuthErrorCode.SIGNUP_FAIL));
+        }
     }
 
     @Nested

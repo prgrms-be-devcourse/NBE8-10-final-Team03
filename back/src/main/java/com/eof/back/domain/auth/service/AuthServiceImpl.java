@@ -3,10 +3,13 @@ package com.eof.back.domain.auth.service;
 import com.eof.back.domain.auth.dto.LoginRequest;
 import com.eof.back.domain.auth.dto.LoginResponse;
 import com.eof.back.domain.auth.dto.ReissueResponse;
+import com.eof.back.domain.auth.dto.SignupRequest;
+import com.eof.back.domain.auth.dto.SignupResponse;
 import com.eof.back.domain.auth.entity.RefreshToken;
 import com.eof.back.domain.auth.store.RefreshTokenStore;
 import com.eof.back.domain.user.entity.User;
 import com.eof.back.domain.user.repository.UserRepository;
+import org.springframework.dao.DataIntegrityViolationException;
 import com.eof.back.global.exception.errorCode.AuthErrorCode;
 import com.eof.back.global.exception.exceptions.AuthException;
 import com.eof.back.global.jwt.JwtTokenProvider;
@@ -53,6 +56,29 @@ public class AuthServiceImpl implements AuthService {
 
     @Value("${custom.jwt.refreshTokenExpirationSeconds}")
     private long refreshTokenExpireSeconds;
+
+    @Override
+    public SignupResponse signup(SignupRequest req) {
+
+        // 1. 아이디/닉네임 중복 검증
+        if (userRepository.existsByUsername(req.username())) {
+            throw new AuthException(AuthErrorCode.USER_ALREADY_EXIST, "중복 아이디: " + req.username());
+        }
+        if (userRepository.existsByNickname(req.nickname())) {
+            throw new AuthException(AuthErrorCode.NICKNAME_ALREADY_EXIST, "중복 닉네임: " + req.nickname());
+        }
+
+        // 2. 비밀번호 암호화 및 사용자 생성
+        User user = User.of(req.username(), passwordEncoder.encode(req.password()), req.nickname());
+
+        // 3. 저장 (동시성 충돌 처리)
+        try {
+            User savedUser = userRepository.saveAndFlush(user);
+            return new SignupResponse(savedUser.getId(), savedUser.getUsername(), savedUser.getNickname());
+        } catch (DataIntegrityViolationException e) {
+            throw new AuthException(AuthErrorCode.SIGNUP_FAIL, "회원가입 중 충돌이 발생하였습니다.");
+        }
+    }
 
     @Override
     public LoginResponse login(LoginRequest req) {

@@ -5,11 +5,14 @@ import com.eof.back.domain.auth.dto.LoginResponse;
 import com.eof.back.domain.auth.dto.LogoutRequest;
 import com.eof.back.domain.auth.dto.ReissueRequest;
 import com.eof.back.domain.auth.dto.ReissueResponse;
+import com.eof.back.domain.auth.dto.SignupRequest;
+import com.eof.back.domain.auth.dto.SignupResponse;
 import com.eof.back.domain.auth.service.AuthService;
 import com.eof.back.global.response.CommonResponse;
 import com.eof.back.global.response.Response;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -43,6 +46,22 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final AuthService authService;
+
+    /**
+     * 사용자 정보를 검증하고 계정을 생성합니다.
+     *
+     * @param request 회원가입 요청 DTO (username, password, nickname)
+     * @return 생성된 사용자 기본 정보
+     */
+    @PostMapping("/signup")
+    public ResponseEntity<Response<SignupResponse>> signup(
+            @Valid @RequestBody SignupRequest request
+    ) {
+        SignupResponse response = authService.signup(request);
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(CommonResponse.success(response, "회원가입이 완료되었습니다."));
+    }
 
     /**
      * 사용자 자격증명을 검증하고 AccessToken과 RefreshToken을 발급합니다.

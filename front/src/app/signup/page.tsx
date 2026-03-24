@@ -1,8 +1,48 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
+import api from "@/lib/api";
 
 export default function SignupPage() {
+  const router = useRouter();
+  const [username, setUsername] = useState("");
+  const [nickname, setNickname] = useState("");
+  const [password, setPassword] = useState("");
+  const [passwordConfirm, setPasswordConfirm] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSignup = async () => {
+    setError("");
+
+    if (password !== passwordConfirm) {
+      setError("비밀번호가 일치하지 않습니다.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // 1. 회원가입
+      await api.post("/auth/signup", { username, password, nickname });
+
+      // 2. 바로 로그인
+      const res = await api.post("/auth/login", { username, password });
+      const { accessToken, refreshToken, nickname: nick } = res.data.data;
+
+      localStorage.setItem("accessToken", accessToken);
+      localStorage.setItem("refreshToken", refreshToken);
+      localStorage.setItem("nickname", nick);
+
+      router.push("/rooms");
+    } catch (err: any) {
+      setError(err.response?.data?.message || "회원가입에 실패했습니다.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="flex min-h-screen">
       {/* 좌측 비주얼 */}
@@ -47,32 +87,32 @@ export default function SignupPage() {
             </span>
           </div>
 
+          {error && (
+            <div className="mb-4 px-4 py-3 bg-red-50 border-2 border-red-300 rounded-xl text-sm text-red-600 font-bold">
+              {error}
+            </div>
+          )}
+
           <div className="mb-4">
             <label className="block text-sm font-bold mb-2">아이디</label>
             <input
               type="text"
-              placeholder="아이디를 입력하세요"
+              placeholder="영문, 숫자 4~20자"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               className="w-full px-4 py-3 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none transition-colors"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            <div>
-              <label className="block text-sm font-bold mb-2">닉네임</label>
-              <input
-                type="text"
-                placeholder="닉네임"
-                className="w-full px-4 py-3 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none transition-colors"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-bold mb-2">이메일</label>
-              <input
-                type="email"
-                placeholder="이메일"
-                className="w-full px-4 py-3 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none transition-colors"
-              />
-            </div>
+          <div className="mb-4">
+            <label className="block text-sm font-bold mb-2">닉네임</label>
+            <input
+              type="text"
+              placeholder="2~20자"
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+              className="w-full px-4 py-3 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none transition-colors"
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-3 mb-6">
@@ -80,7 +120,9 @@ export default function SignupPage() {
               <label className="block text-sm font-bold mb-2">비밀번호</label>
               <input
                 type="password"
-                placeholder="비밀번호"
+                placeholder="영문+숫자 8~20자"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-4 py-3 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none transition-colors"
               />
             </div>
@@ -88,14 +130,21 @@ export default function SignupPage() {
               <label className="block text-sm font-bold mb-2">비밀번호 확인</label>
               <input
                 type="password"
-                placeholder="비밀번호 확인"
+                placeholder="비밀번호 재입력"
+                value={passwordConfirm}
+                onChange={(e) => setPasswordConfirm(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSignup()}
                 className="w-full px-4 py-3 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none transition-colors"
               />
             </div>
           </div>
 
-          <button className="w-full py-4 bg-primary text-white font-bold text-lg border-[3px] border-dark rounded-xl shadow-kitsch hover:shadow-kitsch-lg hover:-translate-y-0.5 transition-all">
-            가입하기
+          <button
+            onClick={handleSignup}
+            disabled={loading}
+            className="w-full py-4 bg-primary text-white font-bold text-lg border-[3px] border-dark rounded-xl shadow-kitsch hover:shadow-kitsch-lg hover:-translate-y-0.5 transition-all disabled:opacity-50"
+          >
+            {loading ? "가입 중..." : "가입하기"}
           </button>
 
           <div className="flex items-center my-6 gap-3">

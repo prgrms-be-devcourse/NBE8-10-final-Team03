@@ -1,11 +1,40 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
+import api from "@/lib/api";
 
 export default function LoginPage() {
+  const router = useRouter();
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async () => {
+    setError("");
+    setLoading(true);
+
+    try {
+      const res = await api.post("/auth/login", { username, password });
+      const { accessToken, refreshToken, nickname } = res.data.data;
+
+      localStorage.setItem("accessToken", accessToken);
+      localStorage.setItem("refreshToken", refreshToken);
+      localStorage.setItem("nickname", nickname);
+
+      router.push("/rooms");
+    } catch (err: any) {
+      setError(err.response?.data?.message || "로그인에 실패했습니다.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="flex min-h-screen">
-      {/* 좌측 비주얼 */}
+      {/* 좌측 비주얼 - 그대로 */}
       <div className="relative w-1/2 bg-primary flex flex-col justify-center px-16 overflow-hidden">
         <span className="absolute top-8 left-8 font-title text-[100px] text-white opacity-10 -rotate-12 select-none">?!</span>
         <span className="absolute top-16 right-12 font-title text-[80px] text-white opacity-10 rotate-6 select-none">?</span>
@@ -41,11 +70,19 @@ export default function LoginPage() {
         <div className="w-full max-w-md">
           <h2 className="font-title text-3xl mb-8">로그인</h2>
 
+          {error && (
+            <div className="mb-4 px-4 py-3 bg-red-50 border-2 border-red-300 rounded-xl text-sm text-red-600 font-bold">
+              {error}
+            </div>
+          )}
+
           <div className="mb-4">
             <label className="block text-sm font-bold mb-2">아이디</label>
             <input
               type="text"
               placeholder="아이디를 입력하세요"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               className="w-full px-4 py-3 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none transition-colors"
             />
           </div>
@@ -54,12 +91,19 @@ export default function LoginPage() {
             <input
               type="password"
               placeholder="비밀번호를 입력하세요"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleLogin()}
               className="w-full px-4 py-3 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none transition-colors"
             />
           </div>
 
-          <button className="w-full py-4 bg-primary text-white font-bold text-lg border-[3px] border-dark rounded-xl shadow-kitsch hover:shadow-kitsch-lg hover:-translate-y-0.5 transition-all">
-            로그인
+          <button
+            onClick={handleLogin}
+            disabled={loading}
+            className="w-full py-4 bg-primary text-white font-bold text-lg border-[3px] border-dark rounded-xl shadow-kitsch hover:shadow-kitsch-lg hover:-translate-y-0.5 transition-all disabled:opacity-50"
+          >
+            {loading ? "로그인 중..." : "로그인"}
           </button>
 
           <div className="flex items-center my-6 gap-3">

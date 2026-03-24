@@ -22,7 +22,8 @@ import org.springframework.http.HttpStatus;
 public enum QuizSetErrorCode implements ErrorCode {
     QUIZ_SET_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 퀴즈 세트를 찾을 수 없습니다."),
     QUIZ_SET_CREATE_FAIL(HttpStatus.BAD_REQUEST, "퀴즈 세트 생성에 실패하였습니다."),
-    QUIZ_SET_ACCESS_DENIED(HttpStatus.FORBIDDEN, "해당 퀴즈 세트에 대한 권한이 없습니다.");
+    QUIZ_SET_ACCESS_DENIED(HttpStatus.FORBIDDEN, "해당 퀴즈 세트에 대한 권한이 없습니다."),
+    QUIZ_SET_BOOKMARK_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 북마크한 퀴즈 세트입니다.");
 
     private final HttpStatus status;
     private final String message;

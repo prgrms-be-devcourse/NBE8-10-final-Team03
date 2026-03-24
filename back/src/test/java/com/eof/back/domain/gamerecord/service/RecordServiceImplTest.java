@@ -1,15 +1,19 @@
 package com.eof.back.domain.gamerecord.service;
 
+import com.eof.back.domain.gamerecord.dto.GameResultRequest;
 import com.eof.back.domain.gamerecord.entity.GameRecord;
 import com.eof.back.domain.gamerecord.repository.GameRecordRepository;
 import com.eof.back.domain.gamerecord.dto.UserRecordResponse;
 import com.eof.back.domain.gamerecord.service.RecordServiceImpl;
 import com.eof.back.domain.gamesession.entity.GameSession;
+import com.eof.back.domain.gamesession.repository.GameSessionRepository;
 import com.eof.back.domain.quizset.entity.QuizSet;
+import com.eof.back.domain.user.entity.Role;
 import com.eof.back.domain.user.entity.User;
 import com.eof.back.domain.user.repository.UserRepository;
 import com.eof.back.global.exception.exceptions.AuthException;
 
+import com.eof.back.global.exception.exceptions.GameSessionException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,6 +24,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+
 
 import java.util.List;
 import java.util.Optional;
@@ -31,39 +38,8 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 
-/**
- * 코드에 대한 전체적인 역할을 적습니다.
- * <p>
- * 코드에 대한 작동 원리 등을 적습니다.
- *
- * <p><b>상속 정보:</b><br>
- * 상속 정보를 적습니다.
- *
- * <p><b>주요 생성자:</b><br>
- * {@code RecordServiceImplTest(String example)} <br>
- * 주요 생성자와 그 매개변수에 대한 설명을 적습니다. <br>
- *
- * <p><b>빈 관리:</b><br>
- * 필요 시 빈 관리에 대한 내용을 적습니다.
- *
- * <p><b>외부 모듈:</b><br>
- * 필요 시 외부 모듈에 대한 내용을 적습니다.
- *
- * @author Jaewon Ryu
- * @see
- * @since 2026-03-19
- */
 @ExtendWith(MockitoExtension.class)
 class RecordServiceImplTest {
-
-    QuizSet quizSet = QuizSet.builder()
-            .title("테스트 퀴즈셋")
-            .build();
-
-    GameSession session = GameSession.builder()
-            .quizSet(quizSet)
-            .maxPlayers(4)
-            .build();
 
     @InjectMocks
     private RecordServiceImpl recordService;
@@ -73,6 +49,9 @@ class RecordServiceImplTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private GameSessionRepository gameSessionRepository;
 
     @Test
     @DisplayName("내 전적 조회 - 정상")
@@ -122,5 +101,96 @@ class RecordServiceImplTest {
 
         assertThatThrownBy(() -> recordService.getMyRecords(999L, 0, 10))
                 .isInstanceOf(AuthException.class);
+    }
+    @Test
+    @DisplayName("게임 결과 저장 - 정상")
+    void saveGameResult_success() {
+        // given
+        GameSession session = createSession(10);
+        User user1 = createUser("유저1", 0L);
+        User user2 = createUser("유저2", 0L);
+
+        given(gameSessionRepository.findById(1L)).willReturn(Optional.of(session));
+        given(userRepository.findById(1L)).willReturn(Optional.of(user1));
+        given(userRepository.findById(2L)).willReturn(Optional.of(user2));
+
+        GameResultRequest request = new GameResultRequest(1L, List.of(
+                new GameResultRequest.PlayerResult(1L, 1, 950),
+                new GameResultRequest.PlayerResult(2L, 2, 720)
+        ));
+
+        // when
+        recordService.saveGameResult(request);
+
+        // then
+        verify(gameRecordRepository, times(2)).save(any(GameRecord.class));
+        assertThat(user1.getTotalRankingScore()).isGreaterThan(0L);
+        assertThat(user2.getTotalRankingScore()).isGreaterThan(0L);
+        assertThat(user1.getTotalRankingScore()).isGreaterThan(user2.getTotalRankingScore());
+    }
+
+    @Test
+    @DisplayName("게임 결과 저장 - 존재하지 않는 세션")
+    void saveGameResult_sessionNotFound() {
+        // given
+        given(gameSessionRepository.findById(999L)).willReturn(Optional.empty());
+
+        GameResultRequest request = new GameResultRequest(999L, List.of(
+                new GameResultRequest.PlayerResult(1L, 1, 950)
+        ));
+
+        // when & then
+        assertThatThrownBy(() -> recordService.saveGameResult(request))
+                .isInstanceOf(GameSessionException.class);
+    }
+
+    @Test
+    @DisplayName("게임 결과 저장 - 존재하지 않는 유저")
+    void saveGameResult_userNotFound() {
+        // given
+        GameSession session = createSession(10);
+        given(gameSessionRepository.findById(1L)).willReturn(Optional.of(session));
+        given(userRepository.findById(999L)).willReturn(Optional.empty());
+
+        GameResultRequest request = new GameResultRequest(1L, List.of(
+                new GameResultRequest.PlayerResult(999L, 1, 950)
+        ));
+
+        // when & then
+        assertThatThrownBy(() -> recordService.saveGameResult(request))
+                .isInstanceOf(AuthException.class);
+    }
+
+    private User createUser(String nickname, Long score) {
+        User user = User.builder()
+                .username(nickname)
+                .password("test")
+                .nickname(nickname)
+                .role(Role.USER)
+                .build();
+        try {
+            var field = User.class.getDeclaredField("totalRankingScore");
+            field.setAccessible(true);
+            field.set(user, score);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        return user;
+    }
+
+    private GameSession createSession(int maxQuizzes) {
+        try {
+            var constructor = GameSession.class.getDeclaredConstructor();
+            constructor.setAccessible(true);
+            GameSession session = constructor.newInstance();
+
+            var field = GameSession.class.getDeclaredField("maxQuizzes");
+            field.setAccessible(true);
+            field.set(session, maxQuizzes);
+
+            return session;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }

@@ -33,19 +33,21 @@ public interface QuizService {
      *
      * @param quizSetId 퀴즈를 추가할 대상 퀴즈 세트의 식별자
      * @param request   퀴즈 생성에 필요한 정보 (문제 내용, 정답, 선택지 등)
+     * @param userId    요청을 보낸 사용자의 식별자 (권한 확인용)
      * @return 생성된 퀴즈의 식별자(ID)
      * @throws com.eof.back.global.exception.exceptions.QuizSetException 대상 퀴즈 세트가 존재하지 않을 경우 발생합니다.
      */
-    Long createQuiz(Long quizSetId, QuizCreateRequest request);
+    Long createQuiz(Long quizSetId, QuizCreateRequest request, Long userId);
 
     /**
      * 특정 식별자(ID)를 가진 퀴즈의 정보를 상세 조회합니다.
      *
-     * @param quizId 조회할 퀴즈의 식별자
+     * @param quizSetId 해당 퀴즈가 속해 있어야 할 퀴즈 세트의 식별자 (일관성 확인용)
+     * @param quizId    조회할 퀴즈의 식별자
      * @return 퀴즈 상세 정보 DTO
-     * @throws com.eof.back.global.exception.exceptions.QuizException 해당 식별자의 퀴즈가 존재하지 않을 경우 발생합니다.
+     * @throws com.eof.back.global.exception.exceptions.QuizException 해당 식별자의 퀴즈가 존재하지 않거나, 지정된 세트에 속하지 않을 경우 발생합니다.
      */
-    QuizResponse getQuiz(Long quizId);
+    QuizResponse getQuiz(Long quizSetId, Long quizId);
 
     /**
      * 특정 퀴즈 세트에 포함된 모든 퀴즈 목록을 조회합니다.
@@ -62,12 +64,14 @@ public interface QuizService {
      * 전달받은 요청 정보 중 null이 아닌 필드만 선택적으로 업데이트합니다.
      * </p>
      *
-     * @param quizId  수정할 퀴즈의 식별자
-     * @param request 수정할 필드 정보 (문제 내용, 정답, 선택지 등)
+     * @param quizSetId 해당 퀴즈가 속해 있는 퀴즈 세트의 식별자 (일관성 확인용)
+     * @param quizId    수정할 퀴즈의 식별자
+     * @param request   수정할 필드 정보 (문제 내용, 정답, 선택지 등)
+     * @param userId    요청을 보낸 사용자의 식별자 (권한 확인용)
      * @return 수정된 퀴즈의 식별자(ID)
-     * @throws com.eof.back.global.exception.exceptions.QuizException 해당 식별자의 퀴즈가 존재하지 않을 경우 발생합니다.
+     * @throws com.eof.back.global.exception.exceptions.QuizException 해당 식별자의 퀴즈가 존재하지 않거나, 권한이 없을 경우 발생합니다.
      */
-    Long updateQuiz(Long quizId, QuizUpdateRequest request);
+    Long updateQuiz(Long quizSetId, Long quizId, QuizUpdateRequest request, Long userId);
 
     /**
      * 특정 퀴즈를 삭제합니다.
@@ -75,8 +79,10 @@ public interface QuizService {
      * 삭제 시 해당 퀴즈가 속했던 퀴즈 세트의 총 문제 수가 자동으로 감소합니다.
      * </p>
      *
-     * @param quizId 삭제할 퀴즈의 식별자
-     * @throws com.eof.back.global.exception.exceptions.QuizException 해당 식별자의 퀴즈가 존재하지 않을 경우 발생합니다.
+     * @param quizSetId 해당 퀴즈가 속해 있는 퀴즈 세트의 식별자 (일관성 확인용)
+     * @param quizId    삭제할 퀴즈의 식별자
+     * @param userId    요청을 보낸 사용자의 식별자 (권한 확인용)
+     * @throws com.eof.back.global.exception.exceptions.QuizException 해당 식별자의 퀴즈가 존재하지 않거나, 권한이 없을 경우 발생합니다.
      */
-    void deleteQuiz(Long quizId);
+    void deleteQuiz(Long quizSetId, Long quizId, Long userId);
 }

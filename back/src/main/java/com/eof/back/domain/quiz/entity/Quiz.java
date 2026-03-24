@@ -104,15 +104,23 @@ public class Quiz extends BaseEntity {
      * @param choice4 선택지 4
      * @return 생성된 Quiz 엔티티 객체
      */
-    public static Quiz of(QuizSet quizSet, String content, String answer, String choice1, String choice2, String choice3, String choice4) {
-        return Quiz.builder()
-                .quizSet(quizSet)
-                .content(content)
-                .answer(answer)
-                .choice1(choice1)
-                .choice2(choice2)
-                .choice3(choice3)
-                .choice4(choice4)
-                .build();
+    /**
+     * 퀴즈의 정보를 수정합니다. (PATCH 목적)
+     * null이 아닌 필드만 업데이트합니다.
+     *
+     * @param content 새로운 발문
+     * @param answer 새로운 정답
+     * @param choice1 새로운 보기1
+     * @param choice2 새로운 보기2
+     * @param choice3 새로운 보기3
+     * @param choice4 새로운 보기4
+     */
+    public void update(String content, String answer, String choice1, String choice2, String choice3, String choice4) {
+        if (content != null) this.content = content;
+        if (answer != null) this.answer = answer;
+        if (choice1 != null) this.choice1 = choice1;
+        if (choice2 != null) this.choice2 = choice2;
+        if (choice3 != null) this.choice3 = choice3;
+        if (choice4 != null) this.choice4 = choice4;
     }
 }

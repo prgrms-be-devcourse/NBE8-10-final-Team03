@@ -2,6 +2,7 @@ package com.eof.back.domain.quiz.controller;
 
 import com.eof.back.domain.quiz.dto.QuizCreateRequest;
 import com.eof.back.domain.quiz.dto.QuizResponse;
+import com.eof.back.domain.quiz.dto.QuizUpdateRequest;
 import com.eof.back.domain.quiz.service.QuizService;
 import com.eof.back.global.response.CommonResponse;
 import com.eof.back.global.response.Response;
@@ -10,7 +11,9 @@ import java.net.URI;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -20,7 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * 퀴즈(Quiz)와 관련된 HTTP 요청을 처리하는 컨트롤러입니다.
  * <p>
- * 특정 퀴즈 세트 내에 속한 퀴즈의 생성 및 조회 API를 제공합니다.
+ * 특정 퀴즈 세트 내에 속한 퀴즈의 생성, 조회, 수정, 삭제 API를 제공합니다.
  * </p>
  *
  * @author MintyU
@@ -37,7 +40,7 @@ public class QuizController {
      * 특정 퀴즈 세트에 새로운 퀴즈를 생성하여 추가합니다.
      *
      * @param quizSetId 퀴즈를 추가할 대상 퀴즈 세트의 식별자
-     * @param request   퀴즈 생성 요청 정보 (문제 내용, 정답, 선택지 등)
+     * @param request   퀴즈 생성 요청 정보
      * @return 생성 결과 응답 (201 Created)
      */
     @PostMapping
@@ -71,9 +74,41 @@ public class QuizController {
      */
     @GetMapping("/{quizId}")
     public ResponseEntity<Response<QuizResponse>> getQuiz(
-            @PathVariable Long quizSetId, // 경량화를 위해 사용하지 않더라도 경로 변수 일관성 유지
+            @PathVariable Long quizSetId,
             @PathVariable Long quizId) {
         QuizResponse response = quizService.getQuiz(quizId);
         return ResponseEntity.ok(CommonResponse.success(response));
+    }
+
+    /**
+     * 특정 퀴즈 정보를 수정합니다. (일부 필드 수정 가능)
+     *
+     * @param quizSetId 퀴즈 세트의 식별자
+     * @param quizId    수정할 퀴즈의 식별자
+     * @param request   수정 요청 정보
+     * @return 수정된 퀴즈 정보 응답
+     */
+    @PatchMapping("/{quizId}")
+    public ResponseEntity<Response<Long>> updateQuiz(
+            @PathVariable Long quizSetId,
+            @PathVariable Long quizId,
+            @RequestBody @Valid QuizUpdateRequest request) {
+        Long updatedId = quizService.updateQuiz(quizId, request);
+        return ResponseEntity.ok(CommonResponse.success(updatedId));
+    }
+
+    /**
+     * 특정 퀴즈를 삭제합니다.
+     *
+     * @param quizSetId 퀴즈 세트의 식별자
+     * @param quizId    삭제할 퀴즈의 식별자
+     * @return 204 No Content
+     */
+    @DeleteMapping("/{quizId}")
+    public ResponseEntity<Void> deleteQuiz(
+            @PathVariable Long quizSetId,
+            @PathVariable Long quizId) {
+        quizService.deleteQuiz(quizId);
+        return ResponseEntity.noContent().build();
     }
 }

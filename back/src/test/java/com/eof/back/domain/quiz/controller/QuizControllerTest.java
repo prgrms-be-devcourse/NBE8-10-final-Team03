@@ -2,6 +2,7 @@ package com.eof.back.domain.quiz.controller;
 
 import com.eof.back.domain.quiz.dto.QuizCreateRequest;
 import com.eof.back.domain.quiz.dto.QuizResponse;
+import com.eof.back.domain.quiz.dto.QuizUpdateRequest;
 import com.eof.back.domain.quiz.service.QuizService;
 import com.eof.back.global.jwt.JwtAuthenticationEntryPoint;
 import com.eof.back.global.jwt.JwtTokenProvider;
@@ -21,8 +22,11 @@ import org.springframework.test.web.servlet.MockMvc;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doNothing;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -74,7 +78,7 @@ class QuizControllerTest {
         // given
         Long quizSetId = 1L;
         QuizCreateRequest request = new QuizCreateRequest(
-                "", "정답", "보기1", "보기2", "보기3", "보기4" // content is empty
+                "", "정답", "보기1", "보기2", "보기3", "보기4"
         );
 
         // when & then
@@ -117,5 +121,40 @@ class QuizControllerTest {
                 .andExpect(jsonPath("$.status").value("success"))
                 .andExpect(jsonPath("$.data.id").value(quizId))
                 .andExpect(jsonPath("$.data.content").value("문제 내용"));
+    }
+
+    @Test
+    @WithMockUser
+    @DisplayName("퀴즈 수정 API 호출 성공")
+    void updateQuiz_success() throws Exception {
+        // given
+        Long quizSetId = 1L;
+        Long quizId = 100L;
+        QuizUpdateRequest request = new QuizUpdateRequest("수정된 내용", null, null, null, null, null);
+        given(quizService.updateQuiz(eq(quizId), any(QuizUpdateRequest.class))).willReturn(quizId);
+
+        // when & then
+        mockMvc.perform(patch("/api/v1/quizsets/{quizSetId}/quizzes/{quizId}", quizSetId, quizId)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("success"))
+                .andExpect(jsonPath("$.data").value(quizId));
+    }
+
+    @Test
+    @WithMockUser
+    @DisplayName("퀴즈 삭제 API 호출 성공")
+    void deleteQuiz_success() throws Exception {
+        // given
+        Long quizSetId = 1L;
+        Long quizId = 100L;
+        doNothing().when(quizService).deleteQuiz(quizId);
+
+        // when & then
+        mockMvc.perform(delete("/api/v1/quizsets/{quizSetId}/quizzes/{quizId}", quizSetId, quizId)
+                        .with(csrf()))
+                .andExpect(status().isNoContent());
     }
 }

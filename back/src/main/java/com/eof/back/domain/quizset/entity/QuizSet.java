@@ -114,4 +114,14 @@ public class QuizSet extends BaseEntity {
     public void increaseQuizCount() {
         this.totalQuizCount++;
     }
+
+    /**
+     * 퀴즈가 삭제될 때 총 퀴즈 수를 1 감소시킵니다.
+     * 최소값은 0을 유지합니다.
+     */
+    public void decreaseQuizCount() {
+        if (this.totalQuizCount > 0) {
+            this.totalQuizCount--;
+        }
+    }
 }

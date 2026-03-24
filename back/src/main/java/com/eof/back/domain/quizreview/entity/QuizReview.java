@@ -1,7 +1,7 @@
 package com.eof.back.domain.quizreview.entity;
 
 import com.eof.back.domain.quiz.entity.Quiz;
-import com.eof.back.domain.user.entity.User;
+import com.eof.back.domain.user.user.entity.User;
 import com.eof.back.global.jpa.entity.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

@@ -6,7 +6,6 @@ import com.eof.back.domain.gamesession.dto.GameSessionJoinResponse;
 import com.eof.back.domain.gamesession.dto.GameSessionListResponse;
 import com.eof.back.domain.gamesession.service.GameSessionService;
 import com.eof.back.global.jwt.UserPrincipal;
-import com.eof.back.domain.user.entity.User;
 import com.eof.back.global.response.CommonResponse;
 import com.eof.back.global.response.Response;
 import jakarta.validation.Valid;

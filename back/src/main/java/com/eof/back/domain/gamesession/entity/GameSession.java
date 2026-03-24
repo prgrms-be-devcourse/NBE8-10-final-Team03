@@ -1,7 +1,7 @@
 package com.eof.back.domain.gamesession.entity;
 
 import com.eof.back.domain.quizset.entity.QuizSet;
-import com.eof.back.domain.user.entity.User;
+import com.eof.back.domain.user.user.entity.User;
 import com.eof.back.global.exception.errorCode.GameSessionErrorCode;
 import com.eof.back.global.exception.exceptions.GameSessionException;
 import com.eof.back.global.jpa.entity.BaseEntity;

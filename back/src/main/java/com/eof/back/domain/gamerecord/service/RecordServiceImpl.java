@@ -1,12 +1,18 @@
 package com.eof.back.domain.gamerecord.service;
 
+import com.eof.back.domain.gamerecord.dto.GameResultRequest;
 import com.eof.back.domain.gamerecord.dto.UserRecordResponse;
 import com.eof.back.domain.gamerecord.entity.GameRecord;
 import com.eof.back.domain.gamerecord.repository.GameRecordRepository;
+import com.eof.back.domain.gamerecord.util.ScoreCalculator;
+import com.eof.back.domain.gamesession.entity.GameSession;
+import com.eof.back.domain.gamesession.repository.GameSessionRepository;
 import com.eof.back.domain.user.entity.User;
 import com.eof.back.domain.user.repository.UserRepository;
 import com.eof.back.global.exception.errorCode.AuthErrorCode;
+import com.eof.back.global.exception.errorCode.GameSessionErrorCode;
 import com.eof.back.global.exception.exceptions.AuthException;
+import com.eof.back.global.exception.exceptions.GameSessionException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.domain.Page;
@@ -39,6 +45,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class RecordServiceImpl implements RecordService {
     private final GameRecordRepository gameRecordRepository;
     private final UserRepository userRepository;
+    private final GameSessionRepository gameSessionRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -66,5 +73,42 @@ public class RecordServiceImpl implements RecordService {
                 size,
                 result.getTotalElements()
         );
+    }
+
+    @Override
+    @Transactional
+    public void saveGameResult(GameResultRequest request) {
+        GameSession session = gameSessionRepository.findById(request.sessionId())
+                .orElseThrow(() -> new GameSessionException(
+                        GameSessionErrorCode.GAME_SESSION_NOT_FOUND
+                ));
+        int maxPlayers = request.playerResults().size();
+        int questionCount = session.getMaxQuizzes();
+
+        for (GameResultRequest.PlayerResult result : request.playerResults()) {
+            User user = userRepository.findById(result.userId())
+                    .orElseThrow(() -> new AuthException(
+                            AuthErrorCode.USER_NOT_FOUND
+                    ));
+            long earnedRankingScore = ScoreCalculator.calculateFinalScore(
+                    result.sessionRanking(),
+                    maxPlayers,
+                    questionCount
+            );
+
+            // 4. GameRecord 생성 및 저장
+            GameRecord record = GameRecord.builder()
+                    .user(user)
+                    .gameSession(session)
+                    .sessionRanking(result.sessionRanking())
+                    .sessionScore(result.sessionScore())
+                    .earnedRankingScore(earnedRankingScore)
+                    .build();
+
+            gameRecordRepository.save(record);
+
+            // 5. User 랭킹 점수 업데이트
+            user.addRankingScore(earnedRankingScore);
+        }
     }
 }

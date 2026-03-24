@@ -1,7 +1,7 @@
 package com.eof.back.domain.user.controller;
 
 import com.eof.back.domain.user.dto.UserInfoResponse;
-import com.eof.back.domain.user.dto.UserPrincipal;
+import com.eof.back.global.jwt.UserPrincipal;
 import com.eof.back.domain.user.dto.UserUpdateRequest;
 import com.eof.back.domain.user.dto.UserUpdateResponse;
 import com.eof.back.domain.user.service.UserService;

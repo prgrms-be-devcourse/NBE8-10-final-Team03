@@ -8,11 +8,15 @@ import com.eof.back.domain.quizset.entity.QuizSet;
 import com.eof.back.domain.quizset.repository.QuizSetRepository;
 import com.eof.back.domain.user.entity.User;
 import com.eof.back.domain.user.repository.UserRepository;
+import com.eof.back.global.exception.errorCode.AuthErrorCode;
+import com.eof.back.global.exception.exceptions.AuthException;
 import com.eof.back.global.exception.errorCode.QuizSetErrorCode;
 import com.eof.back.global.exception.exceptions.QuizSetException;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,15 +40,15 @@ public class QuizSetServiceImpl implements QuizSetService {
     /**
      * {@inheritDoc}
      * <p>
-     * 현재 구현에서는 ID가 1L인 임시 사용자를 제작자로 설정하며,
-     * 전달된 요청 데이터를 기반으로 {@link QuizSet} 엔티티를 생성하고 저장합니다.
+     * 현재 로그인된 사용자 정보를 기반으로 {@link QuizSet} 엔티티를 생성하고 저장합니다.
+     * 로그인 정보가 없으면 {@link AuthException}을 발생시킵니다.
      */
     @Override
     @Transactional
     public QuizSetCreateResponse createQuizSet(QuizSetCreateRequest request) {
-        // TODO: 인증 기능 구현 후 현재 로그인된 사용자 정보를 가져오도록 수정
-        User creator = userRepository.findById(1L)
-                .orElseThrow(() -> new RuntimeException("임시 사용자(ID: 1)를 찾을 수 없습니다."));
+        Long currentUserId = getCurrentUserId();
+        User creator = userRepository.findById(currentUserId)
+                .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND));
 
         QuizSet quizSet = QuizSet.builder()
                 .title(request.getTitle())
@@ -61,11 +65,12 @@ public class QuizSetServiceImpl implements QuizSetService {
     /**
      * {@inheritDoc}
      * <p>
-     * 지정된 ID로 {@link QuizSetRepository}에서 조회하며,
-     * 해당 엔티티가 존재하지 않을 경우 {@link QuizSetException}을 발생시킵니다.
+     * 지정된 ID로 {@link QuizSetRepository}에서 조회합니다.
+     * 로그인 확인 후, 해당 엔티티가 존재하지 않을 경우 {@link QuizSetException}을 발생시킵니다.
      */
     @Override
     public QuizSetResponse getQuizSet(Long id) {
+        validateLogin();
         QuizSet quizSet = quizSetRepository.findById(id)
                 .orElseThrow(() -> new QuizSetException(QuizSetErrorCode.QUIZ_SET_NOT_FOUND));
         return QuizSetResponse.from(quizSet);
@@ -81,5 +86,32 @@ public class QuizSetServiceImpl implements QuizSetService {
         return quizSetRepository.findAll().stream()
                 .map(QuizSetListResponse::from)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * 현재 로그인된 사용자의 식별자(ID)를 반환합니다.
+     *
+     * @return 로그인된 사용자의 ID
+     * @throws AuthException 로그인되어 있지 않거나 인증 정보가 유효하지 않은 경우 발생
+     */
+    private Long getCurrentUserId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getPrincipal())) {
+            throw new AuthException(AuthErrorCode.LOGIN_REQUIRED);
+        }
+        try {
+            return Long.parseLong(authentication.getName());
+        } catch (NumberFormatException e) {
+            throw new AuthException(AuthErrorCode.TOKEN_INVALID);
+        }
+    }
+
+    /**
+     * 현재 사용자가 로그인되어 있는지 검증합니다.
+     *
+     * @throws AuthException 로그인되어 있지 않은 경우 발생
+     */
+    private void validateLogin() {
+        getCurrentUserId();
     }
 }

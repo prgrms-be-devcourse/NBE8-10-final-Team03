@@ -25,11 +25,13 @@ public class QuizServiceImpl implements QuizService {
         Quiz quiz = Quiz.builder()
                 .quizSet(quizSet)
                 .content(request.content())
+                .answer(request.answer())
                 .choice1(request.choice1())
                 .choice2(request.choice2())
                 .choice3(request.choice3())
                 .choice4(request.choice4())
                 .build();
+
         return quizRepository.save(quiz).getId();
     }
 }

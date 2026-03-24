@@ -53,7 +53,7 @@ public class UserServiceTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
 
         // when
-        UserInfoResponse result = userService.getMyInfo(1L);
+        UserInfoResponse result = userService.getInfo(1L);
 
         // then
         assertThat(result.id()).isEqualTo(1L);
@@ -71,7 +71,7 @@ public class UserServiceTest {
         when(userRepository.findById(1L)).thenReturn(Optional.empty());
 
         // when & then
-        assertThatThrownBy(() -> userService.getMyInfo(1L))
+        assertThatThrownBy(() -> userService.getInfo(1L))
                 .isInstanceOf(AuthException.class)
                 .satisfies(e -> assertThat(((AuthException) e).getErrorCode())
                         .isEqualTo(AuthErrorCode.USER_NOT_FOUND));

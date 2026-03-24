@@ -1,11 +1,14 @@
 package com.eof.back.domain.user.service;
 
 import com.eof.back.domain.user.dto.UserInfoResponse;
+import com.eof.back.domain.user.dto.UserUpdateRequest;
+import com.eof.back.domain.user.dto.UserUpdateResponse;
 import com.eof.back.domain.user.entity.User;
 import com.eof.back.domain.user.repository.UserRepository;
 import com.eof.back.global.exception.errorCode.AuthErrorCode;
 import com.eof.back.global.exception.exceptions.AuthException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,10 +29,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     @Transactional(readOnly = true)
-    public UserInfoResponse getMyInfo(Long userId) {
+    public UserInfoResponse getInfo(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND));
 
@@ -40,4 +44,52 @@ public class UserServiceImpl implements UserService {
                 user.getRole().name()
         );
     }
+
+    @Override
+    @Transactional
+    public UserUpdateResponse updateInfo(Long userId, UserUpdateRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND));
+
+        updateNicknameIfPresent(user, request.nickname());
+        updatePasswordIfPresent(user, request.password());
+
+        return new UserUpdateResponse(
+                user.getId(),
+                user.getNickname()
+        );
+    }
+    private void updateNicknameIfPresent(User user, String nickname) {
+        if (nickname == null) {
+            return;
+        }
+
+        String trimmedNickname = nickname.trim();
+
+        if (trimmedNickname.isEmpty()) {
+            throw new AuthException(AuthErrorCode.INVALID_NICKNAME);
+        }
+
+        if (!user.getNickname().equals(trimmedNickname)
+                && userRepository.existsByNickname(trimmedNickname)) {
+            throw new AuthException(AuthErrorCode.NICKNAME_ALREADY_EXIST);
+        }
+
+        user.updateNickname(trimmedNickname);
+    }
+
+    private void updatePasswordIfPresent(User user, String password) {
+        if (password == null) {
+            return;
+        }
+
+        String trimmedPassword = password.trim();
+
+        if (trimmedPassword.isEmpty()) {
+            throw new AuthException(AuthErrorCode.INVALID_PASSWORD);
+        }
+
+        user.updatePassword(passwordEncoder.encode(trimmedPassword));
+    }
 }
+

@@ -7,6 +7,7 @@ import com.eof.back.domain.user.dto.UserUpdateResponse;
 import com.eof.back.domain.user.service.UserService;
 import com.eof.back.global.response.CommonResponse;
 import com.eof.back.global.response.Response;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -57,7 +58,7 @@ public class UserController {
     @PatchMapping("/me")
     public ResponseEntity<Response<UserUpdateResponse>> updateMyInfo(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
-            @RequestBody UserUpdateRequest request
+            @RequestBody @Valid UserUpdateRequest request
     ) {
         UserUpdateResponse response = userService.updateInfo(userPrincipal.id(), request);
 

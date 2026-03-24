@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
  *
  * <p><b>주요 기능:</b><br>
  * - 내 정보 조회 (사용자 ID로 조회)
+ * - 내 정보 수정
  *
  * @author 5h6vm
  * @since 2026-03-18
@@ -64,18 +65,12 @@ public class UserServiceImpl implements UserService {
             return;
         }
 
-        String trimmedNickname = nickname.trim();
-
-        if (trimmedNickname.isEmpty()) {
-            throw new AuthException(AuthErrorCode.INVALID_NICKNAME);
-        }
-
-        if (!user.getNickname().equals(trimmedNickname)
-                && userRepository.existsByNickname(trimmedNickname)) {
+        if (!user.getNickname().equals(nickname)
+                && userRepository.existsByNickname(nickname)) {
             throw new AuthException(AuthErrorCode.NICKNAME_ALREADY_EXIST);
         }
 
-        user.updateNickname(trimmedNickname);
+        user.updateNickname(nickname);
     }
 
     private void updatePasswordIfPresent(User user, String password) {
@@ -83,13 +78,7 @@ public class UserServiceImpl implements UserService {
             return;
         }
 
-        String trimmedPassword = password.trim();
-
-        if (trimmedPassword.isEmpty()) {
-            throw new AuthException(AuthErrorCode.INVALID_PASSWORD);
-        }
-
-        user.updatePassword(passwordEncoder.encode(trimmedPassword));
+        user.updatePassword(passwordEncoder.encode(password));
     }
 }
 

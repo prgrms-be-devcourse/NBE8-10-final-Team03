@@ -2,10 +2,12 @@ package com.eof.back.domain.gamerecord.controller;
 
 import com.eof.back.domain.gamerecord.dto.UserRecordResponse;
 import com.eof.back.domain.gamerecord.service.RecordService;
+import com.eof.back.domain.user.dto.UserPrincipal;
 import com.eof.back.global.response.CommonResponse;
 import com.eof.back.global.response.Response;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -41,15 +43,14 @@ public class RecordController {
      */
     @GetMapping("/records")
     public ResponseEntity<Response<UserRecordResponse>> getMyRecords(
+            @AuthenticationPrincipal UserPrincipal principal,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
         if (page < 0) page = 0;
         if (size < 1) size = 10;
 
-        Long userId = (Long) SecurityContextHolder.getContext()
-                .getAuthentication().getDetails();
-
+        Long userId = principal.id();
         return ResponseEntity.ok(
                 CommonResponse.success(
                         recordService.getMyRecords(userId, page, size),

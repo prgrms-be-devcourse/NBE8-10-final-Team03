@@ -3,7 +3,7 @@ package com.eof.back.domain.gamesession.controller;
 import com.eof.back.domain.gamesession.dto.*;
 import com.eof.back.domain.gamesession.entity.GameSessionStatus;
 import com.eof.back.domain.gamesession.service.GameSessionService;
-import com.eof.back.domain.user.dto.UserPrincipal;
+import com.eof.back.global.jwt.UserPrincipal;
 import com.eof.back.global.jwt.JwtTokenProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;

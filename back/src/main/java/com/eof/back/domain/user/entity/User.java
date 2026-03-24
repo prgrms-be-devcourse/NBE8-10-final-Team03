@@ -88,4 +88,12 @@ public class User extends BaseEntity {
                 .role(Role.USER)
                 .build();
     }
+
+    public void updateNickname(String nickname) {
+        this.nickname = nickname;
+    }
+
+    public void updatePassword(String encodedPassword) {
+        this.password = encodedPassword;
+    }
 }

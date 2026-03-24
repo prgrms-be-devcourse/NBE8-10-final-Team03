@@ -1,4 +1,4 @@
-package com.eof.back.domain.user.dto;
+package com.eof.back.global.jwt;
 
 /**
  * Spring Security의 인증 주체(Principal)를 나타내는 클래스입니다.

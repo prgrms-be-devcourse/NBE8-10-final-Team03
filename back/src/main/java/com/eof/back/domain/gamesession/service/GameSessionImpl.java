@@ -109,7 +109,7 @@ public class GameSessionImpl implements GameSessionService {
 
         // 1. 나가는 유저 조회
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("유저를 찾을 수 없습니다."));
+                .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND, "유저를 찾을 수 없습니다."));
 
         // 2. 방 조회
         GameSession gameSession = gameSessionRepository.findByIdWithPlayers(roomId)

@@ -35,6 +35,6 @@ public interface GameSessionRepository extends JpaRepository<GameSession, Long> 
     @Query("SELECT gs FROM GameSession gs " +
             "LEFT JOIN FETCH gs.host " +
             "LEFT JOIN FETCH gs.players " +
-            "WHERE gs.id = : gameSessionId")
+            "WHERE gs.id = :gameSessionId")
     Optional<GameSession> findByIdWithPlayers(@Param("gameSessionId") Long gameSessionId);
 }

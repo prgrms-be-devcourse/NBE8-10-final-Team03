@@ -57,6 +57,15 @@ public class User extends BaseEntity {
     private Long totalRankingScore = 0L;
 
     /**
+     * 게임 결과에 따른 랭킹 점수를 누적 합산합니다.
+     *
+     * @param score 가산할 랭킹 점수
+     */
+    public void addRankingScore(Long score) {
+        this.totalRankingScore += score;
+    }
+
+    /**
      * 빌더 패턴을 이용한 생성자입니다.
      *
      * @param username 사용자 아이디

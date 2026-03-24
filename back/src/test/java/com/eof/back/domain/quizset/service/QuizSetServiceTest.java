@@ -8,7 +8,6 @@ import static org.mockito.Mockito.verify;
 
 import com.eof.back.domain.quiz.entity.Quiz;
 import com.eof.back.domain.quizset.dto.QuizSetCreateRequest;
-import com.eof.back.domain.quizset.dto.QuizSetCreateResponse;
 import com.eof.back.domain.quizset.dto.QuizSetListResponse;
 import com.eof.back.domain.quizset.dto.QuizSetResponse;
 import com.eof.back.domain.quizset.entity.QuizSet;
@@ -69,13 +68,10 @@ class QuizSetServiceTest {
         given(quizSetRepository.save(any(QuizSet.class))).willReturn(quizSet);
 
         // when
-        QuizSetCreateResponse response = quizSetService.createQuizSet(request, 1L);
+        Long responseId = quizSetService.createQuizSet(request, 1L);
 
         // then
-        assertThat(response.getId()).isEqualTo(100L);
-        assertThat(response.getTitle()).isEqualTo("테스트 퀴즈 세트");
-        assertThat(response.getCreatorNickname()).isEqualTo("별명");
-        assertThat(response.getTotalQuizCount()).isEqualTo(10);
+        assertThat(responseId).isEqualTo(100L);
         
         verify(userRepository).findById(1L);
         verify(quizSetRepository).save(any(QuizSet.class));
@@ -121,7 +117,6 @@ class QuizSetServiceTest {
                 .choice2("2")
                 .choice3("3")
                 .choice4("4")
-                .sequence(1)
                 .build();
         ReflectionTestUtils.setField(quiz, "id", 10L);
         quizSet.getQuizzes().add(quiz);

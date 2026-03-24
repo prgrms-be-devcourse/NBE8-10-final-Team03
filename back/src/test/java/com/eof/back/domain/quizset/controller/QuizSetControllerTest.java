@@ -1,9 +1,7 @@
 package com.eof.back.domain.quizset.controller;
 
-import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -14,7 +12,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.eof.back.domain.quizset.dto.QuizSetCreateRequest;
-import com.eof.back.domain.quizset.dto.QuizSetCreateResponse;
 import com.eof.back.domain.quizset.dto.QuizSetListResponse;
 import com.eof.back.domain.quizset.dto.QuizSetResponse;
 import com.eof.back.domain.quizset.service.QuizSetService;
@@ -25,7 +22,6 @@ import com.eof.back.global.jwt.JwtAuthenticationEntryPoint;
 import com.eof.back.global.jwt.JwtTokenProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -66,13 +62,9 @@ class QuizSetControllerTest {
                 .totalQuizCount(5)
                 .build();
 
-        QuizSetCreateResponse response = QuizSetCreateResponse.builder()
-                .id(1L)
-                .build();
-
         UserPrincipal principal = new UserPrincipal(1L, "testuser");
 
-        given(quizSetService.createQuizSet(any(), any())).willReturn(response);
+        given(quizSetService.createQuizSet(any(), any())).willReturn(1L);
 
         // when & then
         mockMvc.perform(post("/api/v1/quizsets")
@@ -173,7 +165,6 @@ class QuizSetControllerTest {
                 .choice2("2")
                 .choice3("3")
                 .choice4("4")
-                .sequence(1)
                 .build();
 
         QuizSetResponse response = QuizSetResponse.builder()

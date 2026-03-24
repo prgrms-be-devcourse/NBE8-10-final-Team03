@@ -55,7 +55,6 @@ public class QuizSetResponse {
         private String choice2;
         private String choice3;
         private String choice4;
-        private Integer sequence;
 
         public static QuizResponse from(Quiz quiz) {
             return QuizResponse.builder()
@@ -66,7 +65,6 @@ public class QuizSetResponse {
                     .choice2(quiz.getChoice2())
                     .choice3(quiz.getChoice3())
                     .choice4(quiz.getChoice4())
-                    .sequence(quiz.getSequence())
                     .build();
         }
     }

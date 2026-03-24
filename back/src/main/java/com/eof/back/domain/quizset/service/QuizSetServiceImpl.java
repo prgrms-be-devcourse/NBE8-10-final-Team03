@@ -1,7 +1,6 @@
 package com.eof.back.domain.quizset.service;
 
 import com.eof.back.domain.quizset.dto.QuizSetCreateRequest;
-import com.eof.back.domain.quizset.dto.QuizSetCreateResponse;
 import com.eof.back.domain.quizset.dto.QuizSetListResponse;
 import com.eof.back.domain.quizset.dto.QuizSetResponse;
 import com.eof.back.domain.quizset.entity.QuizSet;
@@ -43,7 +42,7 @@ public class QuizSetServiceImpl implements QuizSetService {
      */
     @Override
     @Transactional
-    public QuizSetCreateResponse createQuizSet(QuizSetCreateRequest request, Long userId) {
+    public Long createQuizSet(QuizSetCreateRequest request, Long userId) {
         User creator = userRepository.findById(userId)
                 .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND));
 
@@ -56,7 +55,7 @@ public class QuizSetServiceImpl implements QuizSetService {
 
         QuizSet savedQuizSet = quizSetRepository.save(quizSet);
 
-        return QuizSetCreateResponse.from(savedQuizSet);
+        return savedQuizSet.getId();
     }
 
     /**

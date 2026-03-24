@@ -1,7 +1,6 @@
 package com.eof.back.domain.quizset.controller;
 
 import com.eof.back.domain.quizset.dto.QuizSetCreateRequest;
-import com.eof.back.domain.quizset.dto.QuizSetCreateResponse;
 import com.eof.back.domain.quizset.dto.QuizSetListResponse;
 import com.eof.back.domain.quizset.dto.QuizSetResponse;
 import com.eof.back.domain.quizset.service.QuizSetService;
@@ -50,8 +49,8 @@ public class QuizSetController {
             @RequestBody @Valid QuizSetCreateRequest request,
             @AuthenticationPrincipal UserPrincipal principal) {
 
-        QuizSetCreateResponse response = quizSetService.createQuizSet(request, principal.id());
-        return ResponseEntity.created(java.net.URI.create("/api/v1/quizsets/" + response.getId()))
+        Long quizSetId = quizSetService.createQuizSet(request, principal.id());
+        return ResponseEntity.created(java.net.URI.create("/api/v1/quizsets/" + quizSetId))
                 .build();
     }
 

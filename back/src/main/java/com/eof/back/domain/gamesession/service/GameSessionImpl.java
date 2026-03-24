@@ -117,6 +117,9 @@ public class GameSessionImpl implements GameSessionService {
 
         // 3. 방장 여부 확인 및 분기 처리
         if (gameSession.getHost().getId().equals(userId)) {
+
+            // 게임 세션을 삭제하기 전에, 유저 리스트 비우기
+            gameSession.getPlayers().clear();
             // [CASE 1] 나가는 사람이 방장인 경우: 방 자체를 DB에서 완전히 삭제
             gameSessionRepository.delete(gameSession);
             // TODO : STOMP로 "방에서 나가졌습니다" 라고 메시지를 쏘는 로직 추가

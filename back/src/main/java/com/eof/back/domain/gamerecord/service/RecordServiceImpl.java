@@ -98,7 +98,11 @@ public class RecordServiceImpl implements RecordService {
         List<Long> userIds = request.playerResults().stream()
                 .map(GameResultRequest.PlayerResult::userId)
                 .toList();
-        Map<Long, User> userMap = userRepository.findAllById(userIds).stream()
+        List<User> users = userRepository.findAllById(userIds);
+        if (users.size() != userIds.size()) {
+            throw new AuthException(AuthErrorCode.USER_NOT_FOUND);
+        }
+        Map<Long, User> userMap = users.stream()
                 .collect(Collectors.toMap(User::getId, Function.identity()));
 
         // 3. GameRecord 일괄 생성

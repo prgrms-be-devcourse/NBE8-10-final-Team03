@@ -5,12 +5,14 @@ import com.eof.back.domain.quizset.dto.QuizSetCreateResponse;
 import com.eof.back.domain.quizset.dto.QuizSetListResponse;
 import com.eof.back.domain.quizset.dto.QuizSetResponse;
 import com.eof.back.domain.quizset.service.QuizSetService;
+import com.eof.back.domain.user.dto.UserPrincipal;
 import com.eof.back.global.response.CommonResponse;
 import com.eof.back.global.response.Response;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -44,9 +46,10 @@ public class QuizSetController {
      */
     @PostMapping
     public ResponseEntity<Response<QuizSetCreateResponse>> createQuizSet(
-            @RequestBody @Valid QuizSetCreateRequest request) {
+            @RequestBody @Valid QuizSetCreateRequest request,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
 
-        QuizSetCreateResponse response = quizSetService.createQuizSet(request);
+        QuizSetCreateResponse response = quizSetService.createQuizSet(request, userPrincipal.id());
         return ResponseEntity.ok(CommonResponse.success(response));
     }
 

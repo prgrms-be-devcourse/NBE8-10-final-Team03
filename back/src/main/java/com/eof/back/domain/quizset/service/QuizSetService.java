@@ -42,7 +42,7 @@ public interface QuizSetService {
      * @return 생성된 퀴즈 세트의 식별자(ID)를 포함한 생성 결과 정보 (DTO)
      * @throws RuntimeException (임시) 제작자 정보를 찾을 수 없을 경우 발생합니다.
      */
-    QuizSetCreateResponse createQuizSet(QuizSetCreateRequest request);
+    QuizSetCreateResponse createQuizSet(QuizSetCreateRequest request, Long userId);
 
     /**
      * 특정 식별자(ID)를 가진 퀴즈 세트의 상세 정보를 조회합니다.

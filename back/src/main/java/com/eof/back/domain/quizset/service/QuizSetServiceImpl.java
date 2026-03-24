@@ -8,7 +8,9 @@ import com.eof.back.domain.quizset.entity.QuizSet;
 import com.eof.back.domain.quizset.repository.QuizSetRepository;
 import com.eof.back.domain.user.entity.User;
 import com.eof.back.domain.user.repository.UserRepository;
+import com.eof.back.global.exception.errorCode.AuthErrorCode;
 import com.eof.back.global.exception.errorCode.QuizSetErrorCode;
+import com.eof.back.global.exception.exceptions.AuthException;
 import com.eof.back.global.exception.exceptions.QuizSetException;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -41,10 +43,9 @@ public class QuizSetServiceImpl implements QuizSetService {
      */
     @Override
     @Transactional
-    public QuizSetCreateResponse createQuizSet(QuizSetCreateRequest request) {
-        // TODO: 인증 기능 구현 후 현재 로그인된 사용자 정보를 가져오도록 수정
-        User creator = userRepository.findById(1L)
-                .orElseThrow(() -> new RuntimeException("임시 사용자(ID: 1)를 찾을 수 없습니다."));
+    public QuizSetCreateResponse createQuizSet(QuizSetCreateRequest request, Long userId) {
+        User creator = userRepository.findById(userId)
+                .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND));
 
         QuizSet quizSet = QuizSet.builder()
                 .title(request.getTitle())

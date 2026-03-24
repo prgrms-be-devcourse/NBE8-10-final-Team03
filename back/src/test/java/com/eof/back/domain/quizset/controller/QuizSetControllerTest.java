@@ -16,6 +16,7 @@ import com.eof.back.domain.quizset.dto.QuizSetResponse;
 import com.eof.back.domain.quizset.service.QuizSetService;
 import com.eof.back.global.exception.errorCode.QuizSetErrorCode;
 import com.eof.back.global.exception.exceptions.QuizSetException;
+import com.eof.back.global.jwt.JwtTokenProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.time.LocalDateTime;
@@ -25,10 +26,12 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(QuizSetController.class)
+@WithMockUser
 class QuizSetControllerTest {
 
     @Autowired
@@ -38,6 +41,9 @@ class QuizSetControllerTest {
 
     @MockitoBean
     private QuizSetService quizSetService;
+
+    @MockitoBean
+    private JwtTokenProvider jwtTokenProvider;
 
     @Test
     @DisplayName("퀴즈 세트 생성 API 호출 성공")

@@ -2,6 +2,7 @@ package com.eof.back.domain.quizset.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -19,19 +20,20 @@ import com.eof.back.global.exception.exceptions.QuizSetException;
 import com.eof.back.global.jwt.JwtTokenProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import io.jsonwebtoken.Claims;
 import java.time.LocalDateTime;
 import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(QuizSetController.class)
-@WithMockUser
 class QuizSetControllerTest {
 
     @Autowired
@@ -44,6 +46,17 @@ class QuizSetControllerTest {
 
     @MockitoBean
     private JwtTokenProvider jwtTokenProvider;
+
+    private static final String BEARER_TOKEN = "Bearer test-token";
+
+    @BeforeEach
+    void setUpJwtMock() {
+        Claims mockClaims = Mockito.mock(Claims.class);
+        given(jwtTokenProvider.validateToken(anyString())).willReturn(mockClaims);
+        given(jwtTokenProvider.getUserId(mockClaims)).willReturn(1L);
+        given(jwtTokenProvider.getUsername(mockClaims)).willReturn("testuser");
+        given(jwtTokenProvider.getRole(mockClaims)).willReturn("USER");
+    }
 
     @Test
     @DisplayName("퀴즈 세트 생성 API 호출 성공")
@@ -64,10 +77,11 @@ class QuizSetControllerTest {
                 .createdAt(LocalDateTime.now())
                 .build();
 
-        given(quizSetService.createQuizSet(any(QuizSetCreateRequest.class))).willReturn(response);
+        given(quizSetService.createQuizSet(any(QuizSetCreateRequest.class), any(Long.class))).willReturn(response);
 
         // when & then
         mockMvc.perform(post("/api/v1/quizsets")
+                        .header("Authorization", BEARER_TOKEN)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
@@ -90,6 +104,7 @@ class QuizSetControllerTest {
 
         // when & then
         mockMvc.perform(post("/api/v1/quizsets")
+                        .header("Authorization", BEARER_TOKEN)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
@@ -109,6 +124,7 @@ class QuizSetControllerTest {
 
         // when & then
         mockMvc.perform(post("/api/v1/quizsets")
+                        .header("Authorization", BEARER_TOKEN)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
@@ -129,6 +145,7 @@ class QuizSetControllerTest {
 
         // when & then
         mockMvc.perform(post("/api/v1/quizsets")
+                        .header("Authorization", BEARER_TOKEN)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
@@ -164,7 +181,8 @@ class QuizSetControllerTest {
         given(quizSetService.getQuizSet(anyLong())).willReturn(response);
 
         // when & then
-        mockMvc.perform(get("/api/v1/quizsets/1"))
+        mockMvc.perform(get("/api/v1/quizsets/1")
+                        .header("Authorization", BEARER_TOKEN))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("success"))
@@ -181,7 +199,8 @@ class QuizSetControllerTest {
                 .willThrow(new QuizSetException(QuizSetErrorCode.QUIZ_SET_NOT_FOUND));
 
         // when & then
-        mockMvc.perform(get("/api/v1/quizsets/999"))
+        mockMvc.perform(get("/api/v1/quizsets/999")
+                        .header("Authorization", BEARER_TOKEN))
                 .andDo(print())
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value("fail"))

@@ -16,6 +16,7 @@ import com.eof.back.domain.quizset.repository.QuizSetRepository;
 import com.eof.back.domain.user.entity.Role;
 import com.eof.back.domain.user.entity.User;
 import com.eof.back.domain.user.repository.UserRepository;
+import com.eof.back.global.exception.exceptions.AuthException;
 import com.eof.back.global.exception.exceptions.QuizSetException;
 import java.util.List;
 import java.util.Optional;
@@ -69,7 +70,7 @@ class QuizSetServiceTest {
         given(quizSetRepository.save(any(QuizSet.class))).willReturn(quizSet);
 
         // when
-        QuizSetCreateResponse response = quizSetService.createQuizSet(request);
+        QuizSetCreateResponse response = quizSetService.createQuizSet(request, 1L);
 
         // then
         assertThat(response.getId()).isEqualTo(100L);
@@ -94,10 +95,9 @@ class QuizSetServiceTest {
         given(userRepository.findById(1L)).willReturn(Optional.empty());
 
         // when & then
-        assertThatThrownBy(() -> quizSetService.createQuizSet(request))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("임시 사용자(ID: 1)를 찾을 수 없습니다.");
-        
+        assertThatThrownBy(() -> quizSetService.createQuizSet(request, 1L))
+                .isInstanceOf(AuthException.class);
+
         verify(userRepository).findById(1L);
     }
 

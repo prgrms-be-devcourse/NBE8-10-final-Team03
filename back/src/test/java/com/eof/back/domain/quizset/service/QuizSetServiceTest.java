@@ -45,7 +45,6 @@ class QuizSetServiceTest {
         QuizSetCreateRequest request = QuizSetCreateRequest.builder()
                 .title("테스트 퀴즈 세트")
                 .description("설명")
-                .totalQuizCount(10)
                 .build();
 
         User creator = User.builder()
@@ -60,7 +59,6 @@ class QuizSetServiceTest {
                 .title(request.getTitle())
                 .description(request.getDescription())
                 .creator(creator)
-                .totalQuizCount(request.getTotalQuizCount())
                 .build();
         ReflectionTestUtils.setField(quizSet, "id", 100L);
 
@@ -72,6 +70,7 @@ class QuizSetServiceTest {
 
         // then
         assertThat(responseId).isEqualTo(100L);
+        assertThat(quizSet.getTotalQuizCount()).isEqualTo(0);
         
         verify(userRepository).findById(1L);
         verify(quizSetRepository).save(any(QuizSet.class));
@@ -84,7 +83,6 @@ class QuizSetServiceTest {
         QuizSetCreateRequest request = QuizSetCreateRequest.builder()
                 .title("테스트 퀴즈 세트")
                 .description("설명")
-                .totalQuizCount(10)
                 .build();
 
         given(userRepository.findById(1L)).willReturn(Optional.empty());
@@ -106,7 +104,6 @@ class QuizSetServiceTest {
                 .title("테스트 세트")
                 .description("설명")
                 .creator(creator)
-                .totalQuizCount(1)
                 .build();
         ReflectionTestUtils.setField(quizSet, "id", 1L);
 
@@ -120,6 +117,7 @@ class QuizSetServiceTest {
                 .build();
         ReflectionTestUtils.setField(quiz, "id", 10L);
         quizSet.getQuizzes().add(quiz);
+        quizSet.increaseQuizCount();
 
         given(quizSetRepository.findById(1L)).willReturn(Optional.of(quizSet));
 
@@ -130,6 +128,7 @@ class QuizSetServiceTest {
         assertThat(response.getId()).isEqualTo(1L);
         assertThat(response.getQuizzes()).hasSize(1);
         assertThat(response.getQuizzes().get(0).getContent()).isEqualTo("문제 내용");
+        assertThat(response.getTotalQuizCount()).isEqualTo(1);
         verify(quizSetRepository).findById(1L);
     }
 
@@ -149,8 +148,8 @@ class QuizSetServiceTest {
     void getAllQuizSets_Success() {
         // given
         User creator = User.builder().nickname("별명").build();
-        QuizSet quizSet1 = QuizSet.builder().title("세트1").creator(creator).totalQuizCount(5).build();
-        QuizSet quizSet2 = QuizSet.builder().title("세트2").creator(creator).totalQuizCount(10).build();
+        QuizSet quizSet1 = QuizSet.builder().title("세트1").creator(creator).build();
+        QuizSet quizSet2 = QuizSet.builder().title("세트2").creator(creator).build();
 
         given(quizSetRepository.findAll()).willReturn(List.of(quizSet1, quizSet2));
 

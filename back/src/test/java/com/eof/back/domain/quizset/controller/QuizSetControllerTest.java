@@ -59,7 +59,6 @@ class QuizSetControllerTest {
         QuizSetCreateRequest request = QuizSetCreateRequest.builder()
                 .title("API 테스트 퀴즈 세트")
                 .description("API 설명")
-                .totalQuizCount(5)
                 .build();
 
         UserPrincipal principal = new UserPrincipal(1L, "testuser");
@@ -86,31 +85,6 @@ class QuizSetControllerTest {
         QuizSetCreateRequest request = QuizSetCreateRequest.builder()
                 .title("")
                 .description("API 설명")
-                .totalQuizCount(5)
-                .build();
-
-        UserPrincipal principal = new UserPrincipal(1L, "testuser");
-
-        // when & then
-        mockMvc.perform(post("/api/v1/quizsets")
-                        .with(SecurityMockMvcRequestPostProcessors.authentication(
-                                new UsernamePasswordAuthenticationToken(principal, null, List.of())
-                        ))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andDo(print())
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value("fail"));
-    }
-
-    @Test
-    @DisplayName("퀴즈 세트 생성 실패 - 음수 문제 수")
-    void createQuizSet_Fail_NegativeCount() throws Exception {
-        // given
-        QuizSetCreateRequest request = QuizSetCreateRequest.builder()
-                .title("제목")
-                .description("API 설명")
-                .totalQuizCount(-1)
                 .build();
 
         UserPrincipal principal = new UserPrincipal(1L, "testuser");
@@ -135,7 +109,6 @@ class QuizSetControllerTest {
         QuizSetCreateRequest request = QuizSetCreateRequest.builder()
                 .title("제목")
                 .description(longDescription)
-                .totalQuizCount(5)
                 .build();
 
         UserPrincipal principal = new UserPrincipal(1L, "testuser");

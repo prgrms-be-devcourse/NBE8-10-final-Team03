@@ -1,6 +1,8 @@
 package com.eof.back.domain.quiz.service;
 
 import com.eof.back.domain.quiz.dto.QuizCreateRequest;
+import com.eof.back.domain.quiz.dto.QuizResponse;
+import java.util.List;
 
 /**
  * 퀴즈(Quiz) 도메인의 비즈니스 로직을 정의하는 서비스 인터페이스입니다.
@@ -39,4 +41,22 @@ public interface QuizService {
      * @throws com.eof.back.global.exception.exceptions.QuizException 퀴즈 최대 개수를 초과하거나 유효하지 않은 요청인 경우 발생합니다.
      */
     Long createQuiz(Long quizSetId, QuizCreateRequest request);
+
+    /**
+     * 특정 식별자(ID)를 가진 퀴즈의 정보를 조회합니다.
+     *
+     * @param quizId 조회할 퀴즈의 식별자
+     * @return 퀴즈 상세 정보 DTO
+     * @throws com.eof.back.global.exception.exceptions.QuizException 해당 식별자의 퀴즈가 존재하지 않을 경우 발생합니다.
+     */
+    QuizResponse getQuiz(Long quizId);
+
+    /**
+     * 특정 퀴즈 세트에 포함된 모든 퀴즈 목록을 조회합니다.
+     *
+     * @param quizSetId 퀴즈 세트의 식별자
+     * @return 퀴즈 상세 정보 목록
+     * @throws com.eof.back.global.exception.exceptions.QuizSetException 대상 퀴즈 세트가 존재하지 않을 경우 발생합니다.
+     */
+    List<QuizResponse> getQuizzesByQuizSetId(Long quizSetId);
 }

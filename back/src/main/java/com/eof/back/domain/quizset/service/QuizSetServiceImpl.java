@@ -50,7 +50,6 @@ public class QuizSetServiceImpl implements QuizSetService {
                 .title(request.getTitle())
                 .description(request.getDescription())
                 .creator(creator)
-                .totalQuizCount(request.getTotalQuizCount())
                 .build();
 
         QuizSet savedQuizSet = quizSetRepository.save(quizSet);

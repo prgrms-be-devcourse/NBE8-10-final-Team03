@@ -63,7 +63,7 @@ public class QuizSet extends BaseEntity {
      * 이 세트에 포함된 총 퀴즈 개수. 퀴즈 세트 조회 시의 요약 정보로 사용됩니다.
      */
     @Column(nullable = false)
-    private Integer totalQuizCount;
+    private Integer totalQuizCount = 0;
 
     /**
      * 이 퀴즈 세트에 포함된 개별 퀴즈 목록입니다.
@@ -85,7 +85,7 @@ public class QuizSet extends BaseEntity {
         this.title = title;
         this.description = description;
         this.creator = creator;
-        this.totalQuizCount = totalQuizCount;
+        this.totalQuizCount = (totalQuizCount != null) ? totalQuizCount : 0;
         if (quizzes != null) {
             this.quizzes = quizzes;
         }
@@ -97,15 +97,21 @@ public class QuizSet extends BaseEntity {
      * @param title 퀴즈 세트 제목
      * @param description 퀴즈 세트 설명
      * @param creator 제작자 (User 엔티티)
-     * @param totalQuizCount 세트 내 총 퀴즈 수
      * @return 생성된 QuizSet 엔티티 객체
      */
-    public static QuizSet of(String title, String description, User creator, Integer totalQuizCount) {
+    public static QuizSet of(String title, String description, User creator) {
         return QuizSet.builder()
                 .title(title)
                 .description(description)
                 .creator(creator)
-                .totalQuizCount(totalQuizCount)
+                .totalQuizCount(0)
                 .build();
+    }
+
+    /**
+     * 퀴즈가 추가될 때 총 퀴즈 수를 1 증가시킵니다.
+     */
+    public void increaseQuizCount() {
+        this.totalQuizCount++;
     }
 }

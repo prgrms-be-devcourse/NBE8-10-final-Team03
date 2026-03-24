@@ -2,6 +2,7 @@ package com.eof.back.domain.gamesession.service;
 
 import com.eof.back.domain.gamesession.dto.GameSessionCreateRequest;
 import com.eof.back.domain.gamesession.dto.GameSessionCreateResponse;
+import com.eof.back.domain.gamesession.dto.GameSessionJoinResponse;
 import com.eof.back.domain.gamesession.dto.GameSessionListResponse;
 
 import java.util.List;
@@ -46,4 +47,22 @@ public interface GameSessionService {
      * @param gameSessionId 게임세션의 아이디
      */
     void deleteGameSession(Long userId, Long gameSessionId);
+
+    /**
+     * 유저가 게임세션 room에 들어감
+     *
+     * @param userId        해당 유저의 아이디
+     * @param gameSessionId 게임 세션의 아이디
+     * @return 입장한 게임세션의 정보 DTO를 리턴
+     */
+
+    GameSessionJoinResponse joinRoom(Long userId, Long gameSessionId);
+
+    /**
+     * 유저가 게임세션 room에서 나감
+     *
+     * @param userId        해당 유저의 아이디
+     * @param gameSessionId 게임 세션의 아이디
+     */
+    void leaveRoom(Long userId, Long gameSessionId);
 }

@@ -22,6 +22,13 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
 /**
  * 유저의 게임 전적 조회 비즈니스 로직 구현체입니다.
  * <p>
@@ -78,37 +85,46 @@ public class RecordServiceImpl implements RecordService {
     @Override
     @Transactional
     public void saveGameResult(GameResultRequest request) {
+        // 1. 게임 세션 조회
         GameSession session = gameSessionRepository.findById(request.sessionId())
                 .orElseThrow(() -> new GameSessionException(
                         GameSessionErrorCode.GAME_SESSION_NOT_FOUND
                 ));
+
         int maxPlayers = request.playerResults().size();
         int questionCount = session.getMaxQuizzes();
 
+        // 2. 유저 한번에 조회 (N+1 방지)
+        List<Long> userIds = request.playerResults().stream()
+                .map(GameResultRequest.PlayerResult::userId)
+                .toList();
+        Map<Long, User> userMap = userRepository.findAllById(userIds).stream()
+                .collect(Collectors.toMap(User::getId, Function.identity()));
+
+        // 3. GameRecord 일괄 생성
+        List<GameRecord> records = new ArrayList<>();
         for (GameResultRequest.PlayerResult result : request.playerResults()) {
-            User user = userRepository.findById(result.userId())
-                    .orElseThrow(() -> new AuthException(
-                            AuthErrorCode.USER_NOT_FOUND
-                    ));
+            User user = Optional.ofNullable(userMap.get(result.userId()))
+                    .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND));
+
             long earnedRankingScore = ScoreCalculator.calculateFinalScore(
                     result.sessionRanking(),
                     maxPlayers,
                     questionCount
             );
 
-            // 4. GameRecord 생성 및 저장
-            GameRecord record = GameRecord.builder()
+            records.add(GameRecord.builder()
                     .user(user)
                     .gameSession(session)
                     .sessionRanking(result.sessionRanking())
                     .sessionScore(result.sessionScore())
                     .earnedRankingScore(earnedRankingScore)
-                    .build();
+                    .build());
 
-            gameRecordRepository.save(record);
-
-            // 5. User 랭킹 점수 업데이트
             user.addRankingScore(earnedRankingScore);
         }
+
+        // 4. 일괄 저장
+        gameRecordRepository.saveAll(records);
     }
 }

@@ -2,6 +2,7 @@ package com.eof.back.domain.gamesession.service;
 
 import com.eof.back.domain.gamesession.dto.GameSessionCreateRequest;
 import com.eof.back.domain.gamesession.dto.GameSessionCreateResponse;
+import com.eof.back.domain.gamesession.dto.GameSessionJoinResponse;
 import com.eof.back.domain.gamesession.dto.GameSessionListResponse;
 import com.eof.back.domain.gamesession.entity.GameSession;
 import com.eof.back.domain.gamesession.entity.GameSessionStatus;
@@ -171,6 +172,92 @@ public class GameSessionServiceTest {
 
         // delete 메서드 호출 안됨
         verify(gameSessionRepository, never()).delete(any());
+    }
+
+    @Test
+    @DisplayName("게임 세션 입장 성공 테스트")
+    void joinRoom_Success() {
+        Long userId = 2L; // 입장하려는 일반 유저
+        Long gameSessionId = 10L;
+
+        User mockUser = mock(User.class);
+        given(mockUser.getId()).willReturn(userId);
+        given(mockUser.getNickname()).willReturn("입장유저");
+
+        User mockHost = mock(User.class);
+        given(mockHost.getId()).willReturn(1L);
+
+        QuizSet mockQuizSet = mock(QuizSet.class);
+        given(mockQuizSet.getId()).willReturn(100L);
+
+        GameSession mockSession = mock(GameSession.class);
+        given(mockSession.getId()).willReturn(gameSessionId);
+        given(mockSession.getRoomName()).willReturn("테스트 방");
+        given(mockSession.getHost()).willReturn(mockHost);
+        given(mockSession.getQuizSet()).willReturn(mockQuizSet);
+        given(mockSession.getStatus()).willReturn(GameSessionStatus.WAIT);
+
+        // join 시 불릴 로직을 위해 players 리스트 모의 반환 (자신 포함)
+        given(mockSession.getPlayers()).willReturn(List.of(mockHost, mockUser));
+
+        given(userRepository.findById(userId)).willReturn(Optional.of(mockUser));
+        given(gameSessionRepository.findByIdWithPlayers(gameSessionId)).willReturn(Optional.of(mockSession));
+
+        GameSessionJoinResponse response = gameSessionService.joinRoom(userId, gameSessionId);
+
+        verify(mockSession, times(1)).join(mockUser); // 내부 join 로직이 호출되었는지 검증
+        assertThat(response).isNotNull();
+        assertThat(response.gameSessionId()).isEqualTo(gameSessionId);
+        assertThat(response.players()).hasSize(2);
+    }
+
+    @Test
+    @DisplayName("방 나가기 성공 - 일반 참가자가 나갈 때")
+    void leaveRoom_Success_GuestLeave() {
+        Long guestId = 2L;
+        Long gameSessionId = 10L;
+
+        // 1. Guest 모킹 (getId 설정은 실제 서비스에서 안 쓰이므로 생략!)
+        User mockGuest = mock(User.class);
+
+        // 2. Host 모킹 (서비스 로직에서 방장인지 검사하므로 필요!)
+        User mockHost = mock(User.class);
+        given(mockHost.getId()).willReturn(1L); // 방장의 ID 설정
+
+        // 3. Session 모킹 및 Host 연결
+        GameSession mockSession = mock(GameSession.class);
+        given(mockSession.getHost()).willReturn(mockHost); // NPE 방지를 위해 필수!
+
+        // 4. Repository 모킹
+        given(userRepository.findById(guestId)).willReturn(Optional.of(mockGuest));
+        given(gameSessionRepository.findByIdWithPlayers(gameSessionId)).willReturn(Optional.of(mockSession));
+
+        // 5. 실행 및 검증
+        gameSessionService.leaveRoom(guestId, gameSessionId);
+
+        verify(mockSession, times(1)).leave(mockGuest);
+        verify(gameSessionRepository, never()).delete(any());
+    }
+
+    @Test
+    @DisplayName("방 나가기 성공 - 방장이 나갈 때 (방 폭파)")
+    void leaveRoom_Success_HostLeave() {
+        Long hostId = 1L;
+        Long gameSessionId = 10L;
+
+        User mockHost = mock(User.class);
+        given(mockHost.getId()).willReturn(hostId);
+
+        GameSession mockSession = mock(GameSession.class);
+        given(mockSession.getHost()).willReturn(mockHost); // 요청자와 방장이 일치함
+
+        given(userRepository.findById(hostId)).willReturn(Optional.of(mockHost));
+        given(gameSessionRepository.findByIdWithPlayers(gameSessionId)).willReturn(Optional.of(mockSession));
+
+        gameSessionService.leaveRoom(hostId, gameSessionId);
+
+        verify(gameSessionRepository, times(1)).delete(mockSession); // 방 삭제 로직이 실행되었는지 확인
+        verify(mockSession, never()).leave(any()); // 일반 퇴장 로직은 실행되지 않아야 함
     }
 
     private void setupMockSession(GameSession session, Long id, String roomName, String hostName, Long quizId, String quizTitle) {

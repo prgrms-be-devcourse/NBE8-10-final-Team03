@@ -27,7 +27,7 @@ import java.util.List;
  * @since 2026-03-23
  */
 public record GameSessionJoinResponse(
-        Long roomId,
+        Long gameSessionId,
         String title,
         Long quizSetId,
         String status,

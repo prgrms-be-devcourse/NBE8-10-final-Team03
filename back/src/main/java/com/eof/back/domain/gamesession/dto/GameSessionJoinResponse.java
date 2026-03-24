@@ -5,25 +5,27 @@ import com.eof.back.domain.gamesession.entity.GameSession;
 import java.util.List;
 
 /**
- * 코드에 대한 전체적인 역할을 적습니다.
+ * 클라이언트가 게임 세션(방)에 참가하거나 조회할 때 방의 상세 정보와 참가자 목록을 전달하는 응답용 DTO입니다.
  * <p>
- * 코드에 대한 작동 원리 등을 적습니다.
+ * {@code GameSession} 엔티티를 입력받아 내부 참가자 목록을 순회하며 방장 여부를 판별해
+ * 내부 레코드인 {@code PlayerInfo}로 변환합니다. 이후 정적 팩토리 메서드({@code from})를 통해
+ * 클라이언트가 필요로 하는 최종 데이터 스펙으로 조립하여 반환합니다.
  *
  * <p><b>상속 정보:</b><br>
- * 상속 정보를 적습니다.
+ * 자바의 {@code record} 타입이므로 내부적으로 {@code java.lang.Record}를 암묵적으로 상속받습니다.
  *
  * <p><b>주요 생성자:</b><br>
- * {@code ExampleClass(String example)}  <br>
- * 주요 생성자와 그 매개변수에 대한 설명을 적습니다. <br>
+ * 필드로 선언된 모든 컴포넌트를 매개변수로 받는 표준 생성자(Canonical Constructor)가 자동 생성됩니다.<br>
+ * 외부에서는 주로 정적 팩토리 메서드인 {@code from(GameSession session)}을 통해 객체를 생성합니다.
  *
  * <p><b>빈 관리:</b><br>
- * 필요 시 빈 관리에 대한 내용을 적습니다.
+ * 스프링 빈(Bean)으로 관리되지 않으며, API 응답 시점에 임시로 생성되어 JSON 직렬화 후 소멸됩니다.
  *
  * <p><b>외부 모듈:</b><br>
- * 필요 시 외부 모듈에 대한 내용을 적습니다.
+ * 롬복(Lombok) 등의 외부 라이브러리 없이 순수 자바 16 이상의 {@code record} 문법과 Stream API를 활용해 작성되었습니다.
  *
  * @author 유재원
- * @see
+ * @see com.eof.back.domain.gamesession.entity.GameSession
  * @since 2026-03-23
  */
 public record GameSessionJoinResponse(

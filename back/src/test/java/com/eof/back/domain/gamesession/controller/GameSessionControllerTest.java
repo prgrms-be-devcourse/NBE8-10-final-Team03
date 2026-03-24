@@ -45,7 +45,7 @@ public class GameSessionControllerTest {
     private JwtTokenProvider jwtTokenProvider;
 
     @Test
-    @WithMockUser // 👈 이제 편하게 이것만 쓰시면 됩니다!
+    @WithMockUser
     @DisplayName("게임 세션 생성 성공 테스트")
     void createGameSession_Success() throws Exception {
         GameSessionCreateRequest request = new GameSessionCreateRequest("테스트 방", 10L, 4, 10);
@@ -53,7 +53,7 @@ public class GameSessionControllerTest {
         GameSessionCreateResponse response = GameSessionCreateResponse.builder()
                 .gameSessionId(1L)
                 .roomName("테스트 방")
-                .hostUserId(1L) // 번역기에서 1L을 강제로 주입합니다.
+                .hostUserId(1L)
                 .quizSetId(10L)
                 .maxPlayers(4)
                 .status(GameSessionStatus.WAIT)
@@ -161,7 +161,6 @@ public class GameSessionControllerTest {
         verify(gameSessionService, times(1)).leaveRoom(eq(1L), eq(gameSessionId));
     }
 
-    // 🌟 핵심 치트키: 무조건 UserPrincipal(1L, "tester")를 꽂아주는 강력한 커스텀 번역기 🌟
     @org.springframework.boot.test.context.TestConfiguration
     static class MockSecurityConfig implements org.springframework.web.servlet.config.annotation.WebMvcConfigurer {
         @Override
@@ -177,7 +176,6 @@ public class GameSessionControllerTest {
                                               org.springframework.web.method.support.ModelAndViewContainer mavContainer,
                                               org.springframework.web.context.request.NativeWebRequest webRequest,
                                               org.springframework.web.bind.support.WebDataBinderFactory binderFactory) {
-                    // 컨트롤러가 UserPrincipal을 요구하면 절대 null이 될 수 없는 객체를 강제 반환합니다!
                     return new UserPrincipal(1L, "tester");
                 }
             });

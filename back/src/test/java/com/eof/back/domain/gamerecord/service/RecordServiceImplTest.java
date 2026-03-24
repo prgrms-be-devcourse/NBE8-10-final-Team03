@@ -24,6 +24,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -33,8 +35,6 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 
@@ -111,8 +111,7 @@ class RecordServiceImplTest {
         User user2 = createUser("유저2", 0L);
 
         given(gameSessionRepository.findById(1L)).willReturn(Optional.of(session));
-        given(userRepository.findById(1L)).willReturn(Optional.of(user1));
-        given(userRepository.findById(2L)).willReturn(Optional.of(user2));
+        given(userRepository.findAllById(anyList())).willReturn(List.of(user1, user2));
 
         GameResultRequest request = new GameResultRequest(1L, List.of(
                 new GameResultRequest.PlayerResult(1L, 1, 950),
@@ -123,7 +122,7 @@ class RecordServiceImplTest {
         recordService.saveGameResult(request);
 
         // then
-        verify(gameRecordRepository, times(2)).save(any(GameRecord.class));
+        verify(gameRecordRepository).saveAll(anyList());
         assertThat(user1.getTotalRankingScore()).isGreaterThan(0L);
         assertThat(user2.getTotalRankingScore()).isGreaterThan(0L);
         assertThat(user1.getTotalRankingScore()).isGreaterThan(user2.getTotalRankingScore());
@@ -150,7 +149,7 @@ class RecordServiceImplTest {
         // given
         GameSession session = createSession(10);
         given(gameSessionRepository.findById(1L)).willReturn(Optional.of(session));
-        given(userRepository.findById(999L)).willReturn(Optional.empty());
+        given(userRepository.findAllById(anyList())).willReturn(List.of());
 
         GameResultRequest request = new GameResultRequest(1L, List.of(
                 new GameResultRequest.PlayerResult(999L, 1, 950)
@@ -169,9 +168,13 @@ class RecordServiceImplTest {
                 .role(Role.USER)
                 .build();
         try {
-            var field = User.class.getDeclaredField("totalRankingScore");
-            field.setAccessible(true);
-            field.set(user, score);
+            var idField = User.class.getSuperclass().getDeclaredField("id");
+            idField.setAccessible(true);
+            idField.set(user, nickname.equals("유저1") ? 1L : 2L);
+
+            var scoreField = User.class.getDeclaredField("totalRankingScore");
+            scoreField.setAccessible(true);
+            scoreField.set(user, score);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

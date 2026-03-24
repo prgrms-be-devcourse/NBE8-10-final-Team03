@@ -1,4 +1,4 @@
-package com.eof.back.domain.user.dto;
+package com.eof.back.domain.auth.dto;
 
 /**
  * 로그인 결과 응답 데이터를 전달하는 DTO입니다.
@@ -13,9 +13,9 @@ package com.eof.back.domain.user.dto;
  * </ul>
  *
  * @author 5h6vm
- * @since 2026-03-19
+ * @since 2026-03-23
  */
-public record UserLoginResponse(
+public record LoginResponse(
         String accessToken,
         String refreshToken,
         Long userId,

@@ -19,16 +19,12 @@ import com.eof.back.domain.user.repository.UserRepository;
 import com.eof.back.global.exception.exceptions.QuizSetException;
 import java.util.List;
 import java.util.Optional;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
@@ -42,18 +38,6 @@ class QuizSetServiceTest {
 
     @Mock
     private UserRepository userRepository;
-
-    @BeforeEach
-    void setUpAuth() {
-        UsernamePasswordAuthenticationToken auth =
-                new UsernamePasswordAuthenticationToken("1", null, List.of());
-        SecurityContextHolder.getContext().setAuthentication(auth);
-    }
-
-    @AfterEach
-    void clearAuth() {
-        SecurityContextHolder.clearContext();
-    }
 
     @Test
     @DisplayName("퀴즈 세트 생성 성공")
@@ -85,7 +69,7 @@ class QuizSetServiceTest {
         given(quizSetRepository.save(any(QuizSet.class))).willReturn(quizSet);
 
         // when
-        QuizSetCreateResponse response = quizSetService.createQuizSet(request);
+        QuizSetCreateResponse response = quizSetService.createQuizSet(request, 1L);
 
         // then
         assertThat(response.getId()).isEqualTo(100L);
@@ -110,7 +94,7 @@ class QuizSetServiceTest {
         given(userRepository.findById(1L)).willReturn(Optional.empty());
 
         // when & then
-        assertThatThrownBy(() -> quizSetService.createQuizSet(request))
+        assertThatThrownBy(() -> quizSetService.createQuizSet(request, 1L))
                 .isInstanceOf(com.eof.back.global.exception.exceptions.AuthException.class)
                 .hasMessageContaining("해당 사용자를 찾을 수 없습니다.");
         
@@ -155,7 +139,7 @@ class QuizSetServiceTest {
     }
 
     @Test
-    @DisplayName("퀴즈 세트 단건 조회 실패 - 존재하지 않음")
+    @DisplayName("퀴즈 세트 단건 조회 실패 - 존재하지 않는 식별자")
     void getQuizSet_Fail_NotFound() {
         // given
         given(quizSetRepository.findById(1L)).willReturn(Optional.empty());

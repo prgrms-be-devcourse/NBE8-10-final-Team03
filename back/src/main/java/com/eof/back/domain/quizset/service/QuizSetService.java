@@ -39,10 +39,11 @@ public interface QuizSetService {
      * 3. 제작자는 시스템에 등록된 유효한 사용자여야 합니다. <br>
      *
      * @param request 퀴즈 세트 생성에 필요한 정보 (제목, 설명, 총 문제 수 등)가 담긴 객체
+     * @param userId 제작자의 식별자(ID)
      * @return 생성된 퀴즈 세트의 식별자(ID)를 포함한 생성 결과 정보 (DTO)
      * @throws RuntimeException (임시) 제작자 정보를 찾을 수 없을 경우 발생합니다.
      */
-    QuizSetCreateResponse createQuizSet(QuizSetCreateRequest request);
+    QuizSetCreateResponse createQuizSet(QuizSetCreateRequest request, Long userId);
 
     /**
      * 특정 식별자(ID)를 가진 퀴즈 세트의 상세 정보를 조회합니다.

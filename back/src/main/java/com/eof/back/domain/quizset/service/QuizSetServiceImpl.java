@@ -15,8 +15,6 @@ import com.eof.back.global.exception.exceptions.QuizSetException;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,14 +38,13 @@ public class QuizSetServiceImpl implements QuizSetService {
     /**
      * {@inheritDoc}
      * <p>
-     * 현재 로그인된 사용자 정보를 기반으로 {@link QuizSet} 엔티티를 생성하고 저장합니다.
-     * 로그인 정보가 없으면 {@link AuthException}을 발생시킵니다.
+     * 제공된 사용자 ID를 기반으로 {@link QuizSet} 엔티티를 생성하고 저장합니다.
+     * 사용자가 존재하지 않으면 {@link AuthException}을 발생시킵니다.
      */
     @Override
     @Transactional
-    public QuizSetCreateResponse createQuizSet(QuizSetCreateRequest request) {
-        Long currentUserId = getCurrentUserId();
-        User creator = userRepository.findById(currentUserId)
+    public QuizSetCreateResponse createQuizSet(QuizSetCreateRequest request, Long userId) {
+        User creator = userRepository.findById(userId)
                 .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND));
 
         QuizSet quizSet = QuizSet.builder()
@@ -66,11 +63,10 @@ public class QuizSetServiceImpl implements QuizSetService {
      * {@inheritDoc}
      * <p>
      * 지정된 ID로 {@link QuizSetRepository}에서 조회합니다.
-     * 로그인 확인 후, 해당 엔티티가 존재하지 않을 경우 {@link QuizSetException}을 발생시킵니다.
+     * 해당 엔티티가 존재하지 않을 경우 {@link QuizSetException}을 발생시킵니다.
      */
     @Override
     public QuizSetResponse getQuizSet(Long id) {
-        validateLogin();
         QuizSet quizSet = quizSetRepository.findById(id)
                 .orElseThrow(() -> new QuizSetException(QuizSetErrorCode.QUIZ_SET_NOT_FOUND));
         return QuizSetResponse.from(quizSet);
@@ -86,32 +82,5 @@ public class QuizSetServiceImpl implements QuizSetService {
         return quizSetRepository.findAll().stream()
                 .map(QuizSetListResponse::from)
                 .collect(Collectors.toList());
-    }
-
-    /**
-     * 현재 로그인된 사용자의 식별자(ID)를 반환합니다.
-     *
-     * @return 로그인된 사용자의 ID
-     * @throws AuthException 로그인되어 있지 않거나 인증 정보가 유효하지 않은 경우 발생
-     */
-    private Long getCurrentUserId() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getPrincipal())) {
-            throw new AuthException(AuthErrorCode.LOGIN_REQUIRED);
-        }
-        try {
-            return Long.parseLong(authentication.getName());
-        } catch (NumberFormatException e) {
-            throw new AuthException(AuthErrorCode.TOKEN_INVALID);
-        }
-    }
-
-    /**
-     * 현재 사용자가 로그인되어 있는지 검증합니다.
-     *
-     * @throws AuthException 로그인되어 있지 않은 경우 발생
-     */
-    private void validateLogin() {
-        getCurrentUserId();
     }
 }

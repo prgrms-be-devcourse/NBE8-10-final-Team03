@@ -1,11 +1,15 @@
 package com.eof.back.domain.quizset.controller;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -14,6 +18,7 @@ import com.eof.back.domain.quizset.dto.QuizSetCreateResponse;
 import com.eof.back.domain.quizset.dto.QuizSetListResponse;
 import com.eof.back.domain.quizset.dto.QuizSetResponse;
 import com.eof.back.domain.quizset.service.QuizSetService;
+import com.eof.back.domain.user.dto.UserPrincipal;
 import com.eof.back.global.exception.errorCode.QuizSetErrorCode;
 import com.eof.back.global.exception.exceptions.QuizSetException;
 import com.eof.back.global.jwt.JwtAuthenticationEntryPoint;
@@ -28,6 +33,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -61,25 +68,23 @@ class QuizSetControllerTest {
 
         QuizSetCreateResponse response = QuizSetCreateResponse.builder()
                 .id(1L)
-                .title(request.getTitle())
-                .description(request.getDescription())
-                .creatorNickname("작성자")
-                .totalQuizCount(5)
-                .createdAt(LocalDateTime.now())
                 .build();
 
-        given(quizSetService.createQuizSet(any(QuizSetCreateRequest.class))).willReturn(response);
+        UserPrincipal principal = new UserPrincipal(1L, "testuser");
+
+        given(quizSetService.createQuizSet(any(), any())).willReturn(response);
 
         // when & then
         mockMvc.perform(post("/api/v1/quizsets")
+                        .with(SecurityMockMvcRequestPostProcessors.authentication(
+                                new UsernamePasswordAuthenticationToken(principal, null, List.of())
+                        ))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("success"))
-                .andExpect(jsonPath("$.data.title").value("API 테스트 퀴즈 세트"))
-                .andExpect(jsonPath("$.data.totalQuizCount").value(5))
-                .andExpect(jsonPath("$.data.creatorNickname").value("작성자"));
+                .andExpect(status().isCreated())
+                .andExpect(header().string("Location", "/api/v1/quizsets/1"))
+                .andExpect(content().string(""));
     }
 
     @Test
@@ -92,8 +97,13 @@ class QuizSetControllerTest {
                 .totalQuizCount(5)
                 .build();
 
+        UserPrincipal principal = new UserPrincipal(1L, "testuser");
+
         // when & then
         mockMvc.perform(post("/api/v1/quizsets")
+                        .with(SecurityMockMvcRequestPostProcessors.authentication(
+                                new UsernamePasswordAuthenticationToken(principal, null, List.of())
+                        ))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
@@ -111,8 +121,13 @@ class QuizSetControllerTest {
                 .totalQuizCount(-1)
                 .build();
 
+        UserPrincipal principal = new UserPrincipal(1L, "testuser");
+
         // when & then
         mockMvc.perform(post("/api/v1/quizsets")
+                        .with(SecurityMockMvcRequestPostProcessors.authentication(
+                                new UsernamePasswordAuthenticationToken(principal, null, List.of())
+                        ))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
@@ -131,8 +146,13 @@ class QuizSetControllerTest {
                 .totalQuizCount(5)
                 .build();
 
+        UserPrincipal principal = new UserPrincipal(1L, "testuser");
+
         // when & then
         mockMvc.perform(post("/api/v1/quizsets")
+                        .with(SecurityMockMvcRequestPostProcessors.authentication(
+                                new UsernamePasswordAuthenticationToken(principal, null, List.of())
+                        ))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())

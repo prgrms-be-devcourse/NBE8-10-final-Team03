@@ -7,6 +7,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 /**
  * <p>서비스 이용자의 핵심 도메인 모델입니다.</p>
  * 사용자의 계정 정보, 인증 정보(비밀번호), 프로필 정보(닉네임) 및
@@ -57,6 +59,13 @@ public class User extends BaseEntity {
     private Long totalRankingScore = 0L;
 
     /**
+     * 사용자가 탈퇴한 일시.
+     * null이면 활성 사용자, 값이 있으면 탈퇴한 사용자입니다.
+     */
+    @Column
+    private LocalDateTime deletedAt;
+
+    /**
      * 게임 결과에 따른 랭킹 점수를 누적 합산합니다.
      *
      * @param score 가산할 랭킹 점수
@@ -104,5 +113,13 @@ public class User extends BaseEntity {
 
     public void updatePassword(String encodedPassword) {
         this.password = encodedPassword;
+    }
+
+    public void delete() {
+        this.deletedAt = LocalDateTime.now();
+    }
+
+    public boolean isDeleted() {
+        return this.deletedAt != null;
     }
 }

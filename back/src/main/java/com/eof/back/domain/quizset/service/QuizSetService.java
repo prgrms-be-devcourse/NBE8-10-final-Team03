@@ -64,4 +64,28 @@ public interface QuizSetService {
      * @return 등록된 모든 퀴즈 세트의 요약 정보 목록
      */
     List<QuizSetListResponse> getAllQuizSets();
+
+    /**
+     * 기존 퀴즈 세트의 정보를 수정합니다.
+     * <p>
+     * 전달받은 요청 정보 중 null이 아닌 필드만 선택적으로 업데이트합니다.
+     *
+     * @param id      수정할 퀴즈 세트의 식별자
+     * @param request 수정할 필드 정보 (제목, 설명)
+     * @param userId  요청을 보낸 사용자의 식별자 (권한 확인용)
+     * @return 수정된 퀴즈 세트의 식별자(ID)
+     * @throws com.eof.back.global.exception.exceptions.QuizSetException 해당 식별자의 퀴즈 세트가 존재하지 않거나, 권한이 없을 경우 발생합니다.
+     */
+    Long updateQuizSet(Long id, com.eof.back.domain.quizset.dto.QuizSetUpdateRequest request, Long userId);
+
+    /**
+     * 특정 퀴즈 세트를 삭제합니다.
+     * <p>
+     * 삭제 시 해당 세트에 포함된 모든 퀴즈 데이터도 함께 삭제됩니다.
+     *
+     * @param id     삭제할 퀴즈 세트의 식별자
+     * @param userId 요청을 보낸 사용자의 식별자 (권한 확인용)
+     * @throws com.eof.back.global.exception.exceptions.QuizSetException 해당 식별자의 퀴즈 세트가 존재하지 않거나, 권한이 없을 경우 발생합니다.
+     */
+    void deleteQuizSet(Long id, Long userId);
 }

@@ -109,6 +109,22 @@ public class QuizSet extends BaseEntity {
     }
 
     /**
+     * 퀴즈 세트의 정보를 수정합니다. (PATCH 목적)
+     * null이 아닌 필드만 업데이트합니다.
+     *
+     * @param title 새로운 제목
+     * @param description 새로운 설명
+     */
+    public void update(String title, String description) {
+        if (title != null) {
+            this.title = title;
+        }
+        if (description != null) {
+            this.description = description;
+        }
+    }
+
+    /**
      * 퀴즈가 추가될 때 총 퀴즈 수를 1 증가시킵니다.
      */
     public void increaseQuizCount() {

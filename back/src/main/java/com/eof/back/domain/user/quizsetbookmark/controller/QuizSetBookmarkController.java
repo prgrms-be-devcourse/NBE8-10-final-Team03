@@ -2,8 +2,6 @@ package com.eof.back.domain.user.quizsetbookmark.controller;
 
 import com.eof.back.domain.user.quizsetbookmark.dto.BookmarkCreateResponse;
 import com.eof.back.domain.user.quizsetbookmark.dto.BookmarkItemResponse;
-
-import java.util.List;
 import com.eof.back.domain.user.quizsetbookmark.service.QuizSetBookmarkService;
 import com.eof.back.global.jwt.UserPrincipal;
 import com.eof.back.global.response.CommonResponse;
@@ -13,27 +11,24 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 
 /**
- * 코드에 대한 전체적인 역할을 적습니다.
+ * 퀴즈셋 북마크 관련 API 요청을 처리하는 컨트롤러입니다.
  * <p>
- * 코드에 대한 작동 원리 등을 적습니다.
+ * 북마크 생성, 제거, 조회 엔드포인트를 제공하며, 모든 요청은 인증된 사용자만 접근할 수 있습니다.
  *
- * <p><b>상속 정보:</b><br>
- * 상속 정보를 적습니다.
+ * <p><b>기본 경로:</b> {@code /api/v1/users/me/bookmarks}
  *
- * <p><b>주요 생성자:</b><br>
- * {@code ExampleClass(String example)}  <br>
- * 주요 생성자와 그 매개변수에 대한 설명을 적습니다. <br>
- *
- * <p><b>빈 관리:</b><br>
- * 필요 시 빈 관리에 대한 내용을 적습니다.
- *
- * <p><b>외부 모듈:</b><br>
- * 필요 시 외부 모듈에 대한 내용을 적습니다.
+ * <p><b>엔드포인트:</b>
+ * <ul>
+ *   <li>{@code POST /} - 퀴즈셋 북마크 추가</li>
+ *   <li>{@code DELETE /{quizSetId}} - 퀴즈셋 북마크 제거</li>
+ *   <li>{@code GET /} - 내 북마크 목록 조회</li>
+ * </ul>
  *
  * @author 5h6vm
- * @see
+ * @see QuizSetBookmarkService
  * @since 2026-03-24
  */
 @RestController

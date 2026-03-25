@@ -17,7 +17,7 @@ import com.eof.back.domain.user.gamerecord.entity.GameRecord;
 
 public class ScoreCalculator {
 
-    private static final int PARTICIPANT_WEIGHT_PERCENT = 10;;
+    private static final int PARTICIPANT_WEIGHT_PERCENT = 10;
     private static final int QUIZ_WEIGHT_PERCENT = 5;
 
     private ScoreCalculator() {

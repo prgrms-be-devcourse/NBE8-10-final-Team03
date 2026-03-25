@@ -1,16 +1,13 @@
 package com.eof.back.domain.user.gamerecord.service;
 
 import com.eof.back.domain.user.gamerecord.dto.GameResultRequest;
+import com.eof.back.domain.user.gamerecord.dto.UserRecordResponse;
 import com.eof.back.domain.user.gamerecord.entity.GameRecord;
 import com.eof.back.domain.user.gamerecord.repository.GameRecordRepository;
-import com.eof.back.domain.user.gamerecord.dto.UserRecordResponse;
 import com.eof.back.domain.user.gamerecord.service.RecordServiceImpl;
 import com.eof.back.domain.gamesession.entity.GameSession;
 import com.eof.back.domain.gamesession.repository.GameSessionRepository;
 import com.eof.back.domain.quizset.entity.QuizSet;
-import com.eof.back.domain.user.gamerecord.service.RecordServiceImpl;
-import com.eof.back.domain.user.user.entity.User;
-import com.eof.back.domain.user.user.repository.UserRepository;
 import com.eof.back.domain.user.user.entity.Role;
 import com.eof.back.domain.user.user.entity.User;
 import com.eof.back.domain.user.user.repository.UserRepository;

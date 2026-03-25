@@ -8,10 +8,7 @@ import com.eof.back.global.response.Response;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 
 /**
@@ -51,5 +48,17 @@ public class QuizSetBookmarkController {
         BookmarkCreateResponse response = quizSetBookmarkService.createBookmark(userPrincipal.id(), quizSetId);
 
         return ResponseEntity.ok(CommonResponse.success(response, "퀴즈셋 북마크가 추가되었습니다."));
+    }
+
+    @DeleteMapping("/{quizSetId}/bookmark")
+    public ResponseEntity<Response<Void>> deleteBookmark(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable Long quizSetId
+    ) {
+        quizSetBookmarkService.deleteBookmark(userPrincipal.id(), quizSetId);
+
+        return ResponseEntity.ok(
+                CommonResponse.success(null, "퀴즈셋 북마크가 제거되었습니다.")
+        );
     }
 }

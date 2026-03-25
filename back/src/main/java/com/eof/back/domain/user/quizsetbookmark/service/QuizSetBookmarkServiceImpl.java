@@ -63,4 +63,15 @@ public class QuizSetBookmarkServiceImpl implements QuizSetBookmarkService {
 
         return new BookmarkCreateResponse(savedBookmark.getId(), quizSetId);
     }
+
+    @Override
+    @Transactional
+    public void deleteBookmark(Long userId, Long quizSetId) {
+        int deleted = quizSetBookmarkRepository.deleteByUserIdAndQuizSetId(userId, quizSetId);
+
+        if (deleted == 0) {
+            throw new QuizSetException(
+                    QuizSetErrorCode.QUIZ_SET_BOOKMARK_NOT_FOUND);
+        }
+    }
 }

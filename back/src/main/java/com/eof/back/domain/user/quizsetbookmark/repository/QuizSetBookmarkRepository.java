@@ -2,6 +2,8 @@ package com.eof.back.domain.user.quizsetbookmark.repository;
 
 import com.eof.back.domain.user.quizsetbookmark.entity.QuizSetBookmark;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
 
 /**
  * 코드에 대한 전체적인 역할을 적습니다.
@@ -28,4 +30,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface QuizSetBookmarkRepository extends JpaRepository<QuizSetBookmark, Long> {
 
     boolean existsByUserIdAndQuizSetId(Long userId, Long quizSetId);
+
+    @Modifying
+    @Query("DELETE FROM QuizSetBookmark b WHERE b.user.id = :userId AND b.quizSet.id = :quizSetId")
+    int deleteByUserIdAndQuizSetId(Long userId, Long quizSetId);
 }

@@ -27,4 +27,6 @@ import com.eof.back.domain.user.quizsetbookmark.dto.BookmarkCreateResponse;
 public interface QuizSetBookmarkService {
 
     BookmarkCreateResponse createBookmark(Long userId, Long quizSetId);
+
+    void deleteBookmark(Long userId, Long quizSetId);
 }

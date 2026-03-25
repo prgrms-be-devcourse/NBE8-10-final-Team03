@@ -106,10 +106,10 @@ class QuizSetControllerTest {
     }
 
     @Test
-    @DisplayName("퀴즈 세트 생성 실패 - 설명 1000자 초과")
+    @DisplayName("퀴즈 세트 생성 실패 - 설명 255자 초과")
     void createQuizSet_Fail_TooLongDescription() throws Exception {
         // given
-        String longDescription = "a".repeat(1001);
+        String longDescription = "a".repeat(256);
         QuizSetCreateRequest request = QuizSetCreateRequest.builder()
                 .title("제목")
                 .description(longDescription)
@@ -127,7 +127,7 @@ class QuizSetControllerTest {
                 .andDo(print())
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value("fail"))
-                .andExpect(jsonPath("$.message").value("description: 퀴즈 세트 설명은 1000자를 초과할 수 없습니다."));
+                .andExpect(jsonPath("$.message").value("description: 퀴즈 세트 설명은 255자를 초과할 수 없습니다."));
     }
 
     @Test

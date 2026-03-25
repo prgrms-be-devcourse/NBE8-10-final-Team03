@@ -26,8 +26,9 @@ import lombok.NoArgsConstructor;
 public class QuizSetCreateRequest {
 
     @NotBlank(message = "퀴즈 세트 제목은 필수입니다.")
+    @Size(max = 30, message = "퀴즈 세트 제목은 30자를 초과할 수 없습니다.")
     private String title;
 
-    @Size(max = 1000, message = "퀴즈 세트 설명은 1000자를 초과할 수 없습니다.")
+    @Size(max = 255, message = "퀴즈 세트 설명은 255자를 초과할 수 없습니다.")
     private String description;
 }

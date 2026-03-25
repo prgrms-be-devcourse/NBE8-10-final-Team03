@@ -1,13 +1,14 @@
 package com.eof.back.domain.quizset.service;
 
 import com.eof.back.domain.quizset.dto.QuizSetCreateRequest;
-import com.eof.back.domain.quizset.dto.QuizSetCreateResponse;
 import com.eof.back.domain.quizset.dto.QuizSetListResponse;
 import com.eof.back.domain.quizset.dto.QuizSetResponse;
 import com.eof.back.domain.quizset.entity.QuizSet;
 import com.eof.back.domain.quizset.repository.QuizSetRepository;
 import com.eof.back.domain.user.entity.User;
 import com.eof.back.domain.user.repository.UserRepository;
+import com.eof.back.global.exception.errorCode.AuthErrorCode;
+import com.eof.back.global.exception.exceptions.AuthException;
 import com.eof.back.global.exception.errorCode.QuizSetErrorCode;
 import com.eof.back.global.exception.exceptions.QuizSetException;
 import java.util.List;
@@ -36,32 +37,30 @@ public class QuizSetServiceImpl implements QuizSetService {
     /**
      * {@inheritDoc}
      * <p>
-     * 현재 구현에서는 ID가 1L인 임시 사용자를 제작자로 설정하며,
-     * 전달된 요청 데이터를 기반으로 {@link QuizSet} 엔티티를 생성하고 저장합니다.
+     * 제공된 사용자 ID를 기반으로 {@link QuizSet} 엔티티를 생성하고 저장합니다.
+     * 사용자가 존재하지 않으면 {@link AuthException}을 발생시킵니다.
      */
     @Override
     @Transactional
-    public QuizSetCreateResponse createQuizSet(QuizSetCreateRequest request) {
-        // TODO: 인증 기능 구현 후 현재 로그인된 사용자 정보를 가져오도록 수정
-        User creator = userRepository.findById(1L)
-                .orElseThrow(() -> new RuntimeException("임시 사용자(ID: 1)를 찾을 수 없습니다."));
+    public Long createQuizSet(QuizSetCreateRequest request, Long userId) {
+        User creator = userRepository.findById(userId)
+                .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND));
 
         QuizSet quizSet = QuizSet.builder()
                 .title(request.getTitle())
                 .description(request.getDescription())
                 .creator(creator)
-                .totalQuizCount(request.getTotalQuizCount())
                 .build();
 
         QuizSet savedQuizSet = quizSetRepository.save(quizSet);
 
-        return QuizSetCreateResponse.from(savedQuizSet);
+        return savedQuizSet.getId();
     }
 
     /**
      * {@inheritDoc}
      * <p>
-     * 지정된 ID로 {@link QuizSetRepository}에서 조회하며,
+     * 지정된 ID로 {@link QuizSetRepository}에서 조회합니다.
      * 해당 엔티티가 존재하지 않을 경우 {@link QuizSetException}을 발생시킵니다.
      */
     @Override

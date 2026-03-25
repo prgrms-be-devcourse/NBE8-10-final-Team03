@@ -15,8 +15,7 @@ import lombok.NoArgsConstructor;
 
 /**
  * <p>퀴즈 세트 내에 속한 개별 퀴즈의 상세 데이터를 관리하는 엔티티입니다.</p>
- * 퀴즈의 발문(내용), 정답, 그리고 사지선다형 보기를 포함하며
- * 세트 내에서의 순서를 결정하는 시퀀스 정보를 가집니다.
+ * 퀴즈의 발문(내용), 정답, 그리고 사지선다형 보기를 포함합니다.
  *
  * @author MintyU
  * @since 2026-03-18
@@ -72,12 +71,6 @@ public class Quiz extends BaseEntity {
     private String choice4;
 
     /**
-     * 퀴즈 세트 내에서 이 퀴즈가 출제될 순서입니다.
-     */
-    @Column(nullable = false)
-    private Integer sequence;
-
-    /**
      * 빌더 패턴을 이용한 생성자입니다.
      *
      * @param quizSet 소속 세트
@@ -87,10 +80,9 @@ public class Quiz extends BaseEntity {
      * @param choice2 보기2
      * @param choice3 보기3
      * @param choice4 보기4
-     * @param sequence 순서
      */
     @Builder
-    private Quiz(QuizSet quizSet, String content, String answer, String choice1, String choice2, String choice3, String choice4, Integer sequence) {
+    private Quiz(QuizSet quizSet, String content, String answer, String choice1, String choice2, String choice3, String choice4) {
         this.quizSet = quizSet;
         this.content = content;
         this.answer = answer;
@@ -98,7 +90,6 @@ public class Quiz extends BaseEntity {
         this.choice2 = choice2;
         this.choice3 = choice3;
         this.choice4 = choice4;
-        this.sequence = sequence;
     }
 
     /**
@@ -111,19 +102,25 @@ public class Quiz extends BaseEntity {
      * @param choice2 선택지 2
      * @param choice3 선택지 3
      * @param choice4 선택지 4
-     * @param sequence 출제 순서
      * @return 생성된 Quiz 엔티티 객체
      */
-    public static Quiz of(QuizSet quizSet, String content, String answer, String choice1, String choice2, String choice3, String choice4, Integer sequence) {
-        return Quiz.builder()
-                .quizSet(quizSet)
-                .content(content)
-                .answer(answer)
-                .choice1(choice1)
-                .choice2(choice2)
-                .choice3(choice3)
-                .choice4(choice4)
-                .sequence(sequence)
-                .build();
+    /**
+     * 퀴즈의 정보를 수정합니다. (PATCH 목적)
+     * null이 아닌 필드만 업데이트합니다.
+     *
+     * @param content 새로운 발문
+     * @param answer 새로운 정답
+     * @param choice1 새로운 보기1
+     * @param choice2 새로운 보기2
+     * @param choice3 새로운 보기3
+     * @param choice4 새로운 보기4
+     */
+    public void update(String content, String answer, String choice1, String choice2, String choice3, String choice4) {
+        if (content != null) this.content = content;
+        if (answer != null) this.answer = answer;
+        if (choice1 != null) this.choice1 = choice1;
+        if (choice2 != null) this.choice2 = choice2;
+        if (choice3 != null) this.choice3 = choice3;
+        if (choice4 != null) this.choice4 = choice4;
     }
 }

@@ -1,16 +1,17 @@
 package com.eof.back.domain.quizset.controller;
 
 import com.eof.back.domain.quizset.dto.QuizSetCreateRequest;
-import com.eof.back.domain.quizset.dto.QuizSetCreateResponse;
 import com.eof.back.domain.quizset.dto.QuizSetListResponse;
 import com.eof.back.domain.quizset.dto.QuizSetResponse;
 import com.eof.back.domain.quizset.service.QuizSetService;
+import com.eof.back.domain.user.dto.UserPrincipal;
 import com.eof.back.global.response.CommonResponse;
 import com.eof.back.global.response.Response;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -40,14 +41,17 @@ public class QuizSetController {
      * 새로운 퀴즈 세트를 생성합니다.
      *
      * @param request 퀴즈 세트 생성 요청 정보
-     * @return 생성된 퀴즈 세트 결과
+     * @param principal 로그인한 사용자 정보
+     * @return 생성 결과 응답 (201 Created with Location header)
      */
     @PostMapping
-    public ResponseEntity<Response<QuizSetCreateResponse>> createQuizSet(
-            @RequestBody @Valid QuizSetCreateRequest request) {
+    public ResponseEntity<Void> createQuizSet(
+            @RequestBody @Valid QuizSetCreateRequest request,
+            @AuthenticationPrincipal UserPrincipal principal) {
 
-        QuizSetCreateResponse response = quizSetService.createQuizSet(request);
-        return ResponseEntity.ok(CommonResponse.success(response));
+        Long quizSetId = quizSetService.createQuizSet(request, principal.id());
+        return ResponseEntity.created(java.net.URI.create("/api/v1/quizsets/" + quizSetId))
+                .build();
     }
 
     /**

@@ -11,6 +11,9 @@ import lombok.Getter;
  * 퀴즈 세트 단건 조회 시 반환되는 데이터 전송 객체입니다.
  * <p>
  * 퀴즈 세트의 기본 정보와 더불어 해당 세트에 포함된 모든 퀴즈 목록을 포함합니다.
+ *
+ * @author MintyU
+ * @since 2026-03-24
  */
 @Getter
 @Builder
@@ -44,6 +47,9 @@ public class QuizSetResponse {
 
     /**
      * 퀴즈 세트 내 개별 퀴즈 정보를 담는 내부 DTO입니다.
+     *
+     * @author MintyU
+     * @since 2026-03-24
      */
     @Getter
     @Builder
@@ -55,8 +61,13 @@ public class QuizSetResponse {
         private String choice2;
         private String choice3;
         private String choice4;
-        private Integer sequence;
 
+        /**
+         * Quiz 엔티티로부터 내부 QuizResponse DTO를 생성합니다.
+         *
+         * @param quiz 퀴즈 엔티티
+         * @return 내부 퀴즈 응답 DTO
+         */
         public static QuizResponse from(Quiz quiz) {
             return QuizResponse.builder()
                     .id(quiz.getId())
@@ -66,7 +77,6 @@ public class QuizSetResponse {
                     .choice2(quiz.getChoice2())
                     .choice3(quiz.getChoice3())
                     .choice4(quiz.getChoice4())
-                    .sequence(quiz.getSequence())
                     .build();
         }
     }

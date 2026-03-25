@@ -2,11 +2,14 @@ package com.eof.back.global.config;
 
 import com.eof.back.global.jwt.JwtAuthenticationEntryPoint;
 import com.eof.back.global.jwt.JwtAuthenticationFilter;
+import com.eof.back.global.security.SecurityUrlRegistry;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -18,6 +21,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
  *
  * <p>JWT 기반 인증을 사용하는 Stateless 구조로 설정하며,
  * 다음과 같은 보안 정책을 구성합니다.</p>
+ * {@link SecurityUrlRegistry}에 정의된 URL 목록을 바탕으로 인가 정책을 구성합니다.</p>
  *
  * <p><b>주요 기능:</b><br>
  * - PasswordEncoder Bean 등록 (BCrypt)
@@ -35,6 +39,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
  * @since 2026-03-18
  */
 @Configuration
+@EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -77,29 +82,23 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable())
-                .formLogin(form -> form.disable())
-                .httpBasic(basic -> basic.disable())
+                .csrf(AbstractHttpConfigurer::disable)
+                .formLogin(AbstractHttpConfigurer::disable)
+                .httpBasic(AbstractHttpConfigurer::disable)
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(
-                                "/swagger-ui/**",
-                                "/swagger-ui.html",
-                                "/v3/api-docs",
-                                "/v3/api-docs/**",
-
-                                "/api/v1/auth/signup",
-                                "/api/v1/auth/login",
-                                "/api/v1/auth/reissue",
-                                "/api/v1/auth/logout",
-
-                                "/api/v1/quizsets",
-                                "/api/v1/rankings"
-                        ).permitAll()
-                        .anyRequest().authenticated()
-                )
+                .authorizeHttpRequests(auth -> {
+                    // 모든 메서드 허용 URL 적용
+                    auth.requestMatchers(SecurityUrlRegistry.PERMIT_ALL_URLS).permitAll();
+                    
+                    // 특정 메서드별 허용 URL 적용
+                    SecurityUrlRegistry.PUBLIC_METHOD_URLS.forEach((method, urls) -> 
+                            auth.requestMatchers(method, urls).permitAll()
+                    );
+                    
+                    auth.anyRequest().authenticated();
+                })
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(jwtAuthenticationEntryPoint)
                 )

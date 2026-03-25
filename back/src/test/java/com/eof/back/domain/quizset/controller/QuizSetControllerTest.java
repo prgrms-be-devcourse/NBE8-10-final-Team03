@@ -6,29 +6,36 @@ import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.eof.back.domain.quizset.dto.QuizSetCreateRequest;
-import com.eof.back.domain.quizset.dto.QuizSetCreateResponse;
 import com.eof.back.domain.quizset.dto.QuizSetListResponse;
 import com.eof.back.domain.quizset.dto.QuizSetResponse;
 import com.eof.back.domain.quizset.service.QuizSetService;
+import com.eof.back.domain.user.dto.UserPrincipal;
 import com.eof.back.global.exception.errorCode.QuizSetErrorCode;
 import com.eof.back.global.exception.exceptions.QuizSetException;
+import com.eof.back.global.jwt.JwtAuthenticationEntryPoint;
+import com.eof.back.global.jwt.JwtTokenProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(QuizSetController.class)
+@AutoConfigureMockMvc(addFilters = false)
 class QuizSetControllerTest {
 
     @Autowired
@@ -39,6 +46,12 @@ class QuizSetControllerTest {
     @MockitoBean
     private QuizSetService quizSetService;
 
+    @MockitoBean
+    private JwtTokenProvider jwtTokenProvider;
+
+    @MockitoBean
+    private JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+
     @Test
     @DisplayName("퀴즈 세트 생성 API 호출 성공")
     void createQuizSet_ApiSuccess() throws Exception {
@@ -46,30 +59,23 @@ class QuizSetControllerTest {
         QuizSetCreateRequest request = QuizSetCreateRequest.builder()
                 .title("API 테스트 퀴즈 세트")
                 .description("API 설명")
-                .totalQuizCount(5)
                 .build();
 
-        QuizSetCreateResponse response = QuizSetCreateResponse.builder()
-                .id(1L)
-                .title(request.getTitle())
-                .description(request.getDescription())
-                .creatorNickname("작성자")
-                .totalQuizCount(5)
-                .createdAt(LocalDateTime.now())
-                .build();
+        UserPrincipal principal = new UserPrincipal(1L, "testuser");
 
-        given(quizSetService.createQuizSet(any(QuizSetCreateRequest.class))).willReturn(response);
+        given(quizSetService.createQuizSet(any(), any())).willReturn(1L);
 
         // when & then
         mockMvc.perform(post("/api/v1/quizsets")
+                        .with(SecurityMockMvcRequestPostProcessors.authentication(
+                                new UsernamePasswordAuthenticationToken(principal, null, List.of())
+                        ))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("success"))
-                .andExpect(jsonPath("$.data.title").value("API 테스트 퀴즈 세트"))
-                .andExpect(jsonPath("$.data.totalQuizCount").value(5))
-                .andExpect(jsonPath("$.data.creatorNickname").value("작성자"));
+                .andExpect(status().isCreated())
+                .andExpect(header().string("Location", "/api/v1/quizsets/1"))
+                .andExpect(content().string(""));
     }
 
     @Test
@@ -79,30 +85,15 @@ class QuizSetControllerTest {
         QuizSetCreateRequest request = QuizSetCreateRequest.builder()
                 .title("")
                 .description("API 설명")
-                .totalQuizCount(5)
                 .build();
+
+        UserPrincipal principal = new UserPrincipal(1L, "testuser");
 
         // when & then
         mockMvc.perform(post("/api/v1/quizsets")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andDo(print())
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value("fail"));
-    }
-
-    @Test
-    @DisplayName("퀴즈 세트 생성 실패 - 음수 문제 수")
-    void createQuizSet_Fail_NegativeCount() throws Exception {
-        // given
-        QuizSetCreateRequest request = QuizSetCreateRequest.builder()
-                .title("제목")
-                .description("API 설명")
-                .totalQuizCount(-1)
-                .build();
-
-        // when & then
-        mockMvc.perform(post("/api/v1/quizsets")
+                        .with(SecurityMockMvcRequestPostProcessors.authentication(
+                                new UsernamePasswordAuthenticationToken(principal, null, List.of())
+                        ))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
@@ -118,11 +109,15 @@ class QuizSetControllerTest {
         QuizSetCreateRequest request = QuizSetCreateRequest.builder()
                 .title("제목")
                 .description(longDescription)
-                .totalQuizCount(5)
                 .build();
+
+        UserPrincipal principal = new UserPrincipal(1L, "testuser");
 
         // when & then
         mockMvc.perform(post("/api/v1/quizsets")
+                        .with(SecurityMockMvcRequestPostProcessors.authentication(
+                                new UsernamePasswordAuthenticationToken(principal, null, List.of())
+                        ))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
@@ -143,7 +138,6 @@ class QuizSetControllerTest {
                 .choice2("2")
                 .choice3("3")
                 .choice4("4")
-                .sequence(1)
                 .build();
 
         QuizSetResponse response = QuizSetResponse.builder()

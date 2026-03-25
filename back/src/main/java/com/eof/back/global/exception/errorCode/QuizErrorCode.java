@@ -20,9 +20,7 @@ import org.springframework.http.HttpStatus;
  */
 @AllArgsConstructor
 public enum QuizErrorCode implements ErrorCode {
-    QUIZ_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 퀴즈를 찾을 수 없습니다."),
-    INVALID_QUIZ_SEQUENCE(HttpStatus.BAD_REQUEST, "유효하지 않은 퀴즈 출제 순서입니다."),
-    QUIZ_COUNT_EXCEEDED(HttpStatus.BAD_REQUEST, "퀴즈 세트의 최대 퀴즈 수를 초과할 수 없습니다.");
+    QUIZ_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 퀴즈를 찾을 수 없습니다.");
 
     private final HttpStatus status;
     private final String message;

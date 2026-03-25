@@ -10,6 +10,7 @@ import com.eof.back.domain.quiz.entity.Quiz;
 import com.eof.back.domain.quizset.dto.QuizSetCreateRequest;
 import com.eof.back.domain.quizset.dto.QuizSetListResponse;
 import com.eof.back.domain.quizset.dto.QuizSetResponse;
+import com.eof.back.domain.quizset.dto.QuizSetUpdateRequest;
 import com.eof.back.domain.quizset.entity.QuizSet;
 import com.eof.back.domain.quizset.repository.QuizSetRepository;
 import com.eof.back.domain.user.user.entity.Role;
@@ -161,5 +162,52 @@ class QuizSetServiceTest {
         assertThat(responses.get(0).getTitle()).isEqualTo("세트1");
         assertThat(responses.get(1).getTitle()).isEqualTo("세트2");
         verify(quizSetRepository).findAll();
+    }
+
+    @Test
+    @DisplayName("퀴즈 세트 수정 성공")
+    void updateQuizSet_Success() {
+        // given
+        User creator = User.builder().nickname("별명").build();
+        ReflectionTestUtils.setField(creator, "id", 1L);
+        QuizSet quizSet = QuizSet.builder()
+                .title("기존 제목")
+                .description("기존 설명")
+                .creator(creator)
+                .build();
+        ReflectionTestUtils.setField(quizSet, "id", 100L);
+
+        QuizSetUpdateRequest request = new QuizSetUpdateRequest("수정 제목", "수정 설명");
+
+        given(quizSetRepository.findById(100L)).willReturn(Optional.of(quizSet));
+
+        // when
+        Long updatedId = quizSetService.updateQuizSet(100L, request, 1L);
+
+        // then
+        assertThat(updatedId).isEqualTo(100L);
+        assertThat(quizSet.getTitle()).isEqualTo("수정 제목");
+        assertThat(quizSet.getDescription()).isEqualTo("수정 설명");
+    }
+
+    @Test
+    @DisplayName("퀴즈 세트 삭제 성공")
+    void deleteQuizSet_Success() {
+        // given
+        User creator = User.builder().nickname("별명").build();
+        ReflectionTestUtils.setField(creator, "id", 1L);
+        QuizSet quizSet = QuizSet.builder()
+                .title("테스트 세트")
+                .creator(creator)
+                .build();
+        ReflectionTestUtils.setField(quizSet, "id", 100L);
+
+        given(quizSetRepository.findById(100L)).willReturn(Optional.of(quizSet));
+
+        // when
+        quizSetService.deleteQuizSet(100L, 1L);
+
+        // then
+        verify(quizSetRepository).delete(quizSet);
     }
 }

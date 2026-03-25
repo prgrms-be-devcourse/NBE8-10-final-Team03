@@ -3,6 +3,7 @@ package com.eof.back.domain.quizset.service;
 import com.eof.back.domain.quizset.dto.QuizSetCreateRequest;
 import com.eof.back.domain.quizset.dto.QuizSetListResponse;
 import com.eof.back.domain.quizset.dto.QuizSetResponse;
+import com.eof.back.domain.quizset.dto.QuizSetUpdateRequest;
 import com.eof.back.domain.quizset.entity.QuizSet;
 import com.eof.back.domain.quizset.repository.QuizSetRepository;
 import com.eof.back.global.exception.errorCode.AuthErrorCode;
@@ -80,5 +81,55 @@ public class QuizSetServiceImpl implements QuizSetService {
         return quizSetRepository.findAll().stream()
                 .map(QuizSetListResponse::from)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    @Transactional
+    public Long updateQuizSet(Long id, QuizSetUpdateRequest request, Long userId) {
+        QuizSet quizSet = findQuizSetById(id);
+        validateOwnership(quizSet, userId);
+
+        quizSet.update(request.title(), request.description());
+        return quizSet.getId();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    @Transactional
+    public void deleteQuizSet(Long id, Long userId) {
+        QuizSet quizSet = findQuizSetById(id);
+        validateOwnership(quizSet, userId);
+
+        quizSetRepository.delete(quizSet);
+    }
+
+    /**
+     * 내부적으로 사용되는 퀴즈 세트 조회 도구입니다.
+     *
+     * @param id 조회할 ID
+     * @return 발견된 퀴즈 세트 엔티티
+     * @throws QuizSetException 엔티티가 존재하지 않을 경우
+     */
+    private QuizSet findQuizSetById(Long id) {
+        return quizSetRepository.findById(id)
+                .orElseThrow(() -> new QuizSetException(QuizSetErrorCode.QUIZ_SET_NOT_FOUND));
+    }
+
+    /**
+     * 사용자 권한을 검증합니다. 퀴즈 세트의 제작자만 수정/삭제가 가능합니다.
+     *
+     * @param quizSet 대상 퀴즈 세트
+     * @param userId  요청 사용자 ID
+     * @throws QuizSetException 제작자가 아닐 경우 (ACCESS_DENIED)
+     */
+    private void validateOwnership(QuizSet quizSet, Long userId) {
+        if (!quizSet.getCreator().getId().equals(userId)) {
+            throw new QuizSetException(QuizSetErrorCode.QUIZ_SET_ACCESS_DENIED);
+        }
     }
 }

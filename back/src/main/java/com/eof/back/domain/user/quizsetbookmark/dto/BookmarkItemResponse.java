@@ -1,9 +1,4 @@
-package com.eof.back.domain.user.quizsetbookmark.service;
-
-import com.eof.back.domain.user.quizsetbookmark.dto.BookmarkCreateResponse;
-import com.eof.back.domain.user.quizsetbookmark.dto.BookmarkItemResponse;
-
-import java.util.List;
+package com.eof.back.domain.user.quizsetbookmark.dto;
 
 /**
  * 코드에 대한 전체적인 역할을 적습니다.
@@ -25,13 +20,10 @@ import java.util.List;
  *
  * @author 5h6vm
  * @see
- * @since 2026-03-24
+ * @since 2026-03-25
  */
-public interface QuizSetBookmarkService {
-
-    BookmarkCreateResponse createBookmark(Long userId, Long quizSetId);
-
-    void deleteBookmark(Long userId, Long quizSetId);
-
-    List<BookmarkItemResponse> getBookmarks(Long userId);
+public record BookmarkItemResponse(
+        Long bookmarkId,
+        Long quizSetId
+) {
 }

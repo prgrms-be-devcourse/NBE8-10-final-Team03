@@ -2,7 +2,10 @@ package com.eof.back.domain.user.quizsetbookmark.service;
 
 import com.eof.back.domain.quizset.entity.QuizSet;
 import com.eof.back.domain.quizset.repository.QuizSetRepository;
+import com.eof.back.domain.quizset.entity.QuizSet;
+import com.eof.back.domain.quizset.repository.QuizSetRepository;
 import com.eof.back.domain.user.quizsetbookmark.dto.BookmarkCreateResponse;
+import com.eof.back.domain.user.quizsetbookmark.dto.BookmarkItemResponse;
 import com.eof.back.domain.user.quizsetbookmark.entity.QuizSetBookmark;
 import com.eof.back.domain.user.quizsetbookmark.repository.QuizSetBookmarkRepository;
 import com.eof.back.domain.user.user.entity.User;
@@ -14,6 +17,8 @@ import com.eof.back.global.exception.exceptions.QuizSetException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 /**
  * 코드에 대한 전체적인 역할을 적습니다.
@@ -73,5 +78,17 @@ public class QuizSetBookmarkServiceImpl implements QuizSetBookmarkService {
             throw new QuizSetException(
                     QuizSetErrorCode.QUIZ_SET_BOOKMARK_NOT_FOUND);
         }
+    }
+
+    @Override
+    public List<BookmarkItemResponse> getBookmarks(Long userId) {
+        userRepository.findById(userId)
+                .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND));
+
+        return quizSetBookmarkRepository
+                .findAllByUserIdOrderByCreatedAtDesc(userId)
+                .stream()
+                .map(b -> new BookmarkItemResponse(b.getId(), b.getQuizSet().getId()))
+                .toList();
     }
 }

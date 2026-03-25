@@ -71,7 +71,7 @@ class QuizSetBookmarkControllerTest {
 
         willDoNothing().given(quizSetBookmarkService).deleteBookmark(userId, quizSetId);
 
-        mockMvc.perform(delete("/api/v1/users/me/bookmarks/{quizSetId}/bookmark", quizSetId))
+        mockMvc.perform(delete("/api/v1/users/me/bookmarks/{quizSetId}", quizSetId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("퀴즈셋 북마크가 제거되었습니다."));
     }

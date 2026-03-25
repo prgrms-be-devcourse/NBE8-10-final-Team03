@@ -5,6 +5,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
+import java.util.List;
+
 /**
  * 코드에 대한 전체적인 역할을 적습니다.
  * <p>
@@ -34,4 +36,6 @@ public interface QuizSetBookmarkRepository extends JpaRepository<QuizSetBookmark
     @Modifying
     @Query("DELETE FROM QuizSetBookmark b WHERE b.user.id = :userId AND b.quizSet.id = :quizSetId")
     int deleteByUserIdAndQuizSetId(Long userId, Long quizSetId);
+
+    List<QuizSetBookmark> findAllByUserIdOrderByCreatedAtDesc(Long userId);
 }

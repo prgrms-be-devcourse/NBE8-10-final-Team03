@@ -1,6 +1,9 @@
 package com.eof.back.domain.user.quizsetbookmark.controller;
 
 import com.eof.back.domain.user.quizsetbookmark.dto.BookmarkCreateResponse;
+import com.eof.back.domain.user.quizsetbookmark.dto.BookmarkItemResponse;
+
+import java.util.List;
 import com.eof.back.domain.user.quizsetbookmark.service.QuizSetBookmarkService;
 import com.eof.back.global.jwt.UserPrincipal;
 import com.eof.back.global.response.CommonResponse;
@@ -50,7 +53,7 @@ public class QuizSetBookmarkController {
         return ResponseEntity.ok(CommonResponse.success(response, "퀴즈셋 북마크가 추가되었습니다."));
     }
 
-    @DeleteMapping("/{quizSetId}/bookmark")
+    @DeleteMapping("/{quizSetId}")
     public ResponseEntity<Response<Void>> deleteBookmark(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
             @PathVariable Long quizSetId
@@ -59,6 +62,17 @@ public class QuizSetBookmarkController {
 
         return ResponseEntity.ok(
                 CommonResponse.success(null, "퀴즈셋 북마크가 제거되었습니다.")
+        );
+    }
+
+    @GetMapping
+    public ResponseEntity<Response<List<BookmarkItemResponse>>> getMyBookmarks(
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        List<BookmarkItemResponse> response = quizSetBookmarkService.getBookmarks(userPrincipal.id());
+
+        return ResponseEntity.ok(
+                CommonResponse.success(response, "내 퀴즈셋 북마크 목록을 조회했습니다.")
         );
     }
 }

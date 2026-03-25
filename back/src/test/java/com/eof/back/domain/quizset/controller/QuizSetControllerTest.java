@@ -15,7 +15,7 @@ import com.eof.back.domain.quizset.dto.QuizSetCreateRequest;
 import com.eof.back.domain.quizset.dto.QuizSetListResponse;
 import com.eof.back.domain.quizset.dto.QuizSetResponse;
 import com.eof.back.domain.quizset.service.QuizSetService;
-import com.eof.back.domain.user.dto.UserPrincipal;
+import com.eof.back.global.jwt.UserPrincipal;
 import com.eof.back.global.exception.errorCode.QuizSetErrorCode;
 import com.eof.back.global.exception.exceptions.QuizSetException;
 import com.eof.back.global.jwt.JwtAuthenticationEntryPoint;

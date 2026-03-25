@@ -4,7 +4,7 @@ import com.eof.back.domain.quiz.dto.QuizCreateRequest;
 import com.eof.back.domain.quiz.dto.QuizResponse;
 import com.eof.back.domain.quiz.dto.QuizUpdateRequest;
 import com.eof.back.domain.quiz.service.QuizService;
-import com.eof.back.domain.user.dto.UserPrincipal;
+import com.eof.back.global.jwt.UserPrincipal;
 import com.eof.back.global.jwt.JwtAuthenticationEntryPoint;
 import com.eof.back.global.jwt.JwtTokenProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;

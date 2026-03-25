@@ -7,7 +7,7 @@ import com.eof.back.domain.quiz.entity.Quiz;
 import com.eof.back.domain.quiz.repository.QuizRepository;
 import com.eof.back.domain.quizset.entity.QuizSet;
 import com.eof.back.domain.quizset.repository.QuizSetRepository;
-import com.eof.back.domain.user.entity.User;
+import com.eof.back.domain.user.user.entity.User;
 import com.eof.back.global.exception.errorCode.AuthErrorCode;
 import com.eof.back.global.exception.errorCode.QuizErrorCode;
 import com.eof.back.global.exception.errorCode.QuizSetErrorCode;

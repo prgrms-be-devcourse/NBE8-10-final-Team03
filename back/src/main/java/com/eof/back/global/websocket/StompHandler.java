@@ -1,7 +1,7 @@
 package com.eof.back.global.websocket;
 
 
-import com.eof.back.domain.user.dto.UserPrincipal;
+import com.eof.back.global.jwt.UserPrincipal;
 import com.eof.back.global.exception.errorCode.AuthErrorCode;
 import com.eof.back.global.exception.exceptions.AuthException;
 import com.eof.back.global.jwt.JwtTokenProvider;

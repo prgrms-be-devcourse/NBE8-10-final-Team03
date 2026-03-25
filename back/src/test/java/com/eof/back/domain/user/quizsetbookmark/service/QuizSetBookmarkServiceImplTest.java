@@ -25,6 +25,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.times;
 
 @ExtendWith(MockitoExtension.class)
 class QuizSetBookmarkServiceImplTest {
@@ -119,5 +121,37 @@ class QuizSetBookmarkServiceImplTest {
                 .isInstanceOf(QuizSetException.class)
                 .satisfies(e -> assertThat(((QuizSetException) e).getErrorCode())
                         .isEqualTo(QuizSetErrorCode.QUIZ_SET_BOOKMARK_ALREADY_EXISTS));
+    }
+
+    @Test
+    @DisplayName("북마크 제거 성공")
+    void deleteBookmark_success() {
+        // given
+        Long userId = 1L;
+        Long quizSetId = 10L;
+
+        given(quizSetBookmarkRepository.deleteByUserIdAndQuizSetId(userId, quizSetId)).willReturn(1);
+
+        // when
+        quizSetBookmarkService.deleteBookmark(userId, quizSetId);
+
+        // then
+        then(quizSetBookmarkRepository).should(times(1)).deleteByUserIdAndQuizSetId(userId, quizSetId);
+    }
+
+    @Test
+    @DisplayName("북마크 제거 실패 - 북마크하지 않은 퀴즈셋")
+    void deleteBookmark_notFound() {
+        // given
+        Long userId = 1L;
+        Long quizSetId = 10L;
+
+        given(quizSetBookmarkRepository.deleteByUserIdAndQuizSetId(userId, quizSetId)).willReturn(0);
+
+        // when & then
+        assertThatThrownBy(() -> quizSetBookmarkService.deleteBookmark(userId, quizSetId))
+                .isInstanceOf(QuizSetException.class)
+                .satisfies(e -> assertThat(((QuizSetException) e).getErrorCode())
+                        .isEqualTo(QuizSetErrorCode.QUIZ_SET_BOOKMARK_NOT_FOUND));
     }
 }

@@ -136,7 +136,6 @@ public class GameSessionImpl implements GameSessionService {
             gameSession.getPlayers().clear();
             // [CASE 1] 나가는 사람이 방장인 경우: 방 자체를 DB에서 완전히 삭제
             gameSessionRepository.delete(gameSession);
-            messagingTemplate.convertAndSend("/topic/rooms/" + gameSessionId + "/chat", "ROOM_DELETED");
 
             // 프론트엔드에게 방이 폭파되었음을 TYPE : ROOM_DELETED으로 알림
             GameMessageResponse<Void> response = GameMessageResponse.roomDeleted("방장이 퇴장하여 게임 방이 삭제되었습니다.");

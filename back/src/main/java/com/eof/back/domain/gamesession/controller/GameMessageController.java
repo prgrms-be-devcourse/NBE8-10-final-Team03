@@ -55,8 +55,7 @@ public class GameMessageController {
             Authentication authentication
     ) {
         if (authentication == null) {
-            log.error(" 미인증 사용자의 채팅 시도입니다.");
-            return;
+            throw new SecurityException("인증되지 않은 사용자의 채팅 시도입니다.");
         }
 
         UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();

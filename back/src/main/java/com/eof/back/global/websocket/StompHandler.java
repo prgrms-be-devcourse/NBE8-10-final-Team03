@@ -62,7 +62,7 @@ public class StompHandler implements ChannelInterceptor {
         if (StompCommand.CONNECT.equals(accessor.getCommand())) {
 
             String bearerToken = accessor.getFirstNativeHeader(AUTHORIZATION_HEADER);
-            if (bearerToken == null) bearerToken = accessor.getFirstNativeHeader("authorization");
+            if (bearerToken == null) bearerToken = accessor.getFirstNativeHeader(AUTHORIZATION_HEADER.toLowerCase());
 
             String token = resolveToken(bearerToken);
 

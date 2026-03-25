@@ -138,6 +138,25 @@ public class AuthServiceImpl implements AuthService {
         refreshTokenStore.delete(savedRefreshToken.getUserId());
     }
 
+    @Override
+    public void withdraw(Long userId) {
+
+        // 1. 사용자 조회
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND));
+
+        // 2. 이미 탈퇴한 사용자 검증
+        if (user.isDeleted()) {
+            throw new AuthException(AuthErrorCode.USER_ALREADY_DELETED);
+        }
+
+        // 3. soft delete 처리
+        user.delete();
+
+        // 4. Refresh Token 삭제
+        refreshTokenStore.delete(userId);
+    }
+
     private RefreshToken validateAndGetRefreshToken(String refreshToken) {
 
         // JWT 서명 및 만료 검증

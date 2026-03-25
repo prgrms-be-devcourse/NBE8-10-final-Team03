@@ -36,4 +36,11 @@ public interface AuthService {
     ReissueResponse reissue(String refreshToken);
 
     void logout(String refreshToken);
+
+    /**
+     * 사용자를 탈퇴 처리합니다. (soft delete)
+     *
+     * @param userId 탈퇴할 사용자 ID
+     */
+    void withdraw(Long userId);
 }

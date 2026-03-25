@@ -468,4 +468,55 @@ public class AuthServiceImplTest {
                             .isEqualTo(AuthErrorCode.TOKEN_INVALID));
         }
     }
+
+    @Nested
+    @DisplayName("withdraw")
+    class Withdraw {
+
+        @Test
+        @DisplayName("성공 - 사용자를 soft delete하고 RefreshToken을 삭제한다")
+        void success() {
+            // given
+            User user = mock(User.class);
+
+            given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
+            given(user.isDeleted()).willReturn(false);
+
+            // when
+            authService.withdraw(USER_ID);
+
+            // then
+            verify(user).delete();
+            verify(refreshTokenStore).delete(USER_ID);
+        }
+
+        @Test
+        @DisplayName("실패 - 존재하지 않는 사용자면 USER_NOT_FOUND 예외가 발생한다")
+        void fail_userNotFound() {
+            // given
+            given(userRepository.findById(USER_ID)).willReturn(Optional.empty());
+
+            // when & then
+            assertThatThrownBy(() -> authService.withdraw(USER_ID))
+                    .isInstanceOf(AuthException.class)
+                    .satisfies(e -> assertThat(((AuthException) e).getErrorCode())
+                            .isEqualTo(AuthErrorCode.USER_NOT_FOUND));
+        }
+
+        @Test
+        @DisplayName("실패 - 이미 탈퇴한 사용자면 USER_ALREADY_DELETED 예외가 발생한다")
+        void fail_alreadyDeleted() {
+            // given
+            User user = mock(User.class);
+
+            given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
+            given(user.isDeleted()).willReturn(true);
+
+            // when & then
+            assertThatThrownBy(() -> authService.withdraw(USER_ID))
+                    .isInstanceOf(AuthException.class)
+                    .satisfies(e -> assertThat(((AuthException) e).getErrorCode())
+                            .isEqualTo(AuthErrorCode.USER_ALREADY_DELETED));
+        }
+    }
 }

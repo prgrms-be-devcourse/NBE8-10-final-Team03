@@ -14,10 +14,9 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
 
 /**
  * 인증 관련 요청을 처리하는 컨트롤러입니다.
@@ -112,5 +111,21 @@ public class AuthController {
         return ResponseEntity.ok(
                 CommonResponse.success(null, "로그아웃이 완료되었습니다.")
         );
+    }
+
+    /**
+     * 인증된 사용자를 탈퇴 처리합니다. (soft delete)
+     *
+     * @param userId 탈퇴할 사용자의 식별자
+     * @return HTTP 204 No Content
+     */
+    @PreAuthorize("authentication.principal.id == #userId")
+    @DeleteMapping("/withdraw/{userId}")
+    public ResponseEntity<Void> withdraw(
+            @PathVariable Long userId
+    ) {
+        authService.withdraw(userId);
+
+        return ResponseEntity.noContent().build();
     }
 }

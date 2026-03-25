@@ -1,8 +1,8 @@
 package com.eof.back.domain.ranking.service;
 
 import com.eof.back.domain.ranking.dto.RankingResponse;
-import com.eof.back.domain.user.entity.User;
-import com.eof.back.domain.user.repository.UserRepository;
+import com.eof.back.domain.user.user.entity.User;
+import com.eof.back.domain.user.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

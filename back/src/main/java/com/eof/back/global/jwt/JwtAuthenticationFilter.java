@@ -1,6 +1,5 @@
 package com.eof.back.global.jwt;
 
-import com.eof.back.global.jwt.UserPrincipal;
 import com.eof.back.global.exception.exceptions.AuthException;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;

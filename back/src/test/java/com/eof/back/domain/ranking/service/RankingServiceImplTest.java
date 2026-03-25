@@ -1,9 +1,9 @@
 package com.eof.back.domain.ranking.service;
 
 import com.eof.back.domain.ranking.dto.RankingResponse;
-import com.eof.back.domain.user.entity.Role;
-import com.eof.back.domain.user.entity.User;
-import com.eof.back.domain.user.repository.UserRepository;
+import com.eof.back.domain.user.user.entity.Role;
+import com.eof.back.domain.user.user.entity.User;
+import com.eof.back.domain.user.user.repository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

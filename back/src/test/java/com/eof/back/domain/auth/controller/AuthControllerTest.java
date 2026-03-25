@@ -9,16 +9,26 @@ import com.eof.back.global.exception.exceptionHadler.DefaultExceptionHandler;
 import com.eof.back.global.exception.exceptions.AuthException;
 import com.eof.back.global.jwt.JwtAuthenticationEntryPoint;
 import com.eof.back.global.jwt.JwtTokenProvider;
+import com.eof.back.global.jwt.UserPrincipal;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.core.MethodParameter;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.bind.support.WebDataBinderFactory;
+import org.springframework.web.context.request.NativeWebRequest;
+import org.springframework.web.method.support.HandlerMethodArgumentResolver;
+import org.springframework.web.method.support.ModelAndViewContainer;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
@@ -28,7 +38,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@Import(DefaultExceptionHandler.class)
+@Import({AuthControllerTest.MockSecurityConfig.class, DefaultExceptionHandler.class})
 @WebMvcTest(AuthController.class)
 @AutoConfigureMockMvc(addFilters = false)
 class AuthControllerTest {
@@ -210,7 +220,7 @@ class AuthControllerTest {
         void success() throws Exception {
             willDoNothing().given(authService).withdraw(1L);
 
-            mockMvc.perform(delete("/api/v1/auth/withdraw/1"))
+            mockMvc.perform(delete("/api/v1/auth/withdraw"))
                     .andExpect(status().isNoContent());
         }
 
@@ -220,7 +230,7 @@ class AuthControllerTest {
             willThrow(new AuthException(AuthErrorCode.USER_NOT_FOUND))
                     .given(authService).withdraw(1L);
 
-            mockMvc.perform(delete("/api/v1/auth/withdraw/1"))
+            mockMvc.perform(delete("/api/v1/auth/withdraw"))
                     .andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.message").value("해당 사용자를 찾을 수 없습니다."));
         }
@@ -231,9 +241,30 @@ class AuthControllerTest {
             willThrow(new AuthException(AuthErrorCode.USER_ALREADY_DELETED))
                     .given(authService).withdraw(1L);
 
-            mockMvc.perform(delete("/api/v1/auth/withdraw/1"))
+            mockMvc.perform(delete("/api/v1/auth/withdraw"))
                     .andExpect(status().isGone())
                     .andExpect(jsonPath("$.message").value("이미 탈퇴한 사용자입니다."));
+        }
+    }
+
+    @TestConfiguration
+    static class MockSecurityConfig implements WebMvcConfigurer {
+        @Override
+        public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
+            resolvers.add(new HandlerMethodArgumentResolver() {
+                @Override
+                public boolean supportsParameter(MethodParameter parameter) {
+                    return parameter.getParameterType().equals(UserPrincipal.class);
+                }
+
+                @Override
+                public Object resolveArgument(MethodParameter parameter,
+                                              ModelAndViewContainer mavContainer,
+                                              NativeWebRequest webRequest,
+                                              WebDataBinderFactory binderFactory) {
+                    return new UserPrincipal(1L, "testuser");
+                }
+            });
         }
     }
 }

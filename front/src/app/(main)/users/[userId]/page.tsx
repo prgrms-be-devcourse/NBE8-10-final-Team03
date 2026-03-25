@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import api from "@/lib/api";
+import { jwtDecode } from "jwt-decode";
 
 interface UserInfo {
   nickname: string;
@@ -19,13 +20,22 @@ export default function MyPage() {
   const [user, setUser] = useState<UserInfo | null>(null);
   const [stats, setStats] = useState<RecordsStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [myUserId, setMyUserId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // ✅ JWT에서 userId 추출
+        const token = localStorage.getItem("accessToken");
+        if (!token) throw new Error("토큰 없음");
+
+        const decoded: any = jwtDecode(token);
+        const myUserId = decoded.sub;  // ✅ sub이 userId
+        setMyUserId(myUserId);
+        
         const [userRes, recordsRes] = await Promise.all([
-          api.get("/users/me"),
-          api.get("/me/records?page=0&size=1"),
+          api.get(`/users/${myUserId}`),
+          api.get(`/users/${myUserId}/records?page=0&size=1`),
         ]);
         setUser(userRes.data.data);
         setStats(recordsRes.data.data);
@@ -97,7 +107,7 @@ export default function MyPage() {
 
       {/* 바로가기 */}
       <div className="grid grid-cols-2 gap-4">
-        <Link href="/me/records" className="bg-white border-[3px] border-dark rounded-2xl p-6 shadow-kitsch hover:shadow-kitsch-lg hover:-translate-y-0.5 transition-all text-center">
+        <Link href={`/users/${myUserId}/records`} className="bg-white border-[3px] border-dark rounded-2xl p-6 shadow-kitsch hover:shadow-kitsch-lg hover:-translate-y-0.5 transition-all text-center">
           <div className="text-3xl mb-2">📊</div>
           <h3 className="font-title text-lg mb-1">내 전적</h3>
           <p className="text-xs text-gray-400">최근 게임 기록 확인</p>

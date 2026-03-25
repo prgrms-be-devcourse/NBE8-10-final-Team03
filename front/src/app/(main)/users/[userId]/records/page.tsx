@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import api from "@/lib/api";
+import { jwtDecode } from "jwt-decode";
 
 interface RecordItem {
   quizSetTitle: string;
@@ -29,7 +30,15 @@ export default function RecordsPage() {
   useEffect(() => {
     const fetchRecords = async () => {
       try {
-        const res = await api.get("/me/records?page=0&size=10");
+        // ✅ JWT에서 userId 추출
+        const token = localStorage.getItem("accessToken");
+        if (!token) throw new Error("토큰 없음");
+
+        const decoded: any = jwtDecode(token);
+        const myUserId = decoded.sub;  // "2"
+
+        // ✅ API 경로 수정
+        const res = await api.get(`/users/${myUserId}/records?page=0&size=10`);
         setData(res.data.data);
       } catch (err) {
         console.error("전적 조회 실패", err);

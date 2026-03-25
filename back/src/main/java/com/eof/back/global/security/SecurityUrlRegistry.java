@@ -2,7 +2,6 @@ package com.eof.back.global.security;
 
 import com.eof.back.global.config.SecurityConfig;
 import org.springframework.http.HttpMethod;
-
 import java.util.Map;
 
 /**

@@ -118,12 +118,7 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findById(savedRefreshToken.getUserId())
                 .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND));
 
-        // 3. 탈퇴 여부 확인
-        if (user.isDeleted()) {
-            throw new AuthException(AuthErrorCode.USER_ALREADY_DELETED);
-        }
-
-        // 4. 새로운 Access Token, Refresh Token 생성
+        // 3. 새로운 Access Token, Refresh Token 생성
         String newAccessToken = jwtTokenProvider.createAccessToken(
                 user.getId(),
                 user.getUsername(),

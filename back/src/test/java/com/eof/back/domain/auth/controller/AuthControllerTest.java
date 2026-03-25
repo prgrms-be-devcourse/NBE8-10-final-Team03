@@ -169,18 +169,6 @@ class AuthControllerTest {
                     .andExpect(jsonPath("$.message").value("유효하지 않은 토큰입니다."));
         }
 
-        @Test
-        @DisplayName("실패 - 탈퇴한 사용자면 410을 반환한다")
-        void fail_deletedUser() throws Exception {
-            given(authService.reissue(any()))
-                    .willThrow(new AuthException(AuthErrorCode.USER_ALREADY_DELETED));
-
-            mockMvc.perform(post("/api/v1/auth/reissue")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"refreshToken\":\"valid.refresh.token\"}"))
-                    .andExpect(status().isGone())
-                    .andExpect(jsonPath("$.message").value("이미 탈퇴한 사용자입니다."));
-        }
     }
 
     @Nested

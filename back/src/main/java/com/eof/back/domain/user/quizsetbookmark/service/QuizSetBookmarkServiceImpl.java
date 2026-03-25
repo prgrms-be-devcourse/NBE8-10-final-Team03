@@ -13,6 +13,7 @@ import com.eof.back.global.exception.errorCode.QuizSetErrorCode;
 import com.eof.back.global.exception.exceptions.AuthException;
 import com.eof.back.global.exception.exceptions.QuizSetException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -53,13 +54,12 @@ public class QuizSetBookmarkServiceImpl implements QuizSetBookmarkService {
         QuizSet quizSet = quizSetRepository.findById(quizSetId)
                 .orElseThrow(() -> new QuizSetException(QuizSetErrorCode.QUIZ_SET_NOT_FOUND));
 
-        if (quizSetBookmarkRepository.existsByUserIdAndQuizSetId(userId, quizSetId)) {
+        try {
+            QuizSetBookmark savedBookmark = quizSetBookmarkRepository.saveAndFlush(QuizSetBookmark.of(user, quizSet));
+            return BookmarkCreateResponse.from(savedBookmark);
+        } catch (DataIntegrityViolationException e) {
             throw new QuizSetException(QuizSetErrorCode.QUIZ_SET_BOOKMARK_ALREADY_EXISTS);
         }
-
-        QuizSetBookmark savedBookmark = quizSetBookmarkRepository.save(QuizSetBookmark.of(user, quizSet));
-
-        return BookmarkCreateResponse.from(savedBookmark);
     }
 
     @Override

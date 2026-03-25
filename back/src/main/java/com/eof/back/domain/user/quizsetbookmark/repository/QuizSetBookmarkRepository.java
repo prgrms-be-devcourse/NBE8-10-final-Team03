@@ -21,11 +21,10 @@ import java.util.List;
  */
 public interface QuizSetBookmarkRepository extends JpaRepository<QuizSetBookmark, Long> {
 
-    boolean existsByUserIdAndQuizSetId(Long userId, Long quizSetId);
-
     @Modifying
     @Query("DELETE FROM QuizSetBookmark b WHERE b.user.id = :userId AND b.quizSet.id = :quizSetId")
     int deleteByUserIdAndQuizSetId(Long userId, Long quizSetId);
 
+    @Query("SELECT b FROM QuizSetBookmark b JOIN FETCH b.quizSet WHERE b.user.id = :userId ORDER BY b.createdAt DESC")
     List<QuizSetBookmark> findAllByUserIdOrderByCreatedAtDesc(Long userId);
 }

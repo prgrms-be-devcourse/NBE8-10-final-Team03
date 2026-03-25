@@ -3,7 +3,6 @@ package com.eof.back.domain.user.gamerecord.controller;
 import com.eof.back.domain.user.gamerecord.dto.UserRecordResponse;
 import com.eof.back.domain.user.gamerecord.service.RecordService;
 import com.eof.back.global.jwt.JwtTokenProvider;
-import com.eof.back.global.jwt.UserPrincipal;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,11 +38,9 @@ class RecordControllerTest {
         UserRecordResponse response = new UserRecordResponse(
                 10, 3, 1500L, List.of(), 0, 10, 10
         );
-        given(recordService.getMyRecords(any(), eq(0), eq(10))).willReturn(response);
+        given(recordService.getMyRecords(eq(1L), eq(0), eq(10))).willReturn(response);
 
-        mockMvc.perform(get("/api/v1/me/records")
-                        .requestAttr("org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver.AUTHENTICATION_PRINCIPAL",
-                                new UserPrincipal(1L, "testuser"))
+        mockMvc.perform(get("/api/v1/users/1/records")
                         .param("page", "0")
                         .param("size", "10"))
                 .andExpect(status().isOk())
@@ -59,7 +56,7 @@ class RecordControllerTest {
         );
         given(recordService.getMyRecords(1L, 0, 10)).willReturn(response);
 
-        mockMvc.perform(get("/api/v1/me/records")
+        mockMvc.perform(get("/api/v1/users/1/records")
                         .param("page", "-1")
                         .param("size", "10"))
                 .andExpect(status().isOk());
@@ -73,7 +70,7 @@ class RecordControllerTest {
         );
         given(recordService.getMyRecords(any(), eq(0), eq(10))).willReturn(response);
 
-        mockMvc.perform(get("/api/v1/me/records")
+        mockMvc.perform(get("/api/v1/users/1/records")
                         .param("page", "0")
                         .param("size", "0"))
                 .andExpect(status().isOk());

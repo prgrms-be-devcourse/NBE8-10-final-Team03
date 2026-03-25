@@ -5,7 +5,7 @@ import com.eof.back.domain.user.quizsetbookmark.entity.QuizSetBookmark;
 /**
  * 북마크 목록 조회 시 각 항목을 나타내는 응답 DTO입니다.
  * <p>
- * 북마크 ID와 대상 퀴즈셋 ID를 담습니다.
+ * 북마크 대상 퀴즈셋 ID를 담습니다.
  *
  * <p><b>주요 생성자:</b><br>
  * {@link #from(QuizSetBookmark)} 팩토리 메서드를 통해 엔티티로부터 생성합니다.
@@ -15,10 +15,9 @@ import com.eof.back.domain.user.quizsetbookmark.entity.QuizSetBookmark;
  * @since 2026-03-25
  */
 public record BookmarkItemResponse(
-        Long bookmarkId,
         Long quizSetId
 ) {
     public static BookmarkItemResponse from(QuizSetBookmark bookmark) {
-        return new BookmarkItemResponse(bookmark.getId(), bookmark.getQuizSet().getId());
+        return new BookmarkItemResponse(bookmark.getQuizSet().getId());
     }
 }

@@ -183,10 +183,7 @@ class QuizSetBookmarkServiceImplTest {
             ReflectionTestUtils.setField(quizSet2, "id", 20L);
 
             QuizSetBookmark bookmark1 = QuizSetBookmark.of(user, quizSet1);
-            ReflectionTestUtils.setField(bookmark1, "id", 100L);
-
             QuizSetBookmark bookmark2 = QuizSetBookmark.of(user, quizSet2);
-            ReflectionTestUtils.setField(bookmark2, "id", 200L);
 
             given(userRepository.findById(userId)).willReturn(Optional.of(user));
             given(quizSetBookmarkRepository.findAllByUserIdOrderByCreatedAtDesc(userId))
@@ -197,9 +194,7 @@ class QuizSetBookmarkServiceImplTest {
 
             // then
             assertThat(result).hasSize(2);
-            assertThat(result.get(0).bookmarkId()).isEqualTo(100L);
             assertThat(result.get(0).quizSetId()).isEqualTo(10L);
-            assertThat(result.get(1).bookmarkId()).isEqualTo(200L);
             assertThat(result.get(1).quizSetId()).isEqualTo(20L);
         }
 

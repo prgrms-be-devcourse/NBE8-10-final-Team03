@@ -6,6 +6,7 @@ import com.eof.back.global.response.CommonResponse;
 import com.eof.back.global.response.Response;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 
@@ -37,6 +38,7 @@ public class RecordController {
      * @param size   페이지당 조회 개수 (기본값: 10)
      * @return 전적 조회 결과 (총 게임 수, 우승 수, 랭킹 점수, 최근 전적 목록)
      */
+    @PreAuthorize("authentication.principal.id == #userId")
     @GetMapping
     public ResponseEntity<Response<UserRecordResponse>> getMyRecords(
             @PathVariable Long userId,

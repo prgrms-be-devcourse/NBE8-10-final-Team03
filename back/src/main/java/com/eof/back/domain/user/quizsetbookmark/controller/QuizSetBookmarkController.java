@@ -7,6 +7,7 @@ import com.eof.back.global.response.Response;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -45,6 +46,7 @@ public class QuizSetBookmarkController {
      * @param quizSetId 북마크할 퀴즈셋의 식별자
      * @return HTTP 201 Created
      */
+    @PreAuthorize("authentication.principal.id == #userId")
     @PostMapping
     public ResponseEntity<Void> createBookmark(
             @PathVariable Long userId,
@@ -64,6 +66,7 @@ public class QuizSetBookmarkController {
      * @param quizSetId 북마크를 제거할 퀴즈셋의 식별자
      * @return HTTP 204 No Content
      */
+    @PreAuthorize("authentication.principal.id == #userId")
     @DeleteMapping("/{quizSetId}")
     public ResponseEntity<Void> deleteBookmark(
             @PathVariable Long userId,
@@ -80,6 +83,7 @@ public class QuizSetBookmarkController {
      * @param userId 조회할 사용자의 식별자
      * @return 북마크 항목 목록 (북마크 ID, 퀴즈셋 ID)
      */
+    @PreAuthorize("authentication.principal.id == #userId")
     @GetMapping
     public ResponseEntity<Response<List<BookmarkItemResponse>>> getMyBookmarks(
             @PathVariable Long userId

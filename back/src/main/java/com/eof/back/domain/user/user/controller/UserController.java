@@ -9,6 +9,7 @@ import com.eof.back.global.response.Response;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -35,6 +36,7 @@ public class UserController {
      * @param userId 조회할 사용자의 식별자
      * @return 사용자 기본 정보
      */
+    @PreAuthorize("authentication.principal.id == #userId")
     @GetMapping
     public ResponseEntity<Response<UserInfoResponse>> getMyInfo(
             @PathVariable Long userId
@@ -53,6 +55,7 @@ public class UserController {
      * @param request 수정할 정보 (닉네임, 비밀번호)
      * @return 수정된 사용자 기본 정보
      */
+    @PreAuthorize("authentication.principal.id == #userId")
     @PatchMapping
     public ResponseEntity<Response<UserUpdateResponse>> updateMyInfo(
             @PathVariable Long userId,

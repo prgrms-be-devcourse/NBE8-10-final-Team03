@@ -79,11 +79,11 @@ export default function QuizSetDetailPage({ params }: { params: Promise<{ quizse
 
       {/* CTA */}
       <button
-        onClick={() => router.push("/rooms")}
-        className="w-full py-4 bg-primary text-white font-bold text-lg border-[3px] border-dark rounded-2xl shadow-kitsch hover:shadow-kitsch-lg hover:-translate-y-0.5 transition-all"
-      >
-        이 퀴즈셋으로 방 만들기
-      </button>
+  onClick={() => router.push(`/rooms?quizSetId=${quizSet.id}`)}
+  className="w-full py-4 bg-primary text-white font-bold text-lg border-[3px] border-dark rounded-2xl shadow-kitsch hover:shadow-kitsch-lg hover:-translate-y-0.5 transition-all"
+>
+  이 퀴즈셋으로 방 만들기
+</button>
     </div>
   );
 }

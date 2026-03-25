@@ -20,7 +20,9 @@ export default function QuizSetsPage() {
     const fetchQuizSets = async () => {
       try {
         const res = await api.get("/quizsets");
-        setQuizSets(res.data.data);
+        // id 큰 순서(최신순)로 정렬
+        const sorted = res.data.data.sort((a: QuizSet, b: QuizSet) => b.id - a.id);
+        setQuizSets(sorted);
       } catch (err) {
         console.error("퀴즈셋 조회 실패", err);
       } finally {
@@ -46,9 +48,12 @@ export default function QuizSetsPage() {
           <h1 className="font-title text-4xl mb-1">퀴즈셋</h1>
           <p className="font-hand text-lg text-gray-400">퀴즈를 만들고 공유하세요</p>
         </div>
-        <button className="px-6 py-3 bg-primary text-white font-bold border-[3px] border-dark rounded-xl shadow-kitsch hover:shadow-kitsch-lg hover:-translate-y-0.5 transition-all">
-          + 퀴즈셋 만들기
-        </button>
+        <Link
+  href="/quizsets/create"
+  className="px-6 py-3 bg-primary text-white font-bold border-[3px] border-dark rounded-xl shadow-kitsch hover:shadow-kitsch-lg hover:-translate-y-0.5 transition-all"
+>
+  + 퀴즈셋 만들기
+</Link>
       </div>
 
       {/* 퀴즈셋 그리드 */}

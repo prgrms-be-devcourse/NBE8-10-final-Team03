@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import api from "@/lib/api";
+import { useSearchParams } from "next/navigation";
 
 interface Room {
   gameSessionId: number;
@@ -44,6 +45,7 @@ export default function RoomsPage() {
   const [maxQuizzes, setMaxQuizzes] = useState(10);
   const [createError, setCreateError] = useState("");
   const [creating, setCreating] = useState(false);
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -63,19 +65,33 @@ export default function RoomsPage() {
     fetchData();
   }, []);
 
-  const handleOpenModal = async () => {
-    try {
-      const res = await api.get("/quizsets");
-      setQuizSets(res.data.data);
-      if (res.data.data.length > 0) {
-        setSelectedQuizSetId(res.data.data[0].id);
-        setMaxQuizzes(res.data.data[0].totalQuizCount);
-      }
-    } catch (err) {
-      console.error("퀴즈셋 조회 실패", err);
+  useEffect(() => {
+    const quizSetIdParam = searchParams.get("quizSetId");
+    if (quizSetIdParam) {
+      handleOpenModal();
     }
-    setShowModal(true);
-  };
+  }, []);
+
+const handleOpenModal = async () => {
+  try {
+    const res = await api.get("/quizsets");
+    setQuizSets(res.data.data);
+
+    const quizSetIdParam = searchParams.get("quizSetId");
+    if (quizSetIdParam) {
+      const id = Number(quizSetIdParam);
+      setSelectedQuizSetId(id);
+      const selected = res.data.data.find((q: QuizSet) => q.id === id);
+      if (selected) setMaxQuizzes(selected.totalQuizCount);
+    } else if (res.data.data.length > 0) {
+      setSelectedQuizSetId(res.data.data[0].id);
+      setMaxQuizzes(res.data.data[0].totalQuizCount);
+    }
+  } catch (err) {
+    console.error("퀴즈셋 조회 실패", err);
+  }
+  setShowModal(true);
+};
 
   const handleQuizSetChange = (quizSetId: number) => {
     setSelectedQuizSetId(quizSetId);

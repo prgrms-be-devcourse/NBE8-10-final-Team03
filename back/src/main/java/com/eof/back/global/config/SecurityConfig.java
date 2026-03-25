@@ -22,7 +22,6 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
  *
  * <p>JWT 기반 인증을 사용하는 Stateless 구조로 설정하며,
  * 다음과 같은 보안 정책을 구성합니다.</p>
- * {@link SecurityUrlRegistry}에 정의된 URL 목록을 바탕으로 인가 정책을 구성합니다.</p>
  *
  * <p><b>주요 기능:</b><br>
  * - PasswordEncoder Bean 등록 (BCrypt)
@@ -93,12 +92,12 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> {
                     // 모든 메서드 허용 URL 적용
                     auth.requestMatchers(SecurityUrlRegistry.PERMIT_ALL_URLS).permitAll();
-                    
+
                     // 특정 메서드별 허용 URL 적용
-                    SecurityUrlRegistry.PUBLIC_METHOD_URLS.forEach((method, urls) -> 
+                    SecurityUrlRegistry.PUBLIC_METHOD_URLS.forEach((method, urls) ->
                             auth.requestMatchers(method, urls).permitAll()
                     );
-                    
+
                     auth.anyRequest().authenticated();
                 })
                 .exceptionHandling(ex -> ex

@@ -2,7 +2,6 @@ package com.eof.back.domain.user.quizsetbookmark.service;
 
 import com.eof.back.domain.quizset.entity.QuizSet;
 import com.eof.back.domain.quizset.repository.QuizSetRepository;
-import com.eof.back.domain.user.quizsetbookmark.dto.BookmarkCreateResponse;
 import com.eof.back.domain.user.quizsetbookmark.dto.BookmarkItemResponse;
 import com.eof.back.domain.user.quizsetbookmark.entity.QuizSetBookmark;
 import com.eof.back.domain.user.quizsetbookmark.repository.QuizSetBookmarkRepository;
@@ -52,7 +51,7 @@ class QuizSetBookmarkServiceImplTest {
     class CreateBookmark {
 
         @Test
-        @DisplayName("성공 - 북마크를 생성하고 bookmarkId와 quizSetId를 반환한다")
+        @DisplayName("성공 - 북마크를 생성한다")
         void success() {
             // given
             Long userId = 1L;
@@ -64,19 +63,14 @@ class QuizSetBookmarkServiceImplTest {
             QuizSet quizSet = QuizSet.builder().title("테스트 퀴즈셋").build();
             ReflectionTestUtils.setField(quizSet, "id", quizSetId);
 
-            QuizSetBookmark savedBookmark = QuizSetBookmark.of(user, quizSet);
-            ReflectionTestUtils.setField(savedBookmark, "id", 100L);
-
             given(userRepository.findById(userId)).willReturn(Optional.of(user));
             given(quizSetRepository.findById(quizSetId)).willReturn(Optional.of(quizSet));
-            given(quizSetBookmarkRepository.saveAndFlush(any(QuizSetBookmark.class))).willReturn(savedBookmark);
+            given(quizSetBookmarkRepository.saveAndFlush(any(QuizSetBookmark.class)))
+                    .willReturn(QuizSetBookmark.of(user, quizSet));
 
-            // when
-            BookmarkCreateResponse response = quizSetBookmarkService.createBookmark(userId, quizSetId);
-
-            // then
-            assertThat(response.bookmarkId()).isEqualTo(100L);
-            assertThat(response.quizSetId()).isEqualTo(quizSetId);
+            // when & then
+            quizSetBookmarkService.createBookmark(userId, quizSetId);
+            then(quizSetBookmarkRepository).should(times(1)).saveAndFlush(any(QuizSetBookmark.class));
         }
 
         @Test

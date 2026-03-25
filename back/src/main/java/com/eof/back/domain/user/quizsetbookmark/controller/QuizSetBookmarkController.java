@@ -1,6 +1,5 @@
 package com.eof.back.domain.user.quizsetbookmark.controller;
 
-import com.eof.back.domain.user.quizsetbookmark.dto.BookmarkCreateResponse;
 import com.eof.back.domain.user.quizsetbookmark.dto.BookmarkItemResponse;
 import com.eof.back.domain.user.quizsetbookmark.service.QuizSetBookmarkService;
 import com.eof.back.global.jwt.UserPrincipal;
@@ -11,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.URI;
 import java.util.List;
 
 /**
@@ -38,28 +38,51 @@ public class QuizSetBookmarkController {
 
     private final QuizSetBookmarkService quizSetBookmarkService;
 
+    /**
+     * 특정 퀴즈셋을 북마크로 추가합니다.
+     * <p>
+     * 성공 시 HTTP 201 Created와 함께 생성된 북마크의 위치를 {@code Location} 헤더로 반환합니다.
+     *
+     * @param userPrincipal 현재 로그인한 사용자의 정보
+     * @param quizSetId     북마크할 퀴즈셋의 식별자
+     * @return HTTP 201 Created
+     */
     @PostMapping
-    public ResponseEntity<Response<BookmarkCreateResponse>> createBookmark(
+    public ResponseEntity<Void> createBookmark(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
             @RequestParam Long quizSetId
     ) {
-        BookmarkCreateResponse response = quizSetBookmarkService.createBookmark(userPrincipal.id(), quizSetId);
+        quizSetBookmarkService.createBookmark(userPrincipal.id(), quizSetId);
 
-        return ResponseEntity.ok(CommonResponse.success(response, "퀴즈셋 북마크가 추가되었습니다."));
+        URI location = URI.create("/api/v1/users/me/bookmarks/" + quizSetId);
+        return ResponseEntity.created(location).build();
     }
 
+    /**
+     * 특정 퀴즈셋의 북마크를 제거합니다.
+     * <p>
+     * 성공 시 HTTP 204 No Content를 반환합니다.
+     *
+     * @param userPrincipal 현재 로그인한 사용자의 정보
+     * @param quizSetId     북마크를 제거할 퀴즈셋의 식별자
+     * @return HTTP 204 No Content
+     */
     @DeleteMapping("/{quizSetId}")
-    public ResponseEntity<Response<Void>> deleteBookmark(
+    public ResponseEntity<Void> deleteBookmark(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
             @PathVariable Long quizSetId
     ) {
         quizSetBookmarkService.deleteBookmark(userPrincipal.id(), quizSetId);
 
-        return ResponseEntity.ok(
-                CommonResponse.success(null, "퀴즈셋 북마크가 제거되었습니다.")
-        );
+        return ResponseEntity.noContent().build();
     }
 
+    /**
+     * 로그인한 사용자의 북마크 목록을 최신순으로 조회합니다.
+     *
+     * @param userPrincipal 현재 로그인한 사용자의 정보
+     * @return 북마크 항목 목록 (북마크 ID, 퀴즈셋 ID)
+     */
     @GetMapping
     public ResponseEntity<Response<List<BookmarkItemResponse>>> getMyBookmarks(
             @AuthenticationPrincipal UserPrincipal userPrincipal

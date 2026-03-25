@@ -1,6 +1,5 @@
 package com.eof.back.domain.user.quizsetbookmark.service;
 
-import com.eof.back.domain.user.quizsetbookmark.dto.BookmarkCreateResponse;
 import com.eof.back.domain.user.quizsetbookmark.dto.BookmarkItemResponse;
 
 import java.util.List;
@@ -19,9 +18,31 @@ import java.util.List;
  */
 public interface QuizSetBookmarkService {
 
-    BookmarkCreateResponse createBookmark(Long userId, Long quizSetId);
+    /**
+     * 사용자가 특정 퀴즈셋을 북마크합니다.
+     *
+     * @param userId    북마크를 등록할 사용자의 식별자
+     * @param quizSetId 북마크 대상 퀴즈셋의 식별자
+     * @throws com.eof.back.global.exception.exceptions.AuthException    사용자가 존재하지 않는 경우
+     * @throws com.eof.back.global.exception.exceptions.QuizSetException 퀴즈셋이 존재하지 않거나 이미 북마크한 경우
+     */
+    void createBookmark(Long userId, Long quizSetId);
 
+    /**
+     * 사용자가 등록한 특정 퀴즈셋 북마크를 제거합니다.
+     *
+     * @param userId    북마크를 제거할 사용자의 식별자
+     * @param quizSetId 북마크를 제거할 퀴즈셋의 식별자
+     * @throws com.eof.back.global.exception.exceptions.QuizSetException 북마크가 존재하지 않는 경우
+     */
     void deleteBookmark(Long userId, Long quizSetId);
 
+    /**
+     * 사용자의 북마크 목록을 최신순으로 조회합니다.
+     *
+     * @param userId 조회할 사용자의 식별자
+     * @return 북마크 항목 목록 (북마크 ID, 퀴즈셋 ID)
+     * @throws com.eof.back.global.exception.exceptions.AuthException 사용자가 존재하지 않는 경우
+     */
     List<BookmarkItemResponse> getBookmarks(Long userId);
 }

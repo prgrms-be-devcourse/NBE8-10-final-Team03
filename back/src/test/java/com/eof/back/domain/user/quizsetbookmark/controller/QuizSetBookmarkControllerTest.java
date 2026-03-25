@@ -1,6 +1,5 @@
 package com.eof.back.domain.user.quizsetbookmark.controller;
 
-import com.eof.back.domain.user.quizsetbookmark.dto.BookmarkCreateResponse;
 import com.eof.back.domain.user.quizsetbookmark.dto.BookmarkItemResponse;
 import com.eof.back.domain.user.quizsetbookmark.service.QuizSetBookmarkService;
 import com.eof.back.global.exception.errorCode.AuthErrorCode;
@@ -60,20 +59,16 @@ class QuizSetBookmarkControllerTest {
     class CreateBookmark {
 
         @Test
-        @DisplayName("성공 - 북마크를 생성하고 bookmarkId와 quizSetId를 반환한다")
+        @DisplayName("성공 - 북마크를 생성하고 201을 반환한다")
         void success() throws Exception {
-            Long userId = 1L;
             Long quizSetId = 10L;
 
-            given(quizSetBookmarkService.createBookmark(userId, quizSetId))
-                    .willReturn(new BookmarkCreateResponse(100L, quizSetId));
+            willDoNothing().given(quizSetBookmarkService).createBookmark(1L, quizSetId);
 
             mockMvc.perform(post("/api/v1/users/me/bookmarks")
                             .param("quizSetId", quizSetId.toString()))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.data.bookmarkId").value(100))
-                    .andExpect(jsonPath("$.data.quizSetId").value(quizSetId))
-                    .andExpect(jsonPath("$.message").value("퀴즈셋 북마크가 추가되었습니다."));
+                    .andExpect(status().isCreated())
+                    .andExpect(header().string("Location", "/api/v1/users/me/bookmarks/" + quizSetId));
         }
     }
 
@@ -82,15 +77,14 @@ class QuizSetBookmarkControllerTest {
     class DeleteBookmark {
 
         @Test
-        @DisplayName("성공 - 북마크를 삭제한다")
+        @DisplayName("성공 - 북마크를 삭제하고 204를 반환한다")
         void success() throws Exception {
             Long quizSetId = 10L;
 
             willDoNothing().given(quizSetBookmarkService).deleteBookmark(1L, quizSetId);
 
             mockMvc.perform(delete("/api/v1/users/me/bookmarks/{quizSetId}", quizSetId))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.message").value("퀴즈셋 북마크가 제거되었습니다."));
+                    .andExpect(status().isNoContent());
         }
 
         @Test

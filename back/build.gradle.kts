@@ -61,6 +61,8 @@ dependencies {
     //Security 관련 테스트 도구
     testImplementation("org.springframework.security:spring-security-test")
 
+    //STOMP
+    implementation("org.springframework.boot:spring-boot-starter-websocket")
 }
 
 tasks.withType<Test> {

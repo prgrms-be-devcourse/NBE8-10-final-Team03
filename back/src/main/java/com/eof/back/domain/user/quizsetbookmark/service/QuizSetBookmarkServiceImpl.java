@@ -66,7 +66,7 @@ public class QuizSetBookmarkServiceImpl implements QuizSetBookmarkService {
 
         QuizSetBookmark savedBookmark = quizSetBookmarkRepository.save(QuizSetBookmark.of(user, quizSet));
 
-        return new BookmarkCreateResponse(savedBookmark.getId(), quizSetId);
+        return BookmarkCreateResponse.from(savedBookmark);
     }
 
     @Override
@@ -88,7 +88,7 @@ public class QuizSetBookmarkServiceImpl implements QuizSetBookmarkService {
         return quizSetBookmarkRepository
                 .findAllByUserIdOrderByCreatedAtDesc(userId)
                 .stream()
-                .map(b -> new BookmarkItemResponse(b.getId(), b.getQuizSet().getId()))
+                .map(BookmarkItemResponse::from)
                 .toList();
     }
 }

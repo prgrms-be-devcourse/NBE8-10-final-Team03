@@ -1,5 +1,7 @@
 package com.eof.back.domain.user.quizsetbookmark.dto;
 
+import com.eof.back.domain.user.quizsetbookmark.entity.QuizSetBookmark;
+
 /**
  * 코드에 대한 전체적인 역할을 적습니다.
  * <p>
@@ -26,4 +28,7 @@ public record BookmarkItemResponse(
         Long bookmarkId,
         Long quizSetId
 ) {
+    public static BookmarkItemResponse from(QuizSetBookmark bookmark) {
+        return new BookmarkItemResponse(bookmark.getId(), bookmark.getQuizSet().getId());
+    }
 }

@@ -9,23 +9,15 @@ import com.eof.back.global.exception.exceptions.AuthException;
 import com.eof.back.global.exception.exceptions.QuizSetException;
 import com.eof.back.global.jwt.JwtAuthenticationEntryPoint;
 import com.eof.back.global.jwt.JwtTokenProvider;
-import com.eof.back.global.jwt.UserPrincipal;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.core.MethodParameter;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.web.bind.support.WebDataBinderFactory;
-import org.springframework.web.context.request.NativeWebRequest;
-import org.springframework.web.method.support.HandlerMethodArgumentResolver;
-import org.springframework.web.method.support.ModelAndViewContainer;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.util.List;
 
@@ -37,7 +29,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@Import({QuizSetBookmarkControllerTest.MockSecurityConfig.class, DefaultExceptionHandler.class})
+@Import(DefaultExceptionHandler.class)
 @WebMvcTest(QuizSetBookmarkController.class)
 @AutoConfigureMockMvc(addFilters = false)
 class QuizSetBookmarkControllerTest {
@@ -65,10 +57,9 @@ class QuizSetBookmarkControllerTest {
 
             willDoNothing().given(quizSetBookmarkService).createBookmark(1L, quizSetId);
 
-            mockMvc.perform(post("/api/v1/users/me/bookmarks")
+            mockMvc.perform(post("/api/v1/users/1/bookmarks")
                             .param("quizSetId", quizSetId.toString()))
-                    .andExpect(status().isCreated())
-                    .andExpect(header().string("Location", "/api/v1/users/me/bookmarks/" + quizSetId));
+                    .andExpect(status().isCreated());
         }
     }
 
@@ -83,7 +74,7 @@ class QuizSetBookmarkControllerTest {
 
             willDoNothing().given(quizSetBookmarkService).deleteBookmark(1L, quizSetId);
 
-            mockMvc.perform(delete("/api/v1/users/me/bookmarks/{quizSetId}", quizSetId))
+            mockMvc.perform(delete("/api/v1/users/1/bookmarks/{quizSetId}", quizSetId))
                     .andExpect(status().isNoContent());
         }
 
@@ -95,7 +86,7 @@ class QuizSetBookmarkControllerTest {
             willThrow(new QuizSetException(QuizSetErrorCode.QUIZ_SET_BOOKMARK_NOT_FOUND))
                     .given(quizSetBookmarkService).deleteBookmark(1L, quizSetId);
 
-            mockMvc.perform(delete("/api/v1/users/me/bookmarks/{quizSetId}", quizSetId))
+            mockMvc.perform(delete("/api/v1/users/1/bookmarks/{quizSetId}", quizSetId))
                     .andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.message").value("북마크하지 않은 퀴즈 세트입니다."));
         }
@@ -116,7 +107,7 @@ class QuizSetBookmarkControllerTest {
                             new BookmarkItemResponse(200L, 20L)
                     ));
 
-            mockMvc.perform(get("/api/v1/users/me/bookmarks"))
+            mockMvc.perform(get("/api/v1/users/1/bookmarks"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.data[0].bookmarkId").value(100))
                     .andExpect(jsonPath("$.data[0].quizSetId").value(10))
@@ -130,7 +121,7 @@ class QuizSetBookmarkControllerTest {
         void success_empty() throws Exception {
             given(quizSetBookmarkService.getBookmarks(1L)).willReturn(List.of());
 
-            mockMvc.perform(get("/api/v1/users/me/bookmarks"))
+            mockMvc.perform(get("/api/v1/users/1/bookmarks"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.data").isEmpty())
                     .andExpect(jsonPath("$.message").value("내 퀴즈셋 북마크 목록을 조회했습니다."));
@@ -142,30 +133,10 @@ class QuizSetBookmarkControllerTest {
             given(quizSetBookmarkService.getBookmarks(1L))
                     .willThrow(new AuthException(AuthErrorCode.USER_NOT_FOUND));
 
-            mockMvc.perform(get("/api/v1/users/me/bookmarks"))
+            mockMvc.perform(get("/api/v1/users/1/bookmarks"))
                     .andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.message").value("해당 사용자를 찾을 수 없습니다."));
         }
     }
 
-    @TestConfiguration
-    static class MockSecurityConfig implements WebMvcConfigurer {
-        @Override
-        public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
-            resolvers.add(new HandlerMethodArgumentResolver() {
-                @Override
-                public boolean supportsParameter(MethodParameter parameter) {
-                    return parameter.getParameterType().equals(UserPrincipal.class);
-                }
-
-                @Override
-                public Object resolveArgument(MethodParameter parameter,
-                                              ModelAndViewContainer mavContainer,
-                                              NativeWebRequest webRequest,
-                                              WebDataBinderFactory binderFactory) {
-                    return new UserPrincipal(1L, "testUser");
-                }
-            });
-        }
-    }
 }

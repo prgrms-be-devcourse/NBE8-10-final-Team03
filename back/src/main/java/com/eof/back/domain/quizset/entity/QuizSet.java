@@ -42,13 +42,13 @@ public class QuizSet extends BaseEntity {
     /**
      * 사용자가 식별하기 위한 퀴즈 세트의 제목
      */
-    @Column(nullable = false)
+    @Column(nullable = false, length = 30)
     private String title;
 
     /**
      * 퀴즈 세트의 상세 설명. 퀴즈의 주제나 대상 수준 등을 기재합니다.
      */
-    @Column(length = 1000)
+    @Column(length = 255)
     private String description;
 
     /**

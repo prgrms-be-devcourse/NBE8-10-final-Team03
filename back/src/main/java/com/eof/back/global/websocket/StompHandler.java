@@ -2,6 +2,8 @@ package com.eof.back.global.websocket;
 
 
 import com.eof.back.domain.user.dto.UserPrincipal;
+import com.eof.back.global.exception.errorCode.AuthErrorCode;
+import com.eof.back.global.exception.exceptions.AuthException;
 import com.eof.back.global.jwt.JwtTokenProvider;
 import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
@@ -90,7 +92,7 @@ public class StompHandler implements ChannelInterceptor {
 
                 } catch (Exception e) {
                     log.error(" 토큰 검증 오류: {}", e.getMessage());
-                    throw new IllegalArgumentException("유효하지 않은 JWT 토큰입니다.");
+                    throw new AuthException(AuthErrorCode.TOKEN_INVALID, "유효하지 않은 JWT 토큰입니다.");
                 }
             }
         } else if (accessor.getCommand() != null && !StompCommand.DISCONNECT.equals(accessor.getCommand())) {

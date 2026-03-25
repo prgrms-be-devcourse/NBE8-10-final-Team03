@@ -8,8 +8,8 @@ import com.eof.back.global.response.Response;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -38,15 +38,15 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/users/me/bookmark")
+@RequestMapping("/api/v1/users/me/bookmarks")
 public class QuizSetBookmarkController {
 
     private final QuizSetBookmarkService quizSetBookmarkService;
 
-    @PostMapping("/{quizSetId}")
+    @PostMapping
     public ResponseEntity<Response<BookmarkCreateResponse>> createBookmark(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
-            @PathVariable Long quizSetId
+            @RequestParam Long quizSetId
     ) {
         BookmarkCreateResponse response = quizSetBookmarkService.createBookmark(userPrincipal.id(), quizSetId);
 

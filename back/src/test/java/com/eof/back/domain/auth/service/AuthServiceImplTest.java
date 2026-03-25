@@ -219,6 +219,27 @@ public class AuthServiceImplTest {
 
             verify(jwtTokenProvider, never()).createAccessToken(any(), any(), any());
         }
+
+        @Test
+        @DisplayName("실패 - 탈퇴한 사용자면 USER_ALREADY_DELETED 예외가 발생한다")
+        void fail_deletedUser() {
+            // given
+            LoginRequest req = new LoginRequest("testUser", "password123");
+            User user = mock(User.class);
+
+            given(userRepository.findByUsername("testUser")).willReturn(Optional.of(user));
+            given(user.getPassword()).willReturn("encodedPassword");
+            given(passwordEncoder.matches("password123", "encodedPassword")).willReturn(true);
+            given(user.isDeleted()).willReturn(true);
+
+            // when & then
+            assertThatThrownBy(() -> authService.login(req))
+                    .isInstanceOf(AuthException.class)
+                    .satisfies(e -> assertThat(((AuthException) e).getErrorCode())
+                            .isEqualTo(AuthErrorCode.USER_ALREADY_DELETED));
+
+            verify(jwtTokenProvider, never()).createAccessToken(any(), any(), any());
+        }
     }
 
     @Nested
@@ -365,6 +386,33 @@ public class AuthServiceImplTest {
                     .isInstanceOf(AuthException.class)
                     .satisfies(e -> assertThat(((AuthException) e).getErrorCode())
                             .isEqualTo(AuthErrorCode.USER_NOT_FOUND));
+        }
+
+        @Test
+        @DisplayName("실패 - 탈퇴한 사용자면 USER_ALREADY_DELETED 예외가 발생한다")
+        void fail_deletedUser() {
+            // given
+            Claims claims = mock(Claims.class);
+            RefreshToken savedToken = RefreshToken.builder()
+                    .userId(USER_ID)
+                    .token(REFRESH_TOKEN)
+                    .expiredAt(LocalDateTime.now().plusDays(7))
+                    .build();
+            User user = mock(User.class);
+
+            given(jwtTokenProvider.validateToken(REFRESH_TOKEN)).willReturn(claims);
+            given(jwtTokenProvider.getUserId(claims)).willReturn(USER_ID);
+            given(refreshTokenStore.findByUserId(USER_ID)).willReturn(Optional.of(savedToken));
+            given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
+            given(user.isDeleted()).willReturn(true);
+
+            // when & then
+            assertThatThrownBy(() -> authService.reissue(REFRESH_TOKEN))
+                    .isInstanceOf(AuthException.class)
+                    .satisfies(e -> assertThat(((AuthException) e).getErrorCode())
+                            .isEqualTo(AuthErrorCode.USER_ALREADY_DELETED));
+
+            verify(jwtTokenProvider, never()).createAccessToken(any(), any(), any());
         }
     }
 

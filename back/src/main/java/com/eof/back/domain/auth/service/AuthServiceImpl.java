@@ -92,7 +92,12 @@ public class AuthServiceImpl implements AuthService {
             throw new AuthException(AuthErrorCode.INVALID_CREDENTIALS);
         }
 
-        // 3. AccessToken, RefreshToken 생성
+        // 3. 탈퇴 여부 확인
+        if (user.isDeleted()) {
+            throw new AuthException(AuthErrorCode.USER_ALREADY_DELETED);
+        }
+
+        // 4. AccessToken, RefreshToken 생성
         String accessToken = jwtTokenProvider.createAccessToken(user.getId(), user.getUsername(), user.getRole().name());
         String refreshToken = jwtTokenProvider.createRefreshToken(user.getId());
 
@@ -113,7 +118,12 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findById(savedRefreshToken.getUserId())
                 .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND));
 
-        // 3. 새로운 Access Token, Refresh Token 생성
+        // 3. 탈퇴 여부 확인
+        if (user.isDeleted()) {
+            throw new AuthException(AuthErrorCode.USER_ALREADY_DELETED);
+        }
+
+        // 4. 새로운 Access Token, Refresh Token 생성
         String newAccessToken = jwtTokenProvider.createAccessToken(
                 user.getId(),
                 user.getUsername(),

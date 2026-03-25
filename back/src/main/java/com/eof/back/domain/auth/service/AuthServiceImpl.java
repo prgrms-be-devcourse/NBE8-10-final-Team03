@@ -92,7 +92,12 @@ public class AuthServiceImpl implements AuthService {
             throw new AuthException(AuthErrorCode.INVALID_CREDENTIALS);
         }
 
-        // 3. AccessToken, RefreshToken 생성
+        // 3. 탈퇴 여부 확인
+        if (user.isDeleted()) {
+            throw new AuthException(AuthErrorCode.USER_ALREADY_DELETED);
+        }
+
+        // 4. AccessToken, RefreshToken 생성
         String accessToken = jwtTokenProvider.createAccessToken(user.getId(), user.getUsername(), user.getRole().name());
         String refreshToken = jwtTokenProvider.createRefreshToken(user.getId());
 
@@ -136,6 +141,25 @@ public class AuthServiceImpl implements AuthService {
 
         // 2. 저장소에서 Refresh Token 삭제
         refreshTokenStore.delete(savedRefreshToken.getUserId());
+    }
+
+    @Override
+    public void withdraw(Long userId) {
+
+        // 1. 사용자 조회
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND));
+
+        // 2. 이미 탈퇴한 사용자 검증
+        if (user.isDeleted()) {
+            throw new AuthException(AuthErrorCode.USER_ALREADY_DELETED);
+        }
+
+        // 3. soft delete 처리
+        user.delete();
+
+        // 4. Refresh Token 삭제
+        refreshTokenStore.delete(userId);
     }
 
     private RefreshToken validateAndGetRefreshToken(String refreshToken) {

@@ -2,9 +2,9 @@ package com.eof.back.domain.gamesession.controller;
 
 import com.eof.back.domain.gamesession.dto.ChatMessageRequest;
 import com.eof.back.domain.gamesession.dto.GameMessageResponse;
-import com.eof.back.domain.user.dto.UserPrincipal;
 import com.eof.back.global.exception.errorCode.AuthErrorCode;
 import com.eof.back.global.exception.exceptions.AuthException;
+import com.eof.back.global.jwt.UserPrincipal;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.handler.annotation.DestinationVariable;

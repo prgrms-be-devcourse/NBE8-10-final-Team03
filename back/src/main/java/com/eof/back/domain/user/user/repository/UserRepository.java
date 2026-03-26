@@ -1,7 +1,9 @@
 package com.eof.back.domain.user.user.repository;
 
 import com.eof.back.domain.user.user.entity.User;
+import io.lettuce.core.dynamic.annotation.Param;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
 import java.util.Optional;
@@ -31,5 +33,8 @@ public interface UserRepository extends JpaRepository<User,Long> {
 
     Optional<User> findByUsername(String username);
 
-    List<User> findTop10ByOrderByTotalRankingScoreDesc();
+    List<User> findTop10ByOrderByTotalRankingScoreDescIdAsc();
+
+    @Query("SELECT COUNT(u) + 1 FROM User u WHERE u.totalRankingScore > :score")
+    Long findMyRank(@Param("score") Long score);
 }

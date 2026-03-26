@@ -22,7 +22,7 @@ interface Room {
 interface RankingItem {
   rank: number;
   nickname: string;
-  totalRankingScore: number;
+  score: number;
 }
 
 interface QuizSet {
@@ -755,7 +755,7 @@ useEffect(() => {
                 <div key={`rank-${r.rank}-${i}`} className="flex items-center gap-3">
                   <span className={`font-title text-xl w-8 ${rankColors[i]}`}>{r.rank}</span>
                   <span className="flex-1 text-sm font-bold truncate">{r.nickname}</span>
-                  <span className="text-sm text-gray-400">{r.totalRankingScore.toLocaleString()}P</span>
+                  <span className="text-sm text-gray-400">{r.score.toLocaleString()}P</span>
                 </div>
               ))}
             </div>

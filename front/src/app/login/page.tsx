@@ -18,11 +18,12 @@ export default function LoginPage() {
 
     try {
       const res = await api.post("/auth/login", { username, password });
-      const { accessToken, refreshToken, nickname } = res.data.data;
+      const { accessToken, refreshToken, nickname,userId } = res.data.data;
 
       localStorage.setItem("accessToken", accessToken);
       localStorage.setItem("refreshToken", refreshToken);
       localStorage.setItem("nickname", nickname);
+      localStorage.setItem("userId", String(userId));
 
       router.push("/rooms");
     } catch (err: any) {

@@ -15,12 +15,19 @@ interface QuizSet {
 export default function QuizSetsPage() {
   const [quizSets, setQuizSets] = useState<QuizSet[]>([]);
   const [loading, setLoading] = useState(true);
+  const [bookmarkedIds, setBookmarkedIds] = useState<Set<number>>(new Set());
+  const [userId, setUserId] = useState<number | null>(null);
+
+  useEffect(() => {
+    // localStorage에서 userId 꺼내기 (저장 방식에 따라 수정 필요)
+    const storedUserId = localStorage.getItem("userId");
+    if (storedUserId) setUserId(Number(storedUserId));
+  }, []);
 
   useEffect(() => {
     const fetchQuizSets = async () => {
       try {
         const res = await api.get("/quizsets");
-        // id 큰 순서(최신순)로 정렬
         const sorted = res.data.data.sort((a: QuizSet, b: QuizSet) => b.id - a.id);
         setQuizSets(sorted);
       } catch (err) {
@@ -31,6 +38,44 @@ export default function QuizSetsPage() {
     };
     fetchQuizSets();
   }, []);
+
+  // 북마크 목록 조회
+  useEffect(() => {
+    if (!userId) return;
+    const fetchBookmarks = async () => {
+      try {
+        const res = await api.get(`/users/${userId}/bookmarks`);
+        const ids = new Set<number>(res.data.data.map((b: { quizSetId: number }) => b.quizSetId));
+        setBookmarkedIds(ids);
+      } catch (err) {
+        console.error("북마크 조회 실패", err);
+      }
+    };
+    fetchBookmarks();
+  }, [userId]);
+
+  // 북마크 토글
+  const toggleBookmark = async (e: React.MouseEvent, quizSetId: number) => {
+    e.preventDefault(); // Link 이동 방지
+    if (!userId) return;
+
+    const isBookmarked = bookmarkedIds.has(quizSetId);
+    try {
+      if (isBookmarked) {
+        await api.delete(`/users/${userId}/bookmarks/${quizSetId}`);
+        setBookmarkedIds(prev => {
+          const next = new Set(prev);
+          next.delete(quizSetId);
+          return next;
+        });
+      } else {
+        await api.post(`/users/${userId}/bookmarks?quizSetId=${quizSetId}`);
+        setBookmarkedIds(prev => new Set(prev).add(quizSetId));
+      }
+    } catch (err) {
+      console.error("북마크 토글 실패", err);
+    }
+  };
 
   if (loading) {
     return (
@@ -49,11 +94,11 @@ export default function QuizSetsPage() {
           <p className="font-hand text-lg text-gray-400">퀴즈를 만들고 공유하세요</p>
         </div>
         <Link
-  href="/quizsets/create"
-  className="px-6 py-3 bg-primary text-white font-bold border-[3px] border-dark rounded-xl shadow-kitsch hover:shadow-kitsch-lg hover:-translate-y-0.5 transition-all"
->
-  + 퀴즈셋 만들기
-</Link>
+          href="/quizsets/create"
+          className="px-6 py-3 bg-primary text-white font-bold border-[3px] border-dark rounded-xl shadow-kitsch hover:shadow-kitsch-lg hover:-translate-y-0.5 transition-all"
+        >
+          + 퀴즈셋 만들기
+        </Link>
       </div>
 
       {/* 퀴즈셋 그리드 */}
@@ -67,11 +112,32 @@ export default function QuizSetsPage() {
             <Link
               key={quiz.id}
               href={`/quizsets/${quiz.id}`}
-              className="bg-white border-[3px] border-dark rounded-2xl shadow-kitsch hover:shadow-kitsch-lg hover:-translate-y-1 transition-all cursor-pointer overflow-hidden"
+              className="relative bg-white border-[3px] border-dark rounded-2xl shadow-kitsch hover:shadow-kitsch-lg hover:-translate-y-1 transition-all cursor-pointer overflow-hidden"
             >
               {/* 썸네일 */}
               <div className="relative bg-cream h-40 flex items-center justify-center">
                 <span className="text-6xl">📝</span>
+
+                {/* 북마크 버튼 */}
+                {userId && (
+  <button
+    onClick={(e) => toggleBookmark(e, quiz.id)}
+    className="absolute top-3 right-3 hover:scale-125 transition-transform"
+  >
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill={bookmarkedIds.has(quiz.id) ? "#FFFF00" : "none"}
+      stroke="#2B2D42"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+    </svg>
+  </button>
+)}
               </div>
 
               {/* 정보 */}

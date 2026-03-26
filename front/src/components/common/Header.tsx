@@ -29,6 +29,7 @@ export default function Header() {
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
     localStorage.removeItem("nickname");
+    localStorage.removeItem("userId");
     router.push("/login");
   };
 

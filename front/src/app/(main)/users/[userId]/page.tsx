@@ -112,12 +112,15 @@ export default function MyPage() {
           <h3 className="font-title text-lg mb-1">내 전적</h3>
           <p className="text-xs text-gray-400">최근 게임 기록 확인</p>
         </Link>
-        <Link href="/rankings" className="bg-white border-[3px] border-dark rounded-2xl p-6 shadow-kitsch hover:shadow-kitsch-lg hover:-translate-y-0.5 transition-all text-center">
-          <div className="text-3xl mb-2">🏆</div>
-          <h3 className="font-title text-lg mb-1">랭킹</h3>
-          <p className="text-xs text-gray-400">내 순위 확인하기</p>
-        </Link>
-      </div>
+        <Link
+    href={`/users/${myUserId}/bookmarks`}
+    className="bg-white border-[3px] border-dark rounded-2xl p-6 shadow-kitsch hover:shadow-kitsch-lg hover:-translate-y-0.5 transition-all text-center"
+  >
+    <div className="text-3xl mb-2">⭐</div>
+    <h3 className="font-title text-lg mb-1">즐겨찾기</h3>
+    <p className="text-xs text-gray-400">저장한 퀴즈셋 보기</p>
+  </Link>
+</div>
     </div>
   );
 }

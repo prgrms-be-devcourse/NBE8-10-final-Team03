@@ -34,7 +34,6 @@ import java.util.concurrent.TimeUnit;
 public class RedisRefreshTokenStore implements RefreshTokenStore {
 
     private static final String KEY_PREFIX = "refresh_token:";
-    private static final LocalDateTime REDIS_TTL_MANAGED = LocalDateTime.MAX;
 
     private final StringRedisTemplate redisTemplate;
 
@@ -58,14 +57,17 @@ public class RedisRefreshTokenStore implements RefreshTokenStore {
             return Optional.empty();
         }
 
-        // RefreshToken은 JPA 엔티티지만 여기서는 DB에 저장하지 않고
-        // Redis에서 가져온 데이터를 담는 DTO처럼 메모리 상에서 조립해 반환
-        // expiredAt은 서비스 계층의 isExpired() 검증을 통과시키기 위해 미래 시각으로 설정
-        // 실제 만료는 Redis TTL이 보장하므로 정확한 잔여 시간 계산이 불필요
+        // Redis에 남은 TTL을 초 단위로 조회해 실제 만료 시각을 계산
+        // → 서비스 계층의 isExpired() 검증이 정확한 시각 기반으로 동작
+        Long remainingSeconds = redisTemplate.getExpire(key, TimeUnit.SECONDS);
+        LocalDateTime expiredAt = (remainingSeconds != null && remainingSeconds > 0)
+                ? LocalDateTime.now().plusSeconds(remainingSeconds)
+                : LocalDateTime.now().minusSeconds(1);
+
         return Optional.of(RefreshToken.builder()
                 .userId(userId)
                 .token(token)
-                .expiredAt(REDIS_TTL_MANAGED)
+                .expiredAt(expiredAt)
                 .build());
     }
 

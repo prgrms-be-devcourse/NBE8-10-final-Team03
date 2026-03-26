@@ -26,7 +26,7 @@ class JwtTokenProviderTest {
     @Test
     @DisplayName("AccessToken 생성 후 userId, username, role 추출 성공")
     void createAccessToken_extractClaims_success() {
-        String token = jwtTokenProvider.createAccessToken(1L, "testUser", "USER");
+        String token = jwtTokenProvider.createAccessToken(1L, "testUser", "USER", "tester");
         Claims claims = jwtTokenProvider.validateToken(token);
 
         assertThat(jwtTokenProvider.getUserId(claims)).isEqualTo(1L);
@@ -46,7 +46,7 @@ class JwtTokenProviderTest {
     @Test
     @DisplayName("유효한 토큰 검증 성공 - Claims 반환")
     void validateToken_success() {
-        String token = jwtTokenProvider.createAccessToken(1L, "testUser", "USER");
+        String token = jwtTokenProvider.createAccessToken(1L, "testUser", "USER", "tester");
 
         Claims claims = jwtTokenProvider.validateToken(token);
 
@@ -59,7 +59,7 @@ class JwtTokenProviderTest {
     void validateToken_expired_throwsException() {
         // 만료 시간을 음수로 설정하여 즉시 만료된 토큰 생성
         JwtTokenProvider expiredProvider = new JwtTokenProvider(SECRET, -1, -1);
-        String token = expiredProvider.createAccessToken(1L, "testUser", "USER");
+        String token = expiredProvider.createAccessToken(1L, "testUser", "USER", "tester");
 
         assertThatThrownBy(() -> jwtTokenProvider.validateToken(token))
                 .isInstanceOf(AuthException.class)
@@ -82,7 +82,7 @@ class JwtTokenProviderTest {
         String otherSecret =
                 "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz";
         JwtTokenProvider otherProvider = new JwtTokenProvider(otherSecret, 1200, 1209600);
-        String token = otherProvider.createAccessToken(1L, "testUser", "USER");
+        String token = otherProvider.createAccessToken(1L, "testUser", "USER", "tester");
 
         assertThatThrownBy(() -> jwtTokenProvider.validateToken(token))
                 .isInstanceOf(AuthException.class)

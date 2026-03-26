@@ -176,7 +176,7 @@ public class GameSessionControllerTest {
                                               org.springframework.web.method.support.ModelAndViewContainer mavContainer,
                                               org.springframework.web.context.request.NativeWebRequest webRequest,
                                               org.springframework.web.bind.support.WebDataBinderFactory binderFactory) {
-                    return new UserPrincipal(1L, "tester");
+                    return new UserPrincipal(1L, "tester", "tester", "USER");
                 }
             });
         }

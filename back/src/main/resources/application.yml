@@ -17,6 +17,8 @@ spring:
       port: 6379
 
 custom:
+  refresh-token:
+    store: redis  # "db" 또는 "redis" — 부하 테스트 비교 시 변경
   jwt:
     secretKey: ${JWT_SECRET}
     accessTokenExpirationSeconds: 1200   # 20분

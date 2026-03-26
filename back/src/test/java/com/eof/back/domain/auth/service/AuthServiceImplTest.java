@@ -171,7 +171,7 @@ public class AuthServiceImplTest {
             given(user.getUsername()).willReturn("testUser");
             given(user.getRole()).willReturn(Role.USER);
             given(user.getNickname()).willReturn("tester");
-            given(jwtTokenProvider.createAccessToken(USER_ID, "testUser", "USER")).willReturn(NEW_ACCESS_TOKEN);
+            given(jwtTokenProvider.createAccessToken(USER_ID, "testUser", "USER", "tester")).willReturn(NEW_ACCESS_TOKEN);
             given(jwtTokenProvider.createRefreshToken(USER_ID)).willReturn(NEW_REFRESH_TOKEN);
 
             // when
@@ -217,7 +217,7 @@ public class AuthServiceImplTest {
                     .satisfies(e -> assertThat(((AuthException) e).getErrorCode())
                             .isEqualTo(AuthErrorCode.INVALID_CREDENTIALS));
 
-            verify(jwtTokenProvider, never()).createAccessToken(any(), any(), any());
+            verify(jwtTokenProvider, never()).createAccessToken(any(), any(), any(), any());
         }
 
         @Test
@@ -238,7 +238,7 @@ public class AuthServiceImplTest {
                     .satisfies(e -> assertThat(((AuthException) e).getErrorCode())
                             .isEqualTo(AuthErrorCode.USER_ALREADY_DELETED));
 
-            verify(jwtTokenProvider, never()).createAccessToken(any(), any(), any());
+            verify(jwtTokenProvider, never()).createAccessToken(any(), any(), any(), any());
         }
     }
 
@@ -265,7 +265,8 @@ public class AuthServiceImplTest {
             given(user.getId()).willReturn(USER_ID);
             given(user.getUsername()).willReturn("testuser");
             given(user.getRole()).willReturn(Role.USER);
-            given(jwtTokenProvider.createAccessToken(USER_ID, "testuser", "USER")).willReturn(NEW_ACCESS_TOKEN);
+            given(user.getNickname()).willReturn("tester");
+            given(jwtTokenProvider.createAccessToken(USER_ID, "testuser", "USER", "tester")).willReturn(NEW_ACCESS_TOKEN);
             given(jwtTokenProvider.createRefreshToken(USER_ID)).willReturn(NEW_REFRESH_TOKEN);
 
             // when

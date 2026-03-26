@@ -74,8 +74,9 @@ public class StompHandler implements ChannelInterceptor {
                     Long userId = jwtTokenProvider.getUserId(claims);
                     String username = jwtTokenProvider.getUsername(claims);
                     String role = jwtTokenProvider.getRole(claims);
+                    String nickname = jwtTokenProvider.getNickname(claims);
 
-                    UserPrincipal userPrincipal = new UserPrincipal(userId, username);
+                    UserPrincipal userPrincipal = new UserPrincipal(userId, username, nickname, role);
                     String authority = role.startsWith(ROLE_PREFIX) ? role : ROLE_PREFIX + role;
                     Authentication authentication = new UsernamePasswordAuthenticationToken(
                             userPrincipal, null, List.of(new SimpleGrantedAuthority(authority))

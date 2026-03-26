@@ -80,6 +80,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 Long userId = jwtTokenProvider.getUserId(claims);
                 String username = jwtTokenProvider.getUsername(claims);
                 String role = jwtTokenProvider.getRole(claims);
+                String nickname = jwtTokenProvider.getNickname(claims);
 
                 // 4. 권한 생성
                 List<SimpleGrantedAuthority> authorities =
@@ -88,7 +89,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 // 5. 인증 객체 생성
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(
-                                new UserPrincipal(userId, username),
+                                new UserPrincipal(userId, username, nickname, role),
                                 null,
                                 authorities
                         );

@@ -61,7 +61,7 @@ class QuizControllerTest {
 
     @BeforeEach
     void setUp() {
-        principal = new UserPrincipal(1L, "testuser");
+        principal = new UserPrincipal(1L, "testuser", "tester", "USER");
         UsernamePasswordAuthenticationToken auth =
                 new UsernamePasswordAuthenticationToken(principal, null, List.of());
         SecurityContextHolder.getContext().setAuthentication(auth);

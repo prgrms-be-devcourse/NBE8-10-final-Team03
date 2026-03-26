@@ -8,11 +8,15 @@ package com.eof.back.global.jwt;
  *
  * @param id       사용자 ID
  * @param username 사용자 아이디
+ * @param nickname 사용자 닉네임
+ * @param role     사용자 권한
  * @author 5h6vm
  * @since 2026-03-23
  */
 public record UserPrincipal(
         Long id,
-        String username
+        String username,
+        String nickname,
+        String role
 ) {
 }

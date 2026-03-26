@@ -14,6 +14,9 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
 /**
  * <p>사용자가 특정 퀴즈 세트를 다시 찾기 위해 등록한 즐겨찾기 정보를 관리하는 엔티티입니다.</p>
  * 특정 사용자와 퀴즈 세트 간의 다대다(N:M) 관계를 일대다(1:N) 관계로 풀어낸 연결 테이블 성격을 가지며,

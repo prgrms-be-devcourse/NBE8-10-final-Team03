@@ -14,6 +14,9 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
 /**
  * <p>게임이 종료된 후 참여자 개개인의 성과를 기록하는 엔티티입니다.</p>
  * 특정 게임 세션에서 사용자가 획득한 점수, 최종 순위, 그리고

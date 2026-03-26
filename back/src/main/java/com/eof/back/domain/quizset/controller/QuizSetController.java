@@ -3,6 +3,7 @@ package com.eof.back.domain.quizset.controller;
 import com.eof.back.domain.quizset.dto.QuizSetCreateRequest;
 import com.eof.back.domain.quizset.dto.QuizSetListResponse;
 import com.eof.back.domain.quizset.dto.QuizSetResponse;
+import com.eof.back.domain.quizset.dto.QuizSetUpdateRequest;
 import com.eof.back.domain.quizset.service.QuizSetService;
 import com.eof.back.global.jwt.UserPrincipal;
 import com.eof.back.global.response.CommonResponse;
@@ -12,7 +13,9 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -75,5 +78,37 @@ public class QuizSetController {
     public ResponseEntity<Response<List<QuizSetListResponse>>> getAllQuizSets() {
         List<QuizSetListResponse> response = quizSetService.getAllQuizSets();
         return ResponseEntity.ok(CommonResponse.success(response));
+    }
+
+    /**
+     * 기존 퀴즈 세트 정보를 수정합니다.
+     *
+     * @param id        수정할 퀴즈 세트 식별자
+     * @param request   수정할 필드 정보
+     * @param principal 로그인한 사용자 정보
+     * @return 수정된 퀴즈 세트의 식별자를 포함한 성공 응답
+     */
+    @PatchMapping("/{id}")
+    public ResponseEntity<Response<Long>> updateQuizSet(
+            @PathVariable Long id,
+            @RequestBody @Valid QuizSetUpdateRequest request,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        Long updatedId = quizSetService.updateQuizSet(id, request, principal.id());
+        return ResponseEntity.ok(CommonResponse.success(updatedId));
+    }
+
+    /**
+     * 특정 퀴즈 세트를 삭제합니다.
+     *
+     * @param id        삭제할 퀴즈 세트 식별자
+     * @param principal 로그인한 사용자 정보
+     * @return 삭제 성공 응답 (204 No Content)
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteQuizSet(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        quizSetService.deleteQuizSet(id, principal.id());
+        return ResponseEntity.noContent().build();
     }
 }

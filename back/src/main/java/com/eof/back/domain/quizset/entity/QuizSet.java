@@ -42,13 +42,13 @@ public class QuizSet extends BaseEntity {
     /**
      * 사용자가 식별하기 위한 퀴즈 세트의 제목
      */
-    @Column(nullable = false)
+    @Column(nullable = false, length = 30)
     private String title;
 
     /**
      * 퀴즈 세트의 상세 설명. 퀴즈의 주제나 대상 수준 등을 기재합니다.
      */
-    @Column(length = 1000)
+    @Column(length = 255)
     private String description;
 
     /**
@@ -106,6 +106,22 @@ public class QuizSet extends BaseEntity {
                 .creator(creator)
                 .totalQuizCount(0)
                 .build();
+    }
+
+    /**
+     * 퀴즈 세트의 정보를 수정합니다. (PATCH 목적)
+     * null이 아닌 필드만 업데이트합니다.
+     *
+     * @param title 새로운 제목
+     * @param description 새로운 설명
+     */
+    public void update(String title, String description) {
+        if (title != null && !title.isBlank()) {
+            this.title = title;
+        }
+        if (description != null) {
+            this.description = description;
+        }
     }
 
     /**

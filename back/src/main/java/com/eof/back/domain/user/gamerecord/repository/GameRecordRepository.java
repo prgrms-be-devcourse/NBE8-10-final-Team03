@@ -5,7 +5,11 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import java.util.List;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -77,4 +81,8 @@ public interface GameRecordRepository extends JpaRepository<GameRecord, Long> {
             "GROUP BY r.user ORDER BY periodScore DESC")
     List<Object[]> findRankingByPeriod(@Param("since") LocalDateTime since, Pageable pageable);
 
+
+    @Modifying(clearAutomatically = true)
+    @Query("DELETE FROM GameRecord r WHERE r.gameSession.id IN (SELECT gs.id FROM GameSession gs WHERE gs.quizSet.id = :quizSetId)")
+    void deleteByQuizSetId(@Param("quizSetId") Long quizSetId);
 }

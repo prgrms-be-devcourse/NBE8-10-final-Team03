@@ -13,6 +13,9 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
 /**
  * <p>퀴즈 세트 내에 속한 개별 퀴즈의 상세 데이터를 관리하는 엔티티입니다.</p>
  * 퀴즈의 발문(내용), 정답, 그리고 사지선다형 보기를 포함합니다.

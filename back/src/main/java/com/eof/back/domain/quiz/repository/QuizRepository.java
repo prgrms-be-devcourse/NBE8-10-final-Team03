@@ -2,6 +2,10 @@ package com.eof.back.domain.quiz.repository;
 
 import com.eof.back.domain.quiz.entity.Quiz;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 
 /**
  * 퀴즈 엔티티에 대한 데이터 접근을 담당하는 리포지토리입니다.
@@ -17,5 +21,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
  * @author MintyU
  * @since 2026-03-20
  */
+@Repository
 public interface QuizRepository extends JpaRepository<Quiz, Long> {
+
+    @Modifying(clearAutomatically = true)
+    @Query("DELETE FROM Quiz q WHERE q.quizSet.id = :quizSetId")
+    void deleteByQuizSetId(@Param("quizSetId") Long quizSetId);
 }

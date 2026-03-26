@@ -3,7 +3,10 @@ package com.eof.back.domain.quizset.controller;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willDoNothing;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -14,6 +17,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.eof.back.domain.quizset.dto.QuizSetCreateRequest;
 import com.eof.back.domain.quizset.dto.QuizSetListResponse;
 import com.eof.back.domain.quizset.dto.QuizSetResponse;
+import com.eof.back.domain.quizset.dto.QuizSetUpdateRequest;
 import com.eof.back.domain.quizset.service.QuizSetService;
 import com.eof.back.global.jwt.UserPrincipal;
 import com.eof.back.global.exception.errorCode.QuizSetErrorCode;
@@ -102,10 +106,10 @@ class QuizSetControllerTest {
     }
 
     @Test
-    @DisplayName("퀴즈 세트 생성 실패 - 설명 1000자 초과")
+    @DisplayName("퀴즈 세트 생성 실패 - 설명 255자 초과")
     void createQuizSet_Fail_TooLongDescription() throws Exception {
         // given
-        String longDescription = "a".repeat(1001);
+        String longDescription = "a".repeat(256);
         QuizSetCreateRequest request = QuizSetCreateRequest.builder()
                 .title("제목")
                 .description(longDescription)
@@ -123,7 +127,7 @@ class QuizSetControllerTest {
                 .andDo(print())
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value("fail"))
-                .andExpect(jsonPath("$.message").value("description: 퀴즈 세트 설명은 1000자를 초과할 수 없습니다."));
+                .andExpect(jsonPath("$.message").value("description: 퀴즈 세트 설명은 255자를 초과할 수 없습니다."));
     }
 
     @Test
@@ -202,5 +206,46 @@ class QuizSetControllerTest {
                 .andExpect(jsonPath("$.status").value("success"))
                 .andExpect(jsonPath("$.data[0].title").value("세트1"))
                 .andExpect(jsonPath("$.data[1].title").value("세트2"));
+    }
+
+    @Test
+    @DisplayName("퀴즈 세트 수정 API 호출 성공")
+    void updateQuizSet_ApiSuccess() throws Exception {
+        // given
+        Long quizSetId = 1L;
+        QuizSetUpdateRequest request = new QuizSetUpdateRequest("수정된 제목", "수정된 설명");
+        UserPrincipal principal = new UserPrincipal(1L, "testuser");
+
+        given(quizSetService.updateQuizSet(anyLong(), any(), anyLong())).willReturn(quizSetId);
+
+        // when & then
+        mockMvc.perform(patch("/api/v1/quizsets/{id}", quizSetId)
+                        .with(SecurityMockMvcRequestPostProcessors.authentication(
+                                new UsernamePasswordAuthenticationToken(principal, null, List.of())
+                        ))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("success"))
+                .andExpect(jsonPath("$.data").value(quizSetId));
+    }
+
+    @Test
+    @DisplayName("퀴즈 세트 삭제 API 호출 성공")
+    void deleteQuizSet_ApiSuccess() throws Exception {
+        // given
+        Long quizSetId = 1L;
+        UserPrincipal principal = new UserPrincipal(1L, "testuser");
+
+        willDoNothing().given(quizSetService).deleteQuizSet(anyLong(), anyLong());
+
+        // when & then
+        mockMvc.perform(delete("/api/v1/quizsets/{id}", quizSetId)
+                        .with(SecurityMockMvcRequestPostProcessors.authentication(
+                                new UsernamePasswordAuthenticationToken(principal, null, List.of())
+                        )))
+                .andDo(print())
+                .andExpect(status().isNoContent());
     }
 }

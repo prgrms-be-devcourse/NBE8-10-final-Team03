@@ -116,7 +116,7 @@ public class QuizSet extends BaseEntity {
      * @param description 새로운 설명
      */
     public void update(String title, String description) {
-        if (title != null) {
+        if (title != null && !title.isBlank()) {
             this.title = title;
         }
         if (description != null) {

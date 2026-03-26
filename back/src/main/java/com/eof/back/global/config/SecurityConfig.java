@@ -54,6 +54,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
+        config.setExposedHeaders(List.of("Location"));
         // Next.js 개발 서버 허용
         config.setAllowedOriginPatterns(List.of(
                 "http://localhost:3000",

@@ -30,9 +30,12 @@ export default function QuizSetCreatePage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const addQuiz = () => {
-    setQuizzes([...quizzes, { ...emptyQuiz }]);
+  const setErrorAndScroll = (msg: string) => {
+    setError(msg);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
+
+  const addQuiz = () => setQuizzes([...quizzes, { ...emptyQuiz }]);
 
   const removeQuiz = (index: number) => {
     if (quizzes.length <= 1) return;
@@ -48,43 +51,56 @@ export default function QuizSetCreatePage() {
   const handleSubmit = async () => {
     setError("");
 
-    if (!title.trim()) {
-      setError("퀴즈셋 제목을 입력하세요.");
-      return;
-    }
-
-    if (title.length < 5) {
-      setError("퀴즈셋 제목은 5자 이상이어야 합니다.");
-      return;
-    }
-
-    if (quizzes.length < 5) {
-      setError("최소 5문제 이상 등록해야 합니다.");
-      return;
-    }
+    if (!title.trim()) { setErrorAndScroll("퀴즈셋 제목을 입력하세요."); return; }
+    if (title.length < 5) { setErrorAndScroll("퀴즈셋 제목은 5자 이상이어야 합니다."); return; }
+    if (quizzes.length < 5) { setErrorAndScroll("최소 5문제 이상 등록해야 합니다."); return; }
 
     for (let i = 0; i < quizzes.length; i++) {
       const q = quizzes[i];
+      const num = i + 1;
+
       if (!q.content || !q.answer || !q.choice1 || !q.choice2 || !q.choice3 || !q.choice4) {
-        setError(`${i + 1}번 문제의 모든 항목을 입력하세요.`);
+        setErrorAndScroll(`${num}번 문제의 모든 항목을 입력하세요.`);
+        return;
+      }
+      if (q.content.trim().length < 5) {
+        setErrorAndScroll(`${num}번 문제 내용은 5자 이상 입력하세요.`);
+        return;
+      }
+      const choices = [q.choice1, q.choice2, q.choice3, q.choice4];
+      const uniqueChoices = new Set(choices.map((c) => c.trim()));
+      if (uniqueChoices.size !== 4) {
+        setErrorAndScroll(`${num}번 문제의 보기가 중복되었습니다.`);
+        return;
+      }
+      if (!choices.map((c) => c.trim()).includes(q.answer.trim())) {
+        setErrorAndScroll(`${num}번 문제의 정답이 보기 중에 없습니다.`);
         return;
       }
     }
 
     setLoading(true);
     try {
-      await api.post("/quizsets", {
-        title,
-        description,
-        totalQuizCount: quizzes.length,
-        quizzes: quizzes.map((q, i) => ({
-          ...q,
-          sequence: i + 1,
-        })),
-      });
+      const quizSetRes = await api.post("/quizsets", { title, description });
+      const location = quizSetRes.headers["location"];
+      const quizSetId = location?.split("/").pop();
+
+      if (!quizSetId) throw new Error("퀴즈셋 ID를 가져오지 못했습니다.");
+
+      for (const quiz of quizzes) {
+        await api.post(`/quizsets/${quizSetId}/quizzes`, {
+          content: quiz.content,
+          answer: quiz.answer,
+          choice1: quiz.choice1,
+          choice2: quiz.choice2,
+          choice3: quiz.choice3,
+          choice4: quiz.choice4,
+        });
+      }
+
       router.push("/quizsets");
     } catch (err: any) {
-      setError(err.response?.data?.message || "퀴즈셋 생성에 실패했습니다.");
+      setErrorAndScroll(err.response?.data?.message || err.message || "퀴즈셋 생성에 실패했습니다.");
     } finally {
       setLoading(false);
     }
@@ -127,21 +143,21 @@ export default function QuizSetCreatePage() {
 
       {/* 문제 목록 */}
       <div className="flex items-center justify-between mb-4">
-  <h2 className="font-title text-xl">
-    문제 ({quizzes.length}개)
-    {quizzes.length < 5 && (
-      <span className="ml-2 font-hand text-red-400">
-        최소 5문제 필요 ({5 - quizzes.length}개 더 추가하세요)
-      </span>
-    )}
-  </h2>
-  <button
-    onClick={addQuiz}
-    className="px-4 py-2 bg-accent text-white border-[3px] border-dark rounded-xl font-bold text-sm shadow-kitsch-sm hover:shadow-kitsch hover:-translate-y-0.5 transition-all"
-  >
-    + 문제 추가
-  </button>
-</div>
+        <h2 className="font-title text-xl">
+          문제 ({quizzes.length}개)
+          {quizzes.length < 5 && (
+            <span className="ml-2 font-hand text-sm text-red-400">
+              최소 5문제 필요 ({5 - quizzes.length}개 더 추가하세요)
+            </span>
+          )}
+        </h2>
+        <button
+          onClick={addQuiz}
+          className="px-4 py-2 bg-accent text-white border-[3px] border-dark rounded-xl font-bold text-sm shadow-kitsch-sm hover:shadow-kitsch hover:-translate-y-0.5 transition-all"
+        >
+          + 문제 추가
+        </button>
+      </div>
 
       <div className="flex flex-col gap-4 mb-8">
         {quizzes.map((quiz, index) => (
@@ -157,7 +173,6 @@ export default function QuizSetCreatePage() {
                 </button>
               )}
             </div>
-
             <div className="mb-4">
               <label className="block text-sm font-bold mb-2">문제</label>
               <input
@@ -168,7 +183,6 @@ export default function QuizSetCreatePage() {
                 className="w-full px-4 py-3 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none transition-colors"
               />
             </div>
-
             <div className="mb-4">
               <label className="block text-sm font-bold mb-2">정답</label>
               <input
@@ -179,7 +193,6 @@ export default function QuizSetCreatePage() {
                 className="w-full px-4 py-3 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-accent outline-none transition-colors"
               />
             </div>
-
             <div className="grid grid-cols-2 gap-3">
               {[1, 2, 3, 4].map((n) => (
                 <div key={n}>
@@ -198,21 +211,21 @@ export default function QuizSetCreatePage() {
         ))}
       </div>
 
-      {/* 제출 */}
+      {/* 제출 버튼 */}
       <button
-  onClick={handleSubmit}
-  disabled={loading || quizzes.length < 5}  // ← 추가
-  className={`w-full py-4 text-white font-bold text-lg border-[3px] border-dark rounded-2xl shadow-kitsch transition-all
-    ${quizzes.length < 5
-      ? "bg-gray-300 cursor-not-allowed opacity-60"
-      : "bg-primary hover:shadow-kitsch-lg hover:-translate-y-0.5"
-    }`}
->
-  {loading ? "생성 중..." : quizzes.length < 5
-    ? `퀴즈셋 만들기 (${quizzes.length}/5문제)`
-    : `퀴즈셋 만들기 (${quizzes.length}문제)`
-  }
-</button>
+        onClick={handleSubmit}
+        disabled={loading || quizzes.length < 5}
+        className={`w-full py-4 text-white font-bold text-lg border-[3px] border-dark rounded-2xl shadow-kitsch transition-all ${
+          quizzes.length < 5
+            ? "bg-gray-300 cursor-not-allowed opacity-60"
+            : "bg-primary hover:shadow-kitsch-lg hover:-translate-y-0.5"
+        }`}
+      >
+        {loading ? "생성 중..." : quizzes.length < 5
+          ? `퀴즈셋 만들기 (${quizzes.length}/5문제)`
+          : `퀴즈셋 만들기 (${quizzes.length}문제)`
+        }
+      </button>
     </div>
   );
 }

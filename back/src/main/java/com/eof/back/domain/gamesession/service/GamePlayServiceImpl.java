@@ -41,6 +41,7 @@ public class GamePlayServiceImpl implements GamePlayService {
     private static final int QUIZ_TIME_LIMIT_SEC = 10;
     private static final int RESULT_SHOW_TIME_SEC = 5;
     private static final int ROUND_INTERVAL_SEC = QUIZ_TIME_LIMIT_SEC + RESULT_SHOW_TIME_SEC;
+    private static final Duration REDIS_KEY_TTL = Duration.ofHours(1);
 
     private final StringRedisTemplate redisTemplate;
     private final SimpMessagingTemplate messagingTemplate;
@@ -93,6 +94,7 @@ public class GamePlayServiceImpl implements GamePlayService {
         gameSession.getPlayers().forEach(player ->
                 redisTemplate.opsForZSet().add(scoresKey, player.getNickname(), 0.0)
         );
+        redisTemplate.expire(scoresKey, REDIS_KEY_TTL);
 
         // 2. 문제 캐싱 (Preload)
         try {
@@ -105,6 +107,7 @@ public class GamePlayServiceImpl implements GamePlayService {
                 redisTemplate.opsForList().rightPush(questionsKey, objectMapper.writeValueAsString(quizDto));
                 count++;
             }
+            redisTemplate.expire(questionsKey, REDIS_KEY_TTL);
         } catch (Exception e) {
             log.error("방 {} - 퀴즈 세팅 중 오류 발생: ", gameSessionId, e);
             throw new RuntimeException("게임 준비 중 오류가 발생했습니다.");
@@ -113,6 +116,12 @@ public class GamePlayServiceImpl implements GamePlayService {
         // 3. 시작 알림
         broadcastToRoom(gameSessionId, GameMessageResponse.enter("SYSTEM", "게임이 시작되었습니다! 잠시 후 첫 번째 문제가 출제됩니다.", null));
 
+        //  기존 타이머가 있다면 스케줄러 취소 처리
+        ScheduledFuture<?> existingTimer = roomTimers.get(gameSessionId);
+        if (existingTimer != null) {
+            existingTimer.cancel(false);
+            log.warn("방 {} 에 이미 실행 중인 스케줄러가 있어 강제 종료 후 재시작합니다.", gameSessionId);
+        }
         // 4. 타이머 가동
         roomTimers.put(gameSessionId, gameTaskScheduler.scheduleWithFixedDelay(
                 () -> processNextRound(gameSessionId),
@@ -193,7 +202,9 @@ public class GamePlayServiceImpl implements GamePlayService {
 
     @Override
     public void submitAnswer(Long gameSessionId, String username, String answer) {
+        String answersKey = getRedisKey(gameSessionId, "answers");
         redisTemplate.opsForHash().put(getRedisKey(gameSessionId, "answers"), username, answer);
+        redisTemplate.expire(answersKey, REDIS_KEY_TTL); //
         log.info("방 {} - [{}] 님의 정답 제출: {}", gameSessionId, username, answer);
     }
 
@@ -215,7 +226,7 @@ public class GamePlayServiceImpl implements GamePlayService {
             String username = (String) entry.getKey();
             String userAnswer = (String) entry.getValue();
 
-            if (correctAnswer.equals(userAnswer)) {
+            if (correctAnswer.trim().equals(userAnswer.trim())) {
                 // 정답을 맞췄다면 점수를 올리고, 정답자 명단에 이름 추가
                 redisTemplate.opsForZSet().incrementScore(scoresKey, username, 1.0);
                 correctUsernames.add(username);

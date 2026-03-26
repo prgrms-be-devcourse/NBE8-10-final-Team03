@@ -19,7 +19,22 @@ import org.springframework.stereotype.Controller;
 
 /**
  * 웹소켓(STOMP)을 통해 클라이언트로부터 들어오는 실시간 메시지를 처리하는 컨트롤러입니다.
+ * <p>
+ * 클라이언트가 특정 경로로 메시지를 발행(Publish)하면, {@code @MessageMapping}을 통해
+ * 해당 요청을 가로채어 채팅, 게임 시작, 정답 제출 등의 작업을 수행합니다.
+ * 처리된 결과는 {@code SimpMessagingTemplate}을 사용하여 해당 방을 구독(Subscribe) 중인
+ * 모든 참가자에게 브로드캐스트(Broadcast)되거나 서비스 계층으로 위임됩니다.
  *
+ * <p><b>빈 관리:</b><br>
+ * {@code @Controller} 어노테이션이 선언되어 있어 Spring 컨테이너에 의해 빈(Bean)으로 등록 및 관리됩니다.
+ *
+ * <p><b>외부 모듈:</b><br>
+ * 웹소켓 통신을 위해 Spring WebSocket을 사용하며, 메세지 발송자의 인증 정보 확인을 위해
+ * Spring Security의 {@code Authentication} 객체를 활용합니다.
+ *
+ * @author 유재원
+ * @see com.eof.back.domain.gamesession.service.GamePlayService
+ * @since 2026-03-26
  */
 @Slf4j
 @Controller
@@ -60,9 +75,7 @@ public class GamePlayController {
         if (authentication == null) {
             throw new AuthException(AuthErrorCode.USER_AUTH_FAIL, "인증되지 않은 사용자의 게임 시작 시도입니다.");
         }
-
         UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
-
 
         log.info("방장 {} 님이 방 {} 의 게임을 시작했습니다.", userPrincipal.username(), gameSessionId);
         gamePlayService.startGame(gameSessionId);

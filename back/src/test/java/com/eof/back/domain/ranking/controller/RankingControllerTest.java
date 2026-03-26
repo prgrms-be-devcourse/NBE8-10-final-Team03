@@ -37,7 +37,7 @@ class RankingControllerTest {
     @MockitoBean
     private JwtTokenProvider jwtTokenProvider;
 
-    private final UserPrincipal principal = new UserPrincipal(1L, "testuser");
+    private final UserPrincipal principal = new UserPrincipal(1L, "testuser", "tester", "USER");
 
     @BeforeEach
     void setUpAuth() {

@@ -98,7 +98,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         // 4. AccessToken, RefreshToken 생성
-        String accessToken = jwtTokenProvider.createAccessToken(user.getId(), user.getUsername(), user.getRole().name());
+        String accessToken = jwtTokenProvider.createAccessToken(user.getId(), user.getUsername(), user.getRole().name(), user.getNickname());
         String refreshToken = jwtTokenProvider.createRefreshToken(user.getId());
 
         // 4. RefreshToken 저장
@@ -122,7 +122,8 @@ public class AuthServiceImpl implements AuthService {
         String newAccessToken = jwtTokenProvider.createAccessToken(
                 user.getId(),
                 user.getUsername(),
-                user.getRole().name()
+                user.getRole().name(),
+                user.getNickname()
         );
         String newRefreshToken = jwtTokenProvider.createRefreshToken(user.getId());
 

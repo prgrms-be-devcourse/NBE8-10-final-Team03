@@ -70,7 +70,7 @@ public class JwtTokenProvider {
      * @param role 사용자 권한 (USER, ADMIN 등)
      * @return JWT AccessToken 문자열
      */
-    public String createAccessToken(Long userId, String username, String role) {
+    public String createAccessToken(Long userId, String username, String role, String nickname) {
 
         // 현재 시간
         Date now = new Date();
@@ -81,6 +81,7 @@ public class JwtTokenProvider {
                 .subject(String.valueOf(userId))  // subject: 토큰의 주체 (보통 사용자 식별값)
                 .claim("username", username)  // 사용자 아이디를 claim으로 추가
                 .claim("role", role)          // 사용자 권한 정보 추가
+                .claim("nickname", nickname)  // 사용할 닉네임 추가
                 .issuedAt(now)                    // 토큰 발급 시간
                 .expiration(expiry)               // 토큰 만료 시간
                 .signWith(secretKey)              // secretKey로 서명 (위조 방지 핵심)
@@ -173,5 +174,15 @@ public class JwtTokenProvider {
      */
     public String getRole(Claims claims) {
         return claims.get("role", String.class);
+    }
+
+    /**
+     * Claims에서 사용자 닉네임을 추출합니다.
+     *
+     * @param claims JWT Claims
+     * @return 사용자 닉네임
+     */
+    public String getNickname(Claims claims) {
+        return claims.get("nickname", String.class);
     }
 }

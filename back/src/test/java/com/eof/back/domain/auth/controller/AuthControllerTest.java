@@ -262,7 +262,7 @@ class AuthControllerTest {
                                               ModelAndViewContainer mavContainer,
                                               NativeWebRequest webRequest,
                                               WebDataBinderFactory binderFactory) {
-                    return new UserPrincipal(1L, "testuser");
+                    return new UserPrincipal(1L, "testuser", "tester", "USER");
                 }
             });
         }

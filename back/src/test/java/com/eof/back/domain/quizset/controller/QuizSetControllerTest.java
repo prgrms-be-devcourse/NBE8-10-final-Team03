@@ -65,7 +65,7 @@ class QuizSetControllerTest {
                 .description("API 설명")
                 .build();
 
-        UserPrincipal principal = new UserPrincipal(1L, "testuser");
+        UserPrincipal principal = new UserPrincipal(1L, "testuser", "tester", "USER");
 
         given(quizSetService.createQuizSet(any(), any())).willReturn(1L);
 
@@ -91,7 +91,7 @@ class QuizSetControllerTest {
                 .description("API 설명")
                 .build();
 
-        UserPrincipal principal = new UserPrincipal(1L, "testuser");
+        UserPrincipal principal = new UserPrincipal(1L, "testuser", "tester", "USER");
 
         // when & then
         mockMvc.perform(post("/api/v1/quizsets")
@@ -115,7 +115,7 @@ class QuizSetControllerTest {
                 .description(longDescription)
                 .build();
 
-        UserPrincipal principal = new UserPrincipal(1L, "testuser");
+        UserPrincipal principal = new UserPrincipal(1L, "testuser", "tester", "USER");
 
         // when & then
         mockMvc.perform(post("/api/v1/quizsets")
@@ -214,7 +214,7 @@ class QuizSetControllerTest {
         // given
         Long quizSetId = 1L;
         QuizSetUpdateRequest request = new QuizSetUpdateRequest("수정된 제목", "수정된 설명");
-        UserPrincipal principal = new UserPrincipal(1L, "testuser");
+        UserPrincipal principal = new UserPrincipal(1L, "testuser", "tester", "USER");
 
         given(quizSetService.updateQuizSet(anyLong(), any(), anyLong())).willReturn(quizSetId);
 
@@ -236,7 +236,7 @@ class QuizSetControllerTest {
     void deleteQuizSet_ApiSuccess() throws Exception {
         // given
         Long quizSetId = 1L;
-        UserPrincipal principal = new UserPrincipal(1L, "testuser");
+        UserPrincipal principal = new UserPrincipal(1L, "testuser", "tester", "USER");
 
         willDoNothing().given(quizSetService).deleteQuizSet(anyLong(), anyLong());
 

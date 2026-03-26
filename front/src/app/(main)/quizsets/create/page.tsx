@@ -127,14 +127,21 @@ export default function QuizSetCreatePage() {
 
       {/* 문제 목록 */}
       <div className="flex items-center justify-between mb-4">
-        <h2 className="font-title text-xl">문제 ({quizzes.length}개)</h2>
-        <button
-          onClick={addQuiz}
-          className="px-4 py-2 bg-accent text-white border-[3px] border-dark rounded-xl font-bold text-sm shadow-kitsch-sm hover:shadow-kitsch hover:-translate-y-0.5 transition-all"
-        >
-          + 문제 추가
-        </button>
-      </div>
+  <h2 className="font-title text-xl">
+    문제 ({quizzes.length}개)
+    {quizzes.length < 5 && (
+      <span className="ml-2 font-hand text-red-400">
+        최소 5문제 필요 ({5 - quizzes.length}개 더 추가하세요)
+      </span>
+    )}
+  </h2>
+  <button
+    onClick={addQuiz}
+    className="px-4 py-2 bg-accent text-white border-[3px] border-dark rounded-xl font-bold text-sm shadow-kitsch-sm hover:shadow-kitsch hover:-translate-y-0.5 transition-all"
+  >
+    + 문제 추가
+  </button>
+</div>
 
       <div className="flex flex-col gap-4 mb-8">
         {quizzes.map((quiz, index) => (
@@ -193,12 +200,19 @@ export default function QuizSetCreatePage() {
 
       {/* 제출 */}
       <button
-        onClick={handleSubmit}
-        disabled={loading}
-        className="w-full py-4 bg-primary text-white font-bold text-lg border-[3px] border-dark rounded-2xl shadow-kitsch hover:shadow-kitsch-lg hover:-translate-y-0.5 transition-all disabled:opacity-50"
-      >
-        {loading ? "생성 중..." : `퀴즈셋 만들기 (${quizzes.length}문제)`}
-      </button>
+  onClick={handleSubmit}
+  disabled={loading || quizzes.length < 5}  // ← 추가
+  className={`w-full py-4 text-white font-bold text-lg border-[3px] border-dark rounded-2xl shadow-kitsch transition-all
+    ${quizzes.length < 5
+      ? "bg-gray-300 cursor-not-allowed opacity-60"
+      : "bg-primary hover:shadow-kitsch-lg hover:-translate-y-0.5"
+    }`}
+>
+  {loading ? "생성 중..." : quizzes.length < 5
+    ? `퀴즈셋 만들기 (${quizzes.length}/5문제)`
+    : `퀴즈셋 만들기 (${quizzes.length}문제)`
+  }
+</button>
     </div>
   );
 }

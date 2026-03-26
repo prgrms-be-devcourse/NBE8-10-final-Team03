@@ -1,16 +1,20 @@
 package com.eof.back.domain.quizset.service;
 
+import com.eof.back.domain.gamesession.entity.GameSession;
+import com.eof.back.domain.gamesession.repository.GameSessionRepository;
 import com.eof.back.domain.quizset.dto.QuizSetCreateRequest;
 import com.eof.back.domain.quizset.dto.QuizSetListResponse;
 import com.eof.back.domain.quizset.dto.QuizSetResponse;
 import com.eof.back.domain.quizset.dto.QuizSetUpdateRequest;
 import com.eof.back.domain.quizset.entity.QuizSet;
 import com.eof.back.domain.quizset.repository.QuizSetRepository;
-import com.eof.back.global.exception.errorCode.AuthErrorCode;
-import com.eof.back.global.exception.exceptions.AuthException;
+import com.eof.back.domain.user.gamerecord.repository.GameRecordRepository;
+import com.eof.back.domain.user.quizsetbookmark.repository.QuizSetBookmarkRepository;
 import com.eof.back.domain.user.user.entity.User;
 import com.eof.back.domain.user.user.repository.UserRepository;
+import com.eof.back.global.exception.errorCode.AuthErrorCode;
 import com.eof.back.global.exception.errorCode.QuizSetErrorCode;
+import com.eof.back.global.exception.exceptions.AuthException;
 import com.eof.back.global.exception.exceptions.QuizSetException;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -34,6 +38,9 @@ public class QuizSetServiceImpl implements QuizSetService {
 
     private final QuizSetRepository quizSetRepository;
     private final UserRepository userRepository;
+    private final QuizSetBookmarkRepository quizSetBookmarkRepository;
+    private final GameSessionRepository gameSessionRepository;
+    private final GameRecordRepository gameRecordRepository;
 
     /**
      * {@inheritDoc}
@@ -105,6 +112,18 @@ public class QuizSetServiceImpl implements QuizSetService {
         QuizSet quizSet = findQuizSetById(id);
         validateOwnership(quizSet, userId);
 
+        // 1. 참조 엔티티 정리 (FK 제약 조건 충돌 방지)
+        // 1-1. 북마크 삭제
+        quizSetBookmarkRepository.deleteByQuizSetId(id);
+
+        // 1-2. 게임 세션 및 기록 삭제
+        List<GameSession> gameSessions = gameSessionRepository.findAllByQuizSetId(id);
+        if (!gameSessions.isEmpty()) {
+            gameRecordRepository.deleteByGameSessionIn(gameSessions);
+            gameSessionRepository.deleteByQuizSetId(id);
+        }
+
+        // 2. 퀴즈셋 삭제 (퀴즈는 CascadeType.ALL에 의해 자동 삭제)
         quizSetRepository.delete(quizSet);
     }
 

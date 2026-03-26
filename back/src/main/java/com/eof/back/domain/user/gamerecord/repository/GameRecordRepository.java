@@ -1,11 +1,14 @@
 package com.eof.back.domain.user.gamerecord.repository;
 
 import com.eof.back.domain.user.gamerecord.entity.GameRecord;
-import io.lettuce.core.dynamic.annotation.Param;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import java.util.List;
 
 /**
  * GameRecord 엔티티에 대한 데이터 접근을 담당하는 Repository입니다.
@@ -56,4 +59,8 @@ public interface GameRecordRepository extends JpaRepository<GameRecord, Long> {
             @Param("userId") Long userId,
             Pageable pageable
     );
+
+    @Modifying
+    @Query("DELETE FROM GameRecord r WHERE r.gameSession IN :gameSessions")
+    void deleteByGameSessionIn(@Param("gameSessions") List<com.eof.back.domain.gamesession.entity.GameSession> gameSessions);
 }

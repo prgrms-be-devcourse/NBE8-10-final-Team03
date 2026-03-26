@@ -2,6 +2,7 @@ package com.eof.back.domain.gamesession.repository;
 
 import com.eof.back.domain.gamesession.entity.GameSession;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -37,4 +38,10 @@ public interface GameSessionRepository extends JpaRepository<GameSession, Long> 
             "LEFT JOIN FETCH gs.players " +
             "WHERE gs.id = :gameSessionId")
     Optional<GameSession> findByIdWithPlayers(@Param("gameSessionId") Long gameSessionId);
+
+    @Modifying
+    @Query("DELETE FROM GameSession gs WHERE gs.quizSet.id = :quizSetId")
+    void deleteByQuizSetId(@Param("quizSetId") Long quizSetId);
+
+    List<GameSession> findAllByQuizSetId(Long quizSetId);
 }

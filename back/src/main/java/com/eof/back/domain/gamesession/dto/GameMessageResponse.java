@@ -38,4 +38,19 @@ public record GameMessageResponse<T>(
     public static GameMessageResponse<Void> roomDeleted(String message) {
         return new GameMessageResponse<>(MessageType.ROOM_DELETED, "SYSTEM", message, null);
     }
+
+    //문제 정보 전달 메소드
+    public static <T> GameMessageResponse<T> quiz(T data) {
+        return new GameMessageResponse<>(MessageType.QUIZ, "SYSTEM", "새로운 문제가 출제되었습니다!", data);
+    }
+
+    //라운드 종료 후 현재 순위 전달
+    public static <T> GameMessageResponse<T> result(T data) {
+        return new GameMessageResponse<>(MessageType.RESULT, "SYSTEM", "라운드 종료! 정답 및 현재 순위입니다.", data);
+    }
+
+    public static GameMessageResponse<Void> quizEnd() {
+        return new GameMessageResponse<>(
+                MessageType.QUIZ_END, "SYSTEM", "모든 라운드가 종료되었습니다. 수고하셨습니다!", null);
+    }
 }

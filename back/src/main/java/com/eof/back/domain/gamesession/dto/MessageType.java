@@ -18,5 +18,6 @@ public enum MessageType {
     ROOM_DELETED, // 방삭제
     QUIZ, // 퀴즈
     RESULT,
-    QUIZ_END
+    QUIZ_END,
+    ERROR
 }

@@ -42,6 +42,4 @@ public interface GameSessionRepository extends JpaRepository<GameSession, Long> 
     @Modifying
     @Query("DELETE FROM GameSession gs WHERE gs.quizSet.id = :quizSetId")
     void deleteByQuizSetId(@Param("quizSetId") Long quizSetId);
-
-    List<GameSession> findAllByQuizSetId(Long quizSetId);
 }

@@ -112,16 +112,13 @@ public class QuizSetServiceImpl implements QuizSetService {
         QuizSet quizSet = findQuizSetById(id);
         validateOwnership(quizSet, userId);
 
-        // 1. 참조 엔티티 정리 (FK 제약 조건 충돌 방지)
+        // 1. 참조 엔티티 정리 (Bulk Delete 쿼리를 사용하여 메모리 효율 개선)
         // 1-1. 북마크 삭제
         quizSetBookmarkRepository.deleteByQuizSetId(id);
 
-        // 1-2. 게임 세션 및 기록 삭제
-        List<GameSession> gameSessions = gameSessionRepository.findAllByQuizSetId(id);
-        if (!gameSessions.isEmpty()) {
-            gameRecordRepository.deleteByGameSessionIn(gameSessions);
-            gameSessionRepository.deleteByQuizSetId(id);
-        }
+        // 1-2. 게임 기록 및 세션 삭제 (FK 역순으로 처리)
+        gameRecordRepository.deleteByQuizSetId(id);
+        gameSessionRepository.deleteByQuizSetId(id);
 
         // 2. 퀴즈셋 삭제 (퀴즈는 CascadeType.ALL에 의해 자동 삭제)
         quizSetRepository.delete(quizSet);

@@ -61,6 +61,6 @@ public interface GameRecordRepository extends JpaRepository<GameRecord, Long> {
     );
 
     @Modifying
-    @Query("DELETE FROM GameRecord r WHERE r.gameSession IN :gameSessions")
-    void deleteByGameSessionIn(@Param("gameSessions") List<com.eof.back.domain.gamesession.entity.GameSession> gameSessions);
+    @Query("DELETE FROM GameRecord r WHERE r.gameSession.id IN (SELECT gs.id FROM GameSession gs WHERE gs.quizSet.id = :quizSetId)")
+    void deleteByQuizSetId(@Param("quizSetId") Long quizSetId);
 }

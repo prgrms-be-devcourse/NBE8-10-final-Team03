@@ -191,23 +191,20 @@ class QuizSetServiceTest {
     }
 
     @Test
-    @DisplayName("퀴즈 세트 삭제 성공 - 연관 데이터는 DB Cascade에 의해 삭제됨")
+    @DisplayName("퀴즈 세트 삭제 성공 - 엔티티 로드 없이 ID 기반으로 즉시 삭제")
     void deleteQuizSet_Success() {
         // given
-        User creator = User.builder().nickname("별명").build();
-        ReflectionTestUtils.setField(creator, "id", 1L);
-        QuizSet quizSet = QuizSet.builder()
-                .title("테스트 세트")
-                .creator(creator)
-                .build();
-        ReflectionTestUtils.setField(quizSet, "id", 100L);
+        Long quizSetId = 100L;
+        Long userId = 1L;
 
-        given(quizSetRepository.findById(100L)).willReturn(Optional.of(quizSet));
+        given(quizSetRepository.existsById(quizSetId)).willReturn(true);
+        given(quizSetRepository.deleteByIdAndCreatorId(quizSetId, userId)).willReturn(1);
 
         // when
-        quizSetService.deleteQuizSet(100L, 1L);
+        quizSetService.deleteQuizSet(quizSetId, userId);
 
         // then
-        verify(quizSetRepository).delete(quizSet);
+        verify(quizSetRepository).existsById(quizSetId);
+        verify(quizSetRepository).deleteByIdAndCreatorId(quizSetId, userId);
     }
 }

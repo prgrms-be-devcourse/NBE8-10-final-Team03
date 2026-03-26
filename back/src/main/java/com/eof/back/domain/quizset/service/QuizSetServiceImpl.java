@@ -102,12 +102,20 @@ public class QuizSetServiceImpl implements QuizSetService {
     @Override
     @Transactional
     public void deleteQuizSet(Long id, Long userId) {
-        QuizSet quizSet = findQuizSetById(id);
-        validateOwnership(quizSet, userId);
+        // 1. 존재 여부 확인 (엔티티 전체 로드 없이 ID만 조회하여 메모리/네트워크 비용 절감)
+        if (!quizSetRepository.existsById(id)) {
+            throw new QuizSetException(QuizSetErrorCode.QUIZ_SET_NOT_FOUND);
+        }
 
-        // 연관 데이터(북마크, 게임 세션, 기록 등)는 DB 레벨의 ON DELETE CASCADE에 의해 자동으로 삭제됩니다.
-        // 이를 통해 애플리케이션 단의 N+1 삭제 문제와 데이터 무결성 문제를 동시에 해결합니다.
-        quizSetRepository.delete(quizSet);
+        // 2. ID 기반 즉시 삭제 (Bulk Delete 실행)
+        // 소유권 확인(userId)을 쿼리에 포함하여 권한 검증과 삭제를 원자적으로 수행합니다.
+        // @OnDelete(CASCADE) 설정 덕분에 하이버네이트의 추가적인 연관 엔티티 조회 없이 DB 레벨에서 모든 연관 데이터가 삭제됩니다.
+        int deletedCount = quizSetRepository.deleteByIdAndCreatorId(id, userId);
+
+        // 3. 삭제된 행이 없다면 제작자가 아님을 의미하므로 권한 예외 발생
+        if (deletedCount == 0) {
+            throw new QuizSetException(QuizSetErrorCode.QUIZ_SET_ACCESS_DENIED);
+        }
     }
 
     /**

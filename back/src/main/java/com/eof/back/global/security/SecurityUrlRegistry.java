@@ -2,6 +2,7 @@ package com.eof.back.global.security;
 
 import com.eof.back.global.config.SecurityConfig;
 import org.springframework.http.HttpMethod;
+
 import java.util.Map;
 
 /**
@@ -39,7 +40,10 @@ public abstract class SecurityUrlRegistry {
             "/api/v1/auth/logout",
 
             // 기타 공개 API
-            "/api/v1/rankings"
+            "/api/v1/rankings",
+
+            // 웹 소켓 관련
+            "/ws/game"
     };
 
     /**
@@ -52,7 +56,7 @@ public abstract class SecurityUrlRegistry {
                     "/api/v1/quizsets",
                     "/api/v1/quizsets/**"
             },
-            HttpMethod.POST, new String[] {
+            HttpMethod.POST, new String[]{
 
             }
     );

@@ -1,8 +1,10 @@
 package com.eof.back.domain.quiz.dto;
 
 import com.eof.back.domain.quiz.entity.Quiz;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 /**
  * 퀴즈(Quiz) 정보를 반환하기 위한 데이터 전송 객체입니다.
@@ -12,6 +14,8 @@ import lombok.Getter;
  */
 @Getter
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class QuizResponse {
     private Long id;
     private String content;

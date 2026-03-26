@@ -14,7 +14,6 @@ import com.eof.back.global.exception.errorCode.QuizSetErrorCode;
 import com.eof.back.global.exception.exceptions.AuthException;
 import com.eof.back.global.exception.exceptions.GameSessionException;
 import com.eof.back.global.exception.exceptions.QuizSetException;
-import com.eof.back.global.response.CommonResponse;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -31,11 +30,12 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class GameSessionImpl implements GameSessionService {
+public class GameSessionServiceImpl implements GameSessionService {
     private final UserRepository userRepository;
     private final GameSessionRepository gameSessionRepository;
     private final QuizSetRepository quizSetRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final GamePlayService gamePlayService;
 
     @Override
     @Transactional
@@ -109,7 +109,7 @@ public class GameSessionImpl implements GameSessionService {
                 responseData // 최신 방 정보 첨부
         );
 
-        // 채팅 채널로 발송!
+        // 채팅 채널로 발송
         messagingTemplate.convertAndSend("/topic/rooms/" + gameSessionId + "/chat", response);
 
         return responseData;
@@ -136,6 +136,9 @@ public class GameSessionImpl implements GameSessionService {
             gameSession.getPlayers().clear();
             // [CASE 1] 나가는 사람이 방장인 경우: 방 자체를 DB에서 완전히 삭제
             gameSessionRepository.delete(gameSession);
+
+            // 방이 삭제 후, 돌아가고 있던 퀴즈 타이머도 종료
+            gamePlayService.stopGameTimer(gameSessionId);
 
             // 프론트엔드에게 방이 폭파되었음을 TYPE : ROOM_DELETED으로 알림
             GameMessageResponse<Void> response = GameMessageResponse.roomDeleted("방장이 퇴장하여 게임 방이 삭제되었습니다.");

@@ -2,6 +2,9 @@ package com.eof.back.domain.gamesession.controller;
 
 import com.eof.back.domain.gamesession.dto.ChatMessageRequest;
 import com.eof.back.domain.gamesession.dto.GameMessageResponse;
+import com.eof.back.domain.gamesession.dto.QuizAnswerRequest;
+import com.eof.back.domain.gamesession.repository.GameSessionRepository;
+import com.eof.back.domain.gamesession.service.GamePlayService;
 import com.eof.back.global.exception.errorCode.AuthErrorCode;
 import com.eof.back.global.exception.exceptions.AuthException;
 import com.eof.back.global.jwt.UserPrincipal;
@@ -14,8 +17,6 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 
-import java.util.Map;
-
 /**
  * 웹소켓(STOMP)을 통해 클라이언트로부터 들어오는 실시간 메시지를 처리하는 컨트롤러입니다.
  *
@@ -23,9 +24,11 @@ import java.util.Map;
 @Slf4j
 @Controller
 @RequiredArgsConstructor
-public class GameMessageController {
+public class GamePlayController {
 
     private final SimpMessagingTemplate messagingTemplate;
+    private final GamePlayService gamePlayService;
+    private final GameSessionRepository gameSessionRepository;
 
     @MessageMapping("/rooms/{gameSessionId}/chat")
     public void chat(
@@ -47,5 +50,32 @@ public class GameMessageController {
         );
 
         messagingTemplate.convertAndSend("/topic/rooms/" + gameSessionId + "/chat", response);
+    }
+
+    @MessageMapping("/rooms/{gameSessionId}/start")
+    public void startGame(
+            @DestinationVariable Long gameSessionId,
+            Authentication authentication
+    ) {
+        if (authentication == null) {
+            throw new AuthException(AuthErrorCode.USER_AUTH_FAIL, "인증되지 않은 사용자의 게임 시작 시도입니다.");
+        }
+
+        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+
+
+        log.info("방장 {} 님이 방 {} 의 게임을 시작했습니다.", userPrincipal.username(), gameSessionId);
+        gamePlayService.startGame(gameSessionId);
+    }
+
+    @MessageMapping("/rooms/{gameSessionId}/answer")
+    public void submitAnswer(
+            @DestinationVariable Long gameSessionId,
+            @Payload QuizAnswerRequest request,
+            Authentication authentication
+    ) {
+        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+
+        gamePlayService.submitAnswer(gameSessionId, userPrincipal.username(), request.answer());
     }
 }

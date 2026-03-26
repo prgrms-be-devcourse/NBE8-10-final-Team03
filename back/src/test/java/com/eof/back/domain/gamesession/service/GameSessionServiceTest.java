@@ -18,6 +18,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import java.util.List;
 import java.util.Optional;
@@ -35,7 +36,7 @@ import static org.mockito.Mockito.never;
 public class GameSessionServiceTest {
 
     @InjectMocks
-    private GameSessionImpl gameSessionService;
+    private GameSessionServiceImpl gameSessionService;
 
     @Mock
     private GameSessionRepository gameSessionRepository;
@@ -45,6 +46,12 @@ public class GameSessionServiceTest {
 
     @Mock
     private QuizSetRepository quizSetRepository;
+
+    @Mock
+    private GamePlayService gamePlayService;
+
+    @Mock
+    private SimpMessagingTemplate messagingTemplate;
 
     @Test
     @DisplayName("게임 세션 생성 성공 테스트")
@@ -217,16 +224,19 @@ public class GameSessionServiceTest {
         Long guestId = 2L;
         Long gameSessionId = 10L;
 
-        // 1. Guest 모킹 (getId 설정은 실제 서비스에서 안 쓰이므로 생략!)
         User mockGuest = mock(User.class);
-
-        // 2. Host 모킹 (서비스 로직에서 방장인지 검사하므로 필요!)
         User mockHost = mock(User.class);
-        given(mockHost.getId()).willReturn(1L); // 방장의 ID 설정
+        given(mockHost.getId()).willReturn(1L);
 
-        // 3. Session 모킹 및 Host 연결
+        // 1. 가짜 QuizSet 만들고 ID 설정
+        com.eof.back.domain.quizset.entity.QuizSet mockQuizSet = mock(com.eof.back.domain.quizset.entity.QuizSet.class);
+        given(mockQuizSet.getId()).willReturn(100L);
+
+        // 2. Session 모킹 및 연관 관계 연결
         GameSession mockSession = mock(GameSession.class);
-        given(mockSession.getHost()).willReturn(mockHost); // NPE 방지를 위해 필수!
+        given(mockSession.getHost()).willReturn(mockHost);
+        given(mockSession.getQuizSet()).willReturn(mockQuizSet);
+        given(mockSession.getStatus()).willReturn(com.eof.back.domain.gamesession.entity.GameSessionStatus.WAIT);
 
         // 4. Repository 모킹
         given(userRepository.findById(guestId)).willReturn(Optional.of(mockGuest));

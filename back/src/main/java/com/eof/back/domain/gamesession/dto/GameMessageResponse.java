@@ -44,13 +44,20 @@ public record GameMessageResponse<T>(
         return new GameMessageResponse<>(MessageType.QUIZ, "SYSTEM", "새로운 문제가 출제되었습니다!", data);
     }
 
-    //라운드 종료 후 현재 순위 전달
+    //라운드 종료 후 현재 순위 전달 메소드
     public static <T> GameMessageResponse<T> result(T data) {
         return new GameMessageResponse<>(MessageType.RESULT, "SYSTEM", "라운드 종료! 정답 및 현재 순위입니다.", data);
     }
 
+    //모든 라운드 종료 전달 메소드
     public static GameMessageResponse<Void> quizEnd() {
         return new GameMessageResponse<>(
                 MessageType.QUIZ_END, "SYSTEM", "모든 라운드가 종료되었습니다. 수고하셨습니다!", null);
+    }
+
+    //에러 전달 메소드
+    public static <T> GameMessageResponse<T> error(String message) {
+        return new GameMessageResponse<>(
+                MessageType.ERROR, "SYSTEM", message, null);
     }
 }

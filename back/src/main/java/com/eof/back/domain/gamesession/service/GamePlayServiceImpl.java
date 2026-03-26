@@ -155,31 +155,30 @@ public class GamePlayServiceImpl implements GamePlayService {
      * 15초마다 스케줄러에 의해 실행되는 문제 출제 로직
      */
     private void processNextRound(Long gameSessionId) {
-        String roundKey = getRedisKey(gameSessionId, "round");
-        String maxRoundKey = getRedisKey(gameSessionId, "max_round");
-        String questionsKey = getRedisKey(gameSessionId, "questions");
+        try {
+            String roundKey = getRedisKey(gameSessionId, "round");
+            String maxRoundKey = getRedisKey(gameSessionId, "max_round");
+            String questionsKey = getRedisKey(gameSessionId, "questions");
 
-        String currentRoundStr = redisTemplate.opsForValue().get(roundKey);
-        int currentRound = currentRoundStr != null ? Integer.parseInt(currentRoundStr) : 0;
+            String currentRoundStr = redisTemplate.opsForValue().get(roundKey);
+            int currentRound = currentRoundStr != null ? Integer.parseInt(currentRoundStr) : 0;
 
-        String maxRoundStr = redisTemplate.opsForValue().get(maxRoundKey);
-        int maxRound = maxRoundStr != null ? Integer.parseInt(maxRoundStr) : 1;
+            String maxRoundStr = redisTemplate.opsForValue().get(maxRoundKey);
+            int maxRound = maxRoundStr != null ? Integer.parseInt(maxRoundStr) : 1;
 
-        // 종료 조건 체크
-        if (currentRound >= maxRound) {
-            log.info("방 {} 의 모든 문제({}개)가 출제되어 게임이 종료됩니다.", gameSessionId, maxRound);
-            broadcastToRoom(gameSessionId, GameMessageResponse.quizEnd());
-            stopGameTimer(gameSessionId);
-            return;
-        }
+            if (currentRound >= maxRound) {
+                log.info("방 {} 의 모든 문제({}개)가 출제되어 게임이 종료됩니다.", gameSessionId, maxRound);
+                broadcastToRoom(gameSessionId, GameMessageResponse.quizEnd());
+                stopGameTimer(gameSessionId);
+                return;
+            }
 
-        int nextRound = currentRound + 1;
-        redisTemplate.opsForValue().set(roundKey, String.valueOf(nextRound));
+            int nextRound = currentRound + 1;
+            redisTemplate.opsForValue().set(roundKey, String.valueOf(nextRound));
 
-        String quizJson = redisTemplate.opsForList().leftPop(questionsKey);
+            String quizJson = redisTemplate.opsForList().leftPop(questionsKey);
 
-        if (quizJson != null) {
-            try {
+            if (quizJson != null) {
                 QuizResponse quiz = objectMapper.readValue(quizJson, QuizResponse.class);
 
                 redisTemplate.opsForValue().set(getRedisKey(gameSessionId, "current_answer"), quiz.getAnswer(), Duration.ofSeconds(ROUND_INTERVAL_SEC));
@@ -189,13 +188,28 @@ public class GamePlayServiceImpl implements GamePlayService {
 
                 log.info("방 {} - {} 라운드 문제 출제 완료", gameSessionId, nextRound);
 
-                gameTaskScheduler.schedule(() -> gradeRound(gameSessionId), Instant.now().plusSeconds(QUIZ_TIME_LIMIT_SEC));
+                gameTaskScheduler.schedule(() -> {
+                    try {
+                        gradeRound(gameSessionId);
+                    } catch (Exception e) {
+                        log.error("방 {} - 채점 진행 중 내부 오류 발생: ", gameSessionId, e);
+                    }
+                }, Instant.now().plusSeconds(QUIZ_TIME_LIMIT_SEC));
 
-            } catch (Exception e) {
-                log.error("방 {} - 문제 파싱 및 전송 중 오류 발생: ", gameSessionId, e);
+            } else {
+                log.warn("방 {} - Redis에 꺼낼 문제가 없습니다!", gameSessionId);
+                stopGameTimer(gameSessionId);
             }
-        } else {
-            log.warn("방 {} - Redis에 꺼낼 문제가 없습니다!", gameSessionId);
+
+        } catch (Exception e) {
+            // Redis 통신 실패 등 예상치 못한 모든 예외 처리
+            log.error("방 {} - 다음 라운드 진행 중 치명적인 시스템 오류 발생: ", gameSessionId, e);
+
+            broadcastToRoom(gameSessionId, GameMessageResponse.error(
+                    "서버 통신 오류가 발생하여 게임이 강제 종료됩니다."
+            ));
+
+            // 스케줄러가 망가진 상태로 방치되지 않도록 안전하게 청소 및 종료
             stopGameTimer(gameSessionId);
         }
     }
@@ -203,8 +217,16 @@ public class GamePlayServiceImpl implements GamePlayService {
     @Override
     public void submitAnswer(Long gameSessionId, String username, String answer) {
         String answersKey = getRedisKey(gameSessionId, "answers");
-        redisTemplate.opsForHash().put(getRedisKey(gameSessionId, "answers"), username, answer);
-        redisTemplate.expire(answersKey, REDIS_KEY_TTL); //
+        // 1. 키가 이미 존재하는지 확인
+        Boolean hasKey = redisTemplate.hasKey(answersKey);
+
+        // 2. 정답 저장
+        redisTemplate.opsForHash().put(answersKey, username, answer);
+
+        //  3. 키가 없었던 경우에만 TTL을 설정
+        if (Boolean.FALSE.equals(hasKey)) {
+            redisTemplate.expire(answersKey, REDIS_KEY_TTL);
+        }
         log.info("방 {} - [{}] 님의 정답 제출: {}", gameSessionId, username, answer);
     }
 

@@ -49,7 +49,6 @@ public class GameSession extends BaseEntity {
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "quiz_set_id", nullable = false)
-    @OnDelete(action = OnDeleteAction.CASCADE)
     private QuizSet quizSet;
 
     /**

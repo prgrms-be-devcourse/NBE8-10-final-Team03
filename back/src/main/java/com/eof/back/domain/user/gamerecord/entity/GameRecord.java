@@ -43,7 +43,6 @@ public class GameRecord extends BaseEntity {
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "game_session_id", nullable = false)
-    @OnDelete(action = OnDeleteAction.CASCADE)
     private GameSession gameSession;
 
     /**

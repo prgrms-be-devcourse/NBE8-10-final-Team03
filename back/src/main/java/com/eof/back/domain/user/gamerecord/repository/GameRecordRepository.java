@@ -59,4 +59,8 @@ public interface GameRecordRepository extends JpaRepository<GameRecord, Long> {
             @Param("userId") Long userId,
             Pageable pageable
     );
+
+    @Modifying(clearAutomatically = true)
+    @Query("DELETE FROM GameRecord r WHERE r.gameSession.id IN (SELECT gs.id FROM GameSession gs WHERE gs.quizSet.id = :quizSetId)")
+    void deleteByQuizSetId(@Param("quizSetId") Long quizSetId);
 }

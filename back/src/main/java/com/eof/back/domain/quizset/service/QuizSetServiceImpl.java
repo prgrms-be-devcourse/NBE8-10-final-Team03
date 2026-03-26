@@ -1,11 +1,15 @@
 package com.eof.back.domain.quizset.service;
 
+import com.eof.back.domain.gamesession.repository.GameSessionRepository;
+import com.eof.back.domain.quiz.repository.QuizRepository;
 import com.eof.back.domain.quizset.dto.QuizSetCreateRequest;
 import com.eof.back.domain.quizset.dto.QuizSetListResponse;
 import com.eof.back.domain.quizset.dto.QuizSetResponse;
 import com.eof.back.domain.quizset.dto.QuizSetUpdateRequest;
 import com.eof.back.domain.quizset.entity.QuizSet;
 import com.eof.back.domain.quizset.repository.QuizSetRepository;
+import com.eof.back.domain.user.gamerecord.repository.GameRecordRepository;
+import com.eof.back.domain.user.quizsetbookmark.repository.QuizSetBookmarkRepository;
 import com.eof.back.domain.user.user.entity.User;
 import com.eof.back.domain.user.user.repository.UserRepository;
 import com.eof.back.global.exception.errorCode.AuthErrorCode;
@@ -34,6 +38,10 @@ public class QuizSetServiceImpl implements QuizSetService {
 
     private final QuizSetRepository quizSetRepository;
     private final UserRepository userRepository;
+    private final QuizRepository quizRepository;
+    private final QuizSetBookmarkRepository quizSetBookmarkRepository;
+    private final GameSessionRepository gameSessionRepository;
+    private final GameRecordRepository gameRecordRepository;
 
     /**
      * {@inheritDoc}
@@ -102,18 +110,26 @@ public class QuizSetServiceImpl implements QuizSetService {
     @Override
     @Transactional
     public void deleteQuizSet(Long id, Long userId) {
-        // 1. 존재 여부 확인 (엔티티 전체 로드 없이 ID만 조회하여 메모리/네트워크 비용 절감)
-        if (!quizSetRepository.existsById(id)) {
-            throw new QuizSetException(QuizSetErrorCode.QUIZ_SET_NOT_FOUND);
-        }
+        // 1. 참조 엔티티 정리 (명시적 Bulk Delete 수행)
+        // @Modifying(clearAutomatically = true) 설정을 통해 영속성 컨텍스트와의 동기화 문제를 해결합니다.
+        // FK 제약 조건을 고려하여 역순으로 삭제를 진행합니다.
+        
+        // 1-1. 북마크 및 기록/세션 삭제
+        quizSetBookmarkRepository.deleteByQuizSetId(id);
+        gameRecordRepository.deleteByQuizSetId(id);
+        gameSessionRepository.deleteByQuizSetId(id);
+        
+        // 1-2. 세트 내 개별 퀴즈 삭제
+        quizRepository.deleteByQuizSetId(id);
 
-        // 2. ID 기반 즉시 삭제 (Bulk Delete 실행)
-        // 소유권 확인(userId)을 쿼리에 포함하여 권한 검증과 삭제를 원자적으로 수행합니다.
-        // @OnDelete(CASCADE) 설정 덕분에 하이버네이트의 추가적인 연관 엔티티 조회 없이 DB 레벨에서 모든 연관 데이터가 삭제됩니다.
+        // 2. 원자적 삭제 시도 (소유권 확인 포함)
         int deletedCount = quizSetRepository.deleteByIdAndCreatorId(id, userId);
 
-        // 3. 삭제된 행이 없다면 제작자가 아님을 의미하므로 권한 예외 발생
+        // 3. 삭제된 행이 없다면(0), 원인 분석을 위해 2차 확인 수행
         if (deletedCount == 0) {
+            if (!quizSetRepository.existsById(id)) {
+                throw new QuizSetException(QuizSetErrorCode.QUIZ_SET_NOT_FOUND);
+            }
             throw new QuizSetException(QuizSetErrorCode.QUIZ_SET_ACCESS_DENIED);
         }
     }

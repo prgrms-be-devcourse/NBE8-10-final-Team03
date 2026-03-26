@@ -38,4 +38,8 @@ public interface GameSessionRepository extends JpaRepository<GameSession, Long> 
             "LEFT JOIN FETCH gs.players " +
             "WHERE gs.id = :gameSessionId")
     Optional<GameSession> findByIdWithPlayers(@Param("gameSessionId") Long gameSessionId);
+
+    @Modifying(clearAutomatically = true)
+    @Query("DELETE FROM GameSession gs WHERE gs.quizSet.id = :quizSetId")
+    void deleteByQuizSetId(@Param("quizSetId") Long quizSetId);
 }

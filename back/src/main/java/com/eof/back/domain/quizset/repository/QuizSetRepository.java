@@ -24,7 +24,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface QuizSetRepository extends JpaRepository<QuizSet, Long> {
 
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Query("DELETE FROM QuizSet q WHERE q.id = :id AND q.creator.id = :userId")
     int deleteByIdAndCreatorId(@Param("id") Long id, @Param("userId") Long userId);
 }

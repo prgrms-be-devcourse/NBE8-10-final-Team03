@@ -13,9 +13,14 @@ import com.eof.back.domain.quizset.dto.QuizSetResponse;
 import com.eof.back.domain.quizset.dto.QuizSetUpdateRequest;
 import com.eof.back.domain.quizset.entity.QuizSet;
 import com.eof.back.domain.quizset.repository.QuizSetRepository;
+import com.eof.back.domain.quiz.repository.QuizRepository;
+import com.eof.back.domain.user.gamerecord.repository.GameRecordRepository;
+import com.eof.back.domain.user.quizsetbookmark.repository.QuizSetBookmarkRepository;
+import com.eof.back.domain.gamesession.repository.GameSessionRepository;
 import com.eof.back.domain.user.user.entity.Role;
 import com.eof.back.domain.user.user.entity.User;
 import com.eof.back.domain.user.user.repository.UserRepository;
+import com.eof.back.global.exception.errorCode.QuizSetErrorCode;
 import com.eof.back.global.exception.exceptions.QuizSetException;
 import java.util.List;
 import java.util.Optional;
@@ -38,6 +43,18 @@ class QuizSetServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private QuizRepository quizRepository;
+
+    @Mock
+    private QuizSetBookmarkRepository quizSetBookmarkRepository;
+
+    @Mock
+    private GameSessionRepository gameSessionRepository;
+
+    @Mock
+    private GameRecordRepository gameRecordRepository;
 
     @Test
     @DisplayName("퀴즈 세트 생성 성공")
@@ -191,20 +208,54 @@ class QuizSetServiceTest {
     }
 
     @Test
-    @DisplayName("퀴즈 세트 삭제 성공 - 엔티티 로드 없이 ID 기반으로 즉시 삭제")
+    @DisplayName("퀴즈 세트 삭제 성공 - 모든 연관 엔티티에 대해 명시적 Bulk Delete 수행")
     void deleteQuizSet_Success() {
         // given
         Long quizSetId = 100L;
         Long userId = 1L;
 
-        given(quizSetRepository.existsById(quizSetId)).willReturn(true);
         given(quizSetRepository.deleteByIdAndCreatorId(quizSetId, userId)).willReturn(1);
 
         // when
         quizSetService.deleteQuizSet(quizSetId, userId);
 
         // then
-        verify(quizSetRepository).existsById(quizSetId);
+        verify(quizSetBookmarkRepository).deleteByQuizSetId(quizSetId);
+        verify(gameRecordRepository).deleteByQuizSetId(quizSetId);
+        verify(gameSessionRepository).deleteByQuizSetId(quizSetId);
+        verify(quizRepository).deleteByQuizSetId(quizSetId);
         verify(quizSetRepository).deleteByIdAndCreatorId(quizSetId, userId);
+    }
+
+    @Test
+    @DisplayName("퀴즈 세트 삭제 실패 - 존재하지 않는 경우")
+    void deleteQuizSet_Fail_NotFound() {
+        // given
+        Long quizSetId = 100L;
+        Long userId = 1L;
+
+        given(quizSetRepository.deleteByIdAndCreatorId(quizSetId, userId)).willReturn(0);
+        given(quizSetRepository.existsById(quizSetId)).willReturn(false);
+
+        // when & then
+        assertThatThrownBy(() -> quizSetService.deleteQuizSet(quizSetId, userId))
+                .isInstanceOf(QuizSetException.class)
+                .hasFieldOrPropertyWithValue("errorCode", QuizSetErrorCode.QUIZ_SET_NOT_FOUND);
+    }
+
+    @Test
+    @DisplayName("퀴즈 세트 삭제 실패 - 권한이 없는 경우")
+    void deleteQuizSet_Fail_AccessDenied() {
+        // given
+        Long quizSetId = 100L;
+        Long userId = 1L;
+
+        given(quizSetRepository.deleteByIdAndCreatorId(quizSetId, userId)).willReturn(0);
+        given(quizSetRepository.existsById(quizSetId)).willReturn(true);
+
+        // when & then
+        assertThatThrownBy(() -> quizSetService.deleteQuizSet(quizSetId, userId))
+                .isInstanceOf(QuizSetException.class)
+                .hasFieldOrPropertyWithValue("errorCode", QuizSetErrorCode.QUIZ_SET_ACCESS_DENIED);
     }
 }

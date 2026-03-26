@@ -12,6 +12,7 @@ import java.util.List;
  * @since 2026-03-23
  */
 public record RankingResponse(
+        Long myRank,
         List<RankingItem> rankings
 ) {
     /**
@@ -19,11 +20,11 @@ public record RankingResponse(
      *
      * @param rank 순위
      * @param nickname 사용자 닉네임
-     * @param totalRankingScore 누적 랭킹 점수
+     * @param score 누적 랭킹 점수
      */
     public record RankingItem(
             int rank,
             String nickname,
-            long totalRankingScore
+            long score
     ) {}
 }

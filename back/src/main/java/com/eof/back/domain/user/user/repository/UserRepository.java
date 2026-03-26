@@ -1,7 +1,11 @@
 package com.eof.back.domain.user.user.repository;
 
 import com.eof.back.domain.user.user.entity.User;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
 
 import java.util.List;
 import java.util.Optional;
@@ -31,5 +35,13 @@ public interface UserRepository extends JpaRepository<User,Long> {
 
     Optional<User> findByUsername(String username);
 
-    List<User> findTop10ByOrderByTotalRankingScoreDesc();
+    @Query("SELECT u FROM User u WHERE u.deletedAt IS NULL " +
+            "ORDER BY u.totalRankingScore DESC, u.id ASC")
+    List<User> findTop10ActiveUsers(Pageable pageable);
+
+    @Query("SELECT COUNT(u) + 1 FROM User u " +
+            "WHERE u.totalRankingScore > " +
+            "(SELECT u2.totalRankingScore FROM User u2 WHERE u2.id = :userId) " +
+            "AND u.deletedAt IS NULL")
+    Long findMyRankByUserId(@Param("userId") Long userId);
 }

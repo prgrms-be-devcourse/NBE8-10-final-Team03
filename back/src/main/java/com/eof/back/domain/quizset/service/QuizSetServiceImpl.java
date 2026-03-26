@@ -1,15 +1,11 @@
 package com.eof.back.domain.quizset.service;
 
-import com.eof.back.domain.gamesession.entity.GameSession;
-import com.eof.back.domain.gamesession.repository.GameSessionRepository;
 import com.eof.back.domain.quizset.dto.QuizSetCreateRequest;
 import com.eof.back.domain.quizset.dto.QuizSetListResponse;
 import com.eof.back.domain.quizset.dto.QuizSetResponse;
 import com.eof.back.domain.quizset.dto.QuizSetUpdateRequest;
 import com.eof.back.domain.quizset.entity.QuizSet;
 import com.eof.back.domain.quizset.repository.QuizSetRepository;
-import com.eof.back.domain.user.gamerecord.repository.GameRecordRepository;
-import com.eof.back.domain.user.quizsetbookmark.repository.QuizSetBookmarkRepository;
 import com.eof.back.domain.user.user.entity.User;
 import com.eof.back.domain.user.user.repository.UserRepository;
 import com.eof.back.global.exception.errorCode.AuthErrorCode;
@@ -38,9 +34,6 @@ public class QuizSetServiceImpl implements QuizSetService {
 
     private final QuizSetRepository quizSetRepository;
     private final UserRepository userRepository;
-    private final QuizSetBookmarkRepository quizSetBookmarkRepository;
-    private final GameSessionRepository gameSessionRepository;
-    private final GameRecordRepository gameRecordRepository;
 
     /**
      * {@inheritDoc}
@@ -112,15 +105,8 @@ public class QuizSetServiceImpl implements QuizSetService {
         QuizSet quizSet = findQuizSetById(id);
         validateOwnership(quizSet, userId);
 
-        // 1. 참조 엔티티 정리 (Bulk Delete 쿼리를 사용하여 메모리 효율 개선)
-        // 1-1. 북마크 삭제
-        quizSetBookmarkRepository.deleteByQuizSetId(id);
-
-        // 1-2. 게임 기록 및 세션 삭제 (FK 역순으로 처리)
-        gameRecordRepository.deleteByQuizSetId(id);
-        gameSessionRepository.deleteByQuizSetId(id);
-
-        // 2. 퀴즈셋 삭제 (퀴즈는 CascadeType.ALL에 의해 자동 삭제)
+        // 연관 데이터(북마크, 게임 세션, 기록 등)는 DB 레벨의 ON DELETE CASCADE에 의해 자동으로 삭제됩니다.
+        // 이를 통해 애플리케이션 단의 N+1 삭제 문제와 데이터 무결성 문제를 동시에 해결합니다.
         quizSetRepository.delete(quizSet);
     }
 

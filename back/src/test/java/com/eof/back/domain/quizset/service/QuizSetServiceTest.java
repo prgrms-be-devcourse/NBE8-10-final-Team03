@@ -13,15 +13,10 @@ import com.eof.back.domain.quizset.dto.QuizSetResponse;
 import com.eof.back.domain.quizset.dto.QuizSetUpdateRequest;
 import com.eof.back.domain.quizset.entity.QuizSet;
 import com.eof.back.domain.quizset.repository.QuizSetRepository;
-import com.eof.back.domain.user.gamerecord.repository.GameRecordRepository;
-import com.eof.back.domain.user.quizsetbookmark.repository.QuizSetBookmarkRepository;
-import com.eof.back.domain.gamesession.entity.GameSession;
-import com.eof.back.domain.gamesession.repository.GameSessionRepository;
 import com.eof.back.domain.user.user.entity.Role;
 import com.eof.back.domain.user.user.entity.User;
 import com.eof.back.domain.user.user.repository.UserRepository;
 import com.eof.back.global.exception.exceptions.QuizSetException;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
@@ -43,15 +38,6 @@ class QuizSetServiceTest {
 
     @Mock
     private UserRepository userRepository;
-
-    @Mock
-    private QuizSetBookmarkRepository quizSetBookmarkRepository;
-
-    @Mock
-    private GameSessionRepository gameSessionRepository;
-
-    @Mock
-    private GameRecordRepository gameRecordRepository;
 
     @Test
     @DisplayName("퀴즈 세트 생성 성공")
@@ -205,7 +191,7 @@ class QuizSetServiceTest {
     }
 
     @Test
-    @DisplayName("퀴즈 세트 삭제 성공 - 연관 데이터(북마크, 게임 세션, 기록) 효율적 벌크 삭제")
+    @DisplayName("퀴즈 세트 삭제 성공 - 연관 데이터는 DB Cascade에 의해 삭제됨")
     void deleteQuizSet_Success() {
         // given
         User creator = User.builder().nickname("별명").build();
@@ -222,9 +208,6 @@ class QuizSetServiceTest {
         quizSetService.deleteQuizSet(100L, 1L);
 
         // then
-        verify(quizSetBookmarkRepository).deleteByQuizSetId(100L);
-        verify(gameRecordRepository).deleteByQuizSetId(100L);
-        verify(gameSessionRepository).deleteByQuizSetId(100L);
         verify(quizSetRepository).delete(quizSet);
     }
 }

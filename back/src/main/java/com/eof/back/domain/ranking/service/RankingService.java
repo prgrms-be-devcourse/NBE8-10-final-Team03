@@ -13,5 +13,10 @@ import com.eof.back.domain.ranking.dto.RankingResponse;
  * @since 2026-03-23
  */
 public interface RankingService {
-    RankingResponse getTopRankings();
+
+    RankingResponse getTopRankings(Long userId);
+
+    RankingResponse getWeeklyRankings(Long userId);
+
+    RankingResponse getMonthlyRankings(Long userId);
 }

@@ -72,7 +72,7 @@ public interface GameRecordRepository extends JpaRepository<GameRecord, Long> {
      * @return [User, periodScore] 형태의 집계 결과 목록
      */
     @Query("SELECT r.user, SUM(r.earnedRankingScore) as periodScore " +
-            "FROM GameRecord r JOIN FETCH r.user " +
+            "FROM GameRecord r JOIN r.user " +
             "WHERE r.createdAt >= :since " +
             "GROUP BY r.user ORDER BY periodScore DESC")
     List<Object[]> findRankingByPeriod(@Param("since") LocalDateTime since, Pageable pageable);

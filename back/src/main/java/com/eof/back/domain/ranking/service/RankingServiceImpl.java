@@ -48,7 +48,7 @@ public class RankingServiceImpl implements RankingService {
 
 
         List<RankingResponse.RankingItem> rankings = new ArrayList<>();
-        List<User> topUsers = userRepository.findTop10ByOrderByTotalRankingScoreDescIdAsc();
+        List<User> topUsers = userRepository.findTop10ActiveUsers(PageRequest.of(0, 10));
 
         for (int i = 0; i < topUsers.size(); i++) {
             User user = topUsers.get(i);
@@ -108,15 +108,12 @@ public class RankingServiceImpl implements RankingService {
             ));
         }
 
-        Long myRank = getMyRank(userId);
-        return new RankingResponse(myRank, rankings);
+        return new RankingResponse(null, rankings);
     }
 
     // 내 순위 계산 (비로그인 시 null 반환)
     private Long getMyRank(Long userId) {
         if (userId == null) return null;
-        return userRepository.findById(userId)
-                .map(user -> userRepository.findMyRank(user.getTotalRankingScore()))
-                .orElse(null);
+        return userRepository.findMyRankByUserId(userId);
     }
 }

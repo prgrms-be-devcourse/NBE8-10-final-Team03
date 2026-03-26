@@ -11,6 +11,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Pageable;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
@@ -38,9 +40,8 @@ class RankingServiceImplTest {
                 createUser(2L, "유저2", 3000L),
                 createUser(3L, "유저3", 1000L)
         );
-        given(userRepository.findTop10ByOrderByTotalRankingScoreDescIdAsc()).willReturn(users);
-        given(userRepository.findById(1L)).willReturn(java.util.Optional.of(users.get(0)));
-        given(userRepository.findMyRank(5000L)).willReturn(1L);
+        given(userRepository.findTop10ActiveUsers(any(Pageable.class))).willReturn(users);
+        given(userRepository.findMyRankByUserId(any(Long.class))).willReturn(1L);
 
         RankingResponse response = rankingService.getTopRankings(1L);
 
@@ -55,9 +56,8 @@ class RankingServiceImplTest {
     @Test
     @DisplayName("상위 랭킹 조회 - 유저 없음")
     void getTopRankings_empty() {
-        given(userRepository.findTop10ByOrderByTotalRankingScoreDescIdAsc()).willReturn(List.of());
-        given(userRepository.findById(1L)).willReturn(java.util.Optional.of(createUser(1L, "유저1", 0L)));
-        given(userRepository.findMyRank(0L)).willReturn(1L);
+        given(userRepository.findTop10ActiveUsers(any(Pageable.class))).willReturn(List.of());
+        given(userRepository.findMyRankByUserId(any(Long.class))).willReturn(1L);
 
         RankingResponse response = rankingService.getTopRankings(1L);
 
@@ -67,7 +67,7 @@ class RankingServiceImplTest {
     @Test
     @DisplayName("상위 랭킹 조회 - 비로그인")
     void getTopRankings_notLoggedIn() {
-        given(userRepository.findTop10ByOrderByTotalRankingScoreDescIdAsc()).willReturn(List.of());
+        given(userRepository.findTop10ActiveUsers(any(Pageable.class))).willReturn(List.of());
 
         RankingResponse response = rankingService.getTopRankings(null);
 

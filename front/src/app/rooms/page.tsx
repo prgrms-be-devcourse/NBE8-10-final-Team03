@@ -37,34 +37,31 @@ interface ChatMessage {
   type: string;
 }
 
-const mockQuestion = {
-  questionId: 3,
-  content: "임진왜란이 일어난 해는?",
-  choices: ["1392년", "1492년", "1592년", "1692년"],
-  currentRound: 3,
-  totalRounds: 10,
-  timeLimit: 15,
-};
+interface QuizBroadcastResponse {
+  questionId: number;
+  content: string;
+  choice1: string;
+  choice2: string;
+  choice3: string;
+  choice4: string;
+  timeLimit: number;
+}
 
-const mockScoreboard = [
-  { nickname: "퀴즈왕김철수", score: 2800, correct: 3, avatar: "퀴" },
-  { nickname: "스프링러버", score: 2100, correct: 2, avatar: "스" },
-  { nickname: "자바매니아", score: 1900, correct: 2, avatar: "자" },
-  { nickname: "알고킹", score: 1200, correct: 1, avatar: "알" },
-];
+interface ScoreboardItem {
+  username: string;
+  score: number;
+}
 
-const mockResult = [
-  { rank: 1, nickname: "퀴즈왕김철수", score: 9500, correct: 9, earnedRankingScore: 320 },
-  { rank: 2, nickname: "스프링러버", score: 7200, correct: 7, earnedRankingScore: 180 },
-  { rank: 3, nickname: "자바매니아", score: 6100, correct: 6, earnedRankingScore: 120 },
-  { rank: 4, nickname: "알고킹", score: 4300, correct: 4, earnedRankingScore: 60 },
-];
+interface QuizResultResponse {
+  correctAnswer: string;
+  correctUsernames: string[];
+  scoreboard: ScoreboardItem[];
+}
 
-type GameState = "waiting" | "playing" | "result";
+type GameState = "waiting" | "playing" | "roundResult" | "result";
 type ViewMode = "lobby" | "room";
 
 export default function RoomsPage() {
-  // 로비 state
   const [viewMode, setViewMode] = useState<ViewMode>("lobby");
   const [rooms, setRooms] = useState<Room[]>([]);
   const [rankings, setRankings] = useState<RankingItem[]>([]);
@@ -86,10 +83,16 @@ export default function RoomsPage() {
   const [createError, setCreateError] = useState("");
   const [creating, setCreating] = useState(false);
 
-  // 방 상세 state
+  // 게임 state
   const [gameState, setGameState] = useState<GameState>("waiting");
-  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
-  const [timeLeft] = useState(12);
+  const [currentQuestion, setCurrentQuestion] = useState<QuizBroadcastResponse | null>(null);
+  const [roundResult, setRoundResult] = useState<QuizResultResponse | null>(null);
+  const [scoreboard, setScoreboard] = useState<ScoreboardItem[]>([]);
+  const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
+  const [answerSubmitted, setAnswerSubmitted] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(0);
+  const [currentRound, setCurrentRound] = useState(0);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   // STOMP 채팅 state
   const stompClientRef = useRef<Client | null>(null);
@@ -105,9 +108,7 @@ export default function RoomsPage() {
       setMyUserId(decoded.sub);
     }
     const quizSetIdParam = searchParams.get("quizSetId");
-    
     if (quizSetIdParam && quizSets.length === 0) {
-      // 퀴즈셋 목록 불러오고 모달 열기
       const openModalWithQuizSet = async () => {
         try {
           const res = await api.get("/quizsets");
@@ -125,20 +126,23 @@ export default function RoomsPage() {
       };
       openModalWithQuizSet();
     }
-  }, [searchParams]);  // searchParams 바뀔 때마다 실행
+  }, [searchParams]);
 
-  
-useEffect(() => {
-  if (viewMode === "lobby") {
-    fetchLobbyData();
-    // interval 완전 제거!
-  }
-}, [viewMode]);
+  useEffect(() => {
+    if (viewMode === "lobby") fetchLobbyData();
+  }, [viewMode]);
 
-  // 채팅 자동 스크롤
   useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatMessages]);
+
+  // 타이머
+  useEffect(() => {
+    if (gameState === "playing" && timeLeft > 0) {
+      timerRef.current = setTimeout(() => setTimeLeft((t) => t - 1), 1000);
+    }
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+  }, [gameState, timeLeft]);
 
   const fetchLobbyData = async () => {
     setLoading(true);
@@ -160,25 +164,39 @@ useEffect(() => {
     try {
       const res = await api.post(`/rooms/${gameSessionId}/join`);
       console.log("✅ join 응답:", res.data.data);
-      setCurrentRoom(res.data.data);
+  
+      // 퀴즈셋 정보 + 방 정보 병렬 조회
+      const [quizSetRes, roomsRes] = await Promise.all([
+        api.get(`/quizsets/${res.data.data.quizSetId}`),
+        api.get("/rooms"),
+      ]);
+  
+      const roomDetail = roomsRes.data.data.find((r: any) => r.gameSessionId === gameSessionId);
+
+      const enrichedRoom = {
+        ...res.data.data,
+        quizSetTitle: quizSetRes.data.data.title,
+        maxQuizzes: quizSetRes.data.data.totalQuizCount, // 일단 퀴즈셋 전체로
+        maxPlayer: roomDetail?.maxPlayer,
+      };
+      
+      setCurrentRoom(enrichedRoom);
       setGameState("waiting");
       setSelectedAnswer(null);
+      setAnswerSubmitted(false);
       setChatMessages([]);
-  
+
       const token = localStorage.getItem("accessToken");
       const client = new Client({
         brokerURL: "ws://localhost:8080/ws/game",
         connectHeaders: { Authorization: `Bearer ${token}` },
         reconnectDelay: 0,
         onConnect: () => {
-          console.log("✅ STOMP 연결 성공!");
           setStompConnected(true);
-  
-          // ✅ 여기만 교체!
           client.subscribe(`/topic/rooms/${gameSessionId}/chat`, (msg) => {
             const data = JSON.parse(msg.body);
             console.log("📨 STOMP 메시지:", data);
-  
+
             switch (data.type) {
               case "CHAT":
                 setChatMessages((prev) => [...prev, {
@@ -187,31 +205,27 @@ useEffect(() => {
                   type: "CHAT",
                 }]);
                 break;
-  
-                case "ENTER":
-                  setChatMessages((prev) => [...prev, {
-                    sender: "SYSTEM",
-                    message: data.message || `${data.sender}님이 입장했습니다.`,  // 백엔드 message 우선
-                    type: "SYSTEM",
-                  }]);
-                  if (data.data) setCurrentRoom((prev: any) => ({ ...prev, ...data.data }));
-                  break;
-                
-                  case "LEAVE":
-                    setChatMessages((prev) => [...prev, {
-                      sender: "SYSTEM",
-                      message: data.message,
-                      type: "SYSTEM",
-                    }]);
-                    // data.data에 players 있으면 업데이트, 없으면 유지
-                    if (data.data?.players) {
-                      setCurrentRoom((prev: any) => ({
-                        ...prev,
-                        players: data.data.players,
-                      }));
-                    }
-                    break;
-  
+
+              case "ENTER":
+                setChatMessages((prev) => [...prev, {
+                  sender: "SYSTEM",
+                  message: data.message || `${data.sender}님이 입장했습니다.`,
+                  type: "SYSTEM",
+                }]);
+                if (data.data) setCurrentRoom((prev: any) => ({ ...prev, ...data.data }));
+                break;
+
+              case "LEAVE":
+                setChatMessages((prev) => [...prev, {
+                  sender: "SYSTEM",
+                  message: data.message,
+                  type: "SYSTEM",
+                }]);
+                if (data.data?.players) {
+                  setCurrentRoom((prev: any) => ({ ...prev, players: data.data.players }));
+                }
+                break;
+
               case "ROOM_DELETED":
                 alert("방장이 나가 방이 삭제되었습니다.");
                 stompClientRef.current?.deactivate();
@@ -221,25 +235,57 @@ useEffect(() => {
                 setCurrentRoom(null);
                 setViewMode("lobby");
                 break;
+
+              case "QUIZ":
+                setCurrentQuestion(data.data);
+                setCurrentRound((prev) => prev + 1);
+                setSelectedAnswer(null);
+                setAnswerSubmitted(false);
+                setTimeLeft(data.data.timeLimit);
+                setGameState("playing");
+                setChatMessages((prev) => [...prev, {
+                  sender: "SYSTEM",
+                  message: data.message,
+                  type: "SYSTEM",
+                }]);
+                break;
+
+              case "RESULT":
+                setRoundResult(data.data);
+                setScoreboard(data.data.scoreboard);
+                setGameState("roundResult");
+                setChatMessages((prev) => [...prev, {
+                  sender: "SYSTEM",
+                  message: `정답: ${data.data.correctAnswer}`,
+                  type: "SYSTEM",
+                }]);
+                break;
+
+              case "QUIZ_END":
+                setGameState("result");
+                setChatMessages((prev) => [...prev, {
+                  sender: "SYSTEM",
+                  message: data.message,
+                  type: "SYSTEM",
+                }]);
+                break;
+
+              case "ERROR":
+                setChatMessages((prev) => [...prev, {
+                  sender: "SYSTEM",
+                  message: `⚠️ ${data.message}`,
+                  type: "SYSTEM",
+                }]);
+                break;
             }
           });
         },
-        onStompError: (frame) => {
-          console.error("❌ STOMP 에러:", frame);
-          console.error("headers:", frame.headers);
-          console.error("body:", frame.body);
-        },
-        onWebSocketError: (event) => {
-          console.error("❌ WebSocket 에러:", event);
-        },
-        onDisconnect: () => {
-          console.log("🔌 STOMP 연결 해제");
-          setStompConnected(false);
-        },
+        onStompError: (frame) => console.error("❌ STOMP 에러:", frame),
+        onWebSocketError: (event) => console.error("❌ WebSocket 에러:", event),
+        onDisconnect: () => setStompConnected(false),
       });
       stompClientRef.current = client;
       client.activate();
-  
       setViewMode("room");
     } catch (err: any) {
       console.error("방 입장 실패", err.response?.data);
@@ -258,15 +304,33 @@ useEffect(() => {
     setStompConnected(false);
     setChatMessages([]);
     setCurrentRoom(null);
+    setCurrentQuestion(null);
+    setRoundResult(null);
+    setScoreboard([]);
+    setCurrentRound(0);
     setViewMode("lobby");
   };
 
+  const handleStartGame = () => {
+    if (!stompClientRef.current?.connected || !currentRoom) return;
+    stompClientRef.current.publish({
+      destination: `/app/rooms/${currentRoom.gameSessionId}/start`,
+      body: "",
+    });
+  };
+
+  const handleSubmitAnswer = (answer: string) => {
+    if (answerSubmitted || !stompClientRef.current?.connected || !currentRoom) return;
+    setSelectedAnswer(answer);
+    setAnswerSubmitted(true);
+    stompClientRef.current.publish({
+      destination: `/app/rooms/${currentRoom.gameSessionId}/answer`,
+      body: JSON.stringify({ answer }),
+    });
+  };
+
   const sendChat = () => {
-    if (!chatInput.trim()) return;
-    if (!stompClientRef.current) return;
-    if (!stompClientRef.current.connected) return;  // ✅ 이거 추가!
-    if (!currentRoom) return;
-  
+    if (!chatInput.trim() || !stompClientRef.current?.connected || !currentRoom) return;
     stompClientRef.current.publish({
       destination: `/app/rooms/${currentRoom.gameSessionId}/chat`,
       body: JSON.stringify({ message: chatInput }),
@@ -298,15 +362,9 @@ useEffect(() => {
     setCreateError("");
     if (!roomName.trim()) { setCreateError("방 제목을 입력하세요."); return; }
     if (!selectedQuizSetId) { setCreateError("퀴즈셋을 선택하세요."); return; }
-
     setCreating(true);
     try {
-      const res = await api.post("/rooms", {
-        roomName,
-        quizSetId: selectedQuizSetId,
-        maxPlayers,
-        maxQuizzes,
-      });
+      const res = await api.post("/rooms", { roomName, quizSetId: selectedQuizSetId, maxPlayers, maxQuizzes });
       const gameSessionId = res.data.data.gameSessionId;
       setShowModal(false);
       setRoomName("");
@@ -326,179 +384,143 @@ useEffect(() => {
   });
 
   const rankColors = ["text-primary", "text-accent", "text-secondary", "text-gray-400", "text-gray-400"];
+  const choiceColors = [
+    { base: "border-dark bg-white", hover: "hover:bg-primary hover:text-white hover:border-primary", selected: "bg-primary text-white border-primary" },
+    { base: "border-dark bg-white", hover: "hover:bg-accent hover:text-white hover:border-accent", selected: "bg-accent text-white border-accent" },
+    { base: "border-dark bg-white", hover: "hover:bg-secondary hover:border-secondary", selected: "bg-secondary border-secondary" },
+    { base: "border-dark bg-white", hover: "hover:bg-purple-500 hover:text-white hover:border-purple-500", selected: "bg-purple-500 text-white border-purple-500" },
+  ];
 
-  // ========== 방 상세 화면 ==========
+  // ========== 방 화면 ==========
   if (viewMode === "room") {
     const roomInfo = currentRoom;
+    const hostNickname = currentRoom?.players?.find((p: any) => p.isHost)?.nickname;
+    const choices = currentQuestion
+      ? [currentQuestion.choice1, currentQuestion.choice2, currentQuestion.choice3, currentQuestion.choice4]
+      : [];
+
     return (
       <div>
         {gameState === "waiting" && (
           <div className="border-b-[3px] border-dark bg-white px-6 py-3 flex items-center justify-between">
             <span className="font-title text-xl">답정너</span>
-            <button
-              onClick={handleLeaveRoom}
-              className="px-4 py-2 bg-white text-dark font-bold border-[3px] border-dark rounded-xl shadow-kitsch-sm hover:shadow-kitsch hover:-translate-y-0.5 transition-all text-sm"
-            >
+            <button onClick={handleLeaveRoom} className="px-4 py-2 bg-white text-dark font-bold border-[3px] border-dark rounded-xl shadow-kitsch-sm hover:shadow-kitsch hover:-translate-y-0.5 transition-all text-sm">
               ← 나가기
             </button>
           </div>
         )}
 
         <div className="max-w-6xl mx-auto px-4 py-6">
-          {/* 상태 전환 (데모용) */}
-          <div className="flex gap-2 mb-6 justify-center">
-            <button
-              onClick={() => { setGameState("waiting"); }}
-              className={`px-5 py-2 border-[3px] border-dark rounded-full font-bold text-sm shadow-kitsch-sm transition-all ${gameState === "waiting" ? "bg-secondary" : "bg-white"}`}
-            >
-              대기실
-            </button>
-            <button
-              onClick={() => { setGameState("playing"); setSelectedAnswer(null); }}
-              className={`px-5 py-2 border-[3px] border-dark rounded-full font-bold text-sm shadow-kitsch-sm transition-all ${gameState === "playing" ? "bg-secondary" : "bg-white"}`}
-            >
-              게임 진행
-            </button>
-            <button
-              onClick={() => setGameState("result")}
-              className={`px-5 py-2 border-[3px] border-dark rounded-full font-bold text-sm shadow-kitsch-sm transition-all ${gameState === "result" ? "bg-secondary" : "bg-white"}`}
-            >
-              결과 화면
-            </button>
-          </div>
 
-{/* ========== 대기실 ========== */}
-{gameState === "waiting" && (
-  <div className="flex gap-6">
-    <div className="flex-1">
-      <div className="bg-white border-[3px] border-dark rounded-2xl shadow-kitsch p-6 mb-4">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="font-title text-3xl mb-1">{roomInfo?.title || "대기실"}</h1>
-            <p className="text-sm text-gray-400">{roomInfo?.title}</p>
-          </div>
-          <div className="text-center">
-            <p className="font-title text-4xl text-primary">
-              {roomInfo?.players?.length ?? 0}명 참여중
-            </p>
-          </div>
-        </div>
-        <div className="w-full h-4 bg-gray-200 rounded-full border-2 border-dark">
-          <div
-            className="h-full bg-primary rounded-full"
-            style={{ width: `${Math.min((roomInfo?.players?.length ?? 0) / (roomInfo?.maxPlayer || 4) * 100, 100)}%` }}
-          />
-        </div>
-      </div>
+          {/* ========== 대기실 ========== */}
+          {gameState === "waiting" && (
+            <div className="flex gap-6">
+              <div className="flex-1">
+                <div className="bg-white border-[3px] border-dark rounded-2xl shadow-kitsch p-6 mb-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h1 className="font-title text-3xl mb-1">{roomInfo?.roomName || "대기실"}</h1>
+                      <p className="text-sm text-gray-400">{roomInfo?.quizSetTitle}</p>
+                    </div>
+                    <p className="font-title text-4xl text-primary">{roomInfo?.players?.length ?? 0}명 참여중</p>
+                  </div>
+                  <div className="w-full h-4 bg-gray-200 rounded-full border-2 border-dark">
+                    <div
+                      className="h-full bg-primary rounded-full"
+                      style={{ width: `${Math.min((roomInfo?.players?.length ?? 0) / (roomInfo?.maxPlayer || 4) * 100, 100)}%` }}
+                    />
+                  </div>
+                </div>
 
-      <div className="grid grid-cols-4 gap-3 mb-4">
-        {(roomInfo?.players || []).map((p: any, i: number) => {
-          const isMe = p.nickname === myNickname;  // ✅
-
-          return (
-            <div
-              key={`player-${p.nickname || i}`}
-              className={`flex flex-col items-center p-5 border-[3px] rounded-2xl text-center ${
-                p.isHost ? "border-primary bg-primary/5 shadow-kitsch" : "border-dark bg-white shadow-kitsch-sm"
-              }`}
-            >
-              <div className={`w-14 h-14 rounded-full border-[3px] flex items-center justify-center font-title text-xl mb-2 ${
-                p.isHost ? "bg-primary text-white border-dark" : "bg-cream border-dark"
-              }`}>
-                {p.nickname.charAt(0)}
-              </div>
-              <p className="font-bold text-sm mb-1">{p.nickname}</p>
-              {p.isHost && <span className="text-hand text-sm text-primary font-bold"> 방장</span>}
-              {isMe && <span className="text-hand text-sm text-accent font-bold"> 나</span>}  {/* ✅ */}
-            </div>
-          );
-        })}
-
-        {Array.from({
-          length: (roomInfo?.maxPlayer || 4) - (roomInfo?.players?.length || roomInfo?.currentPlayerCount || 0)
-        }).map((_, i) => (
-          <div key={`empty-${i}`} className="flex flex-col items-center justify-center p-5 border-[3px] border-dashed border-gray-300 rounded-2xl">
-            <div className="w-14 h-14 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center mb-2">
-              <span className="text-gray-300 text-xl">?</span>
-            </div>
-            <p className="text-xs text-gray-300 font-bold">대기중</p>
-          </div>
-        ))}
-      </div>
+                <div className="grid grid-cols-4 gap-3 mb-4">
+                  {(roomInfo?.players || []).map((p: any, i: number) => (
+                    <div
+                      key={`player-${p.nickname || i}`}
+                      className={`flex flex-col items-center p-5 border-[3px] rounded-2xl text-center ${p.isHost ? "border-primary bg-primary/5 shadow-kitsch" : "border-dark bg-white shadow-kitsch-sm"}`}
+                    >
+                      <div className={`w-14 h-14 rounded-full border-[3px] flex items-center justify-center font-title text-xl mb-2 ${p.isHost ? "bg-primary text-white border-dark" : "bg-cream border-dark"}`}>
+                        {p.nickname.charAt(0)}
+                      </div>
+                      <p className="font-bold text-sm mb-1">{p.nickname}</p>
+                      {p.isHost && <span className="text-sm text-primary font-bold">방장</span>}
+                      {p.nickname === myNickname && <span className="text-sm text-accent font-bold">나</span>}
+                    </div>
+                  ))}
+                  {Array.from({ length: (roomInfo?.maxPlayer || 4) - (roomInfo?.players?.length || 0) }).map((_, i) => (
+                    <div key={`empty-${i}`} className="flex flex-col items-center justify-center p-5 border-[3px] border-dashed border-gray-300 rounded-2xl">
+                      <div className="w-14 h-14 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center mb-2">
+                        <span className="text-gray-300 text-xl">?</span>
+                      </div>
+                      <p className="text-xs text-gray-300 font-bold">대기중</p>
+                    </div>
+                  ))}
+                </div>
 
                 <div className="flex gap-3">
-                  <button
-                    onClick={() => setGameState("playing")}
-                    className="flex-1 py-4 bg-primary text-white font-bold text-lg border-[3px] border-dark rounded-2xl shadow-kitsch hover:shadow-kitsch-lg hover:-translate-y-0.5 transition-all"
-                  >
-                    🎮 게임 시작
-                  </button>
-                  <button
-                    onClick={handleLeaveRoom}
-                    className="px-8 py-4 bg-white text-dark font-bold border-[3px] border-dark rounded-2xl shadow-kitsch-sm hover:shadow-kitsch hover:-translate-y-0.5 transition-all"
-                  >
+                  {hostNickname === myNickname ? (
+                    <button
+                      onClick={handleStartGame}
+                      disabled={!stompConnected || (roomInfo?.players?.length ?? 0) < 2}
+                      className="flex-1 py-4 bg-primary text-white font-bold text-lg border-[3px] border-dark rounded-2xl shadow-kitsch hover:shadow-kitsch-lg hover:-translate-y-0.5 transition-all disabled:opacity-50"
+                    >
+                      {(roomInfo?.players?.length ?? 0) < 2 ? "2명 이상이어야 시작할 수 있어요" : "🎮 게임 시작"}
+                    </button>
+                  ) : (
+                    <div className="flex-1 py-4 bg-cream border-[3px] border-dark rounded-2xl text-center font-bold text-gray-400">
+                      방장이 게임을 시작할 때까지 기다려주세요...
+                    </div>
+                  )}
+                  <button onClick={handleLeaveRoom} className="px-8 py-4 bg-white text-dark font-bold border-[3px] border-dark rounded-2xl shadow-kitsch-sm hover:shadow-kitsch hover:-translate-y-0.5 transition-all">
                     나가기
                   </button>
                 </div>
               </div>
 
+              {/* 채팅 */}
               <div className="w-80 flex flex-col gap-4">
                 <div className="bg-white border-[3px] border-dark rounded-2xl shadow-kitsch p-5">
                   <h3 className="font-title text-lg mb-3">퀴즈 정보</h3>
                   <div className="flex flex-col gap-2 text-sm">
-                    <div className="flex justify-between"><span className="text-gray-400">퀴즈셋</span><span className="font-bold">{roomInfo?.quizSetId}번 퀴즈셋</span></div>
-                    <div className="flex justify-between"><span className="text-gray-400">문제 수</span><span className="font-bold">-</span></div>
-                    <div className="flex justify-between"><span className="text-gray-400">제한시간</span><span className="font-bold">문제당 15초</span></div>
-                    <div className="flex justify-between"><span className="text-gray-400">최대 인원</span><span className="font-bold">-</span></div>
+                  <div className="flex justify-between"><span className="text-gray-400">퀴즈셋</span><span className="font-bold">{roomInfo?.quizSetTitle}</span></div>
+                  <div className="flex justify-between"><span className="text-gray-400">문제 수</span><span className="font-bold">{roomInfo?.maxQuizzes}문제</span></div>
+                    <div className="flex justify-between"><span className="text-gray-400">최대 인원</span><span className="font-bold">{roomInfo?.maxPlayer}명</span></div>
                   </div>
                 </div>
-
-                {/* 채팅 */}
                 <div className="bg-white border-[3px] border-dark rounded-2xl shadow-kitsch flex-1 flex flex-col overflow-hidden" style={{ maxHeight: "400px" }}>
                   <h3 className="font-title text-lg p-5 pb-3">💬 채팅</h3>
                   <div className="flex-1 px-5 overflow-y-auto flex flex-col gap-3">
-                  {chatMessages.map((msg, i) => (
-  <div key={`chat-${i}`}>
-    {msg.type === "SYSTEM" ? (
-      <p className="text-xs text-gray-400 text-center py-1">{msg.message}</p>
-    ) : (
-      <>
-        <div className="flex items-center gap-2 mb-1">
-          <span className="text-xs font-bold">{msg.sender}</span>
-          <span className="text-xs text-gray-300">
-            {new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}
-          </span>
-        </div>
-        <p className="text-sm bg-cream rounded-xl px-3 py-2 inline-block border border-gray-200">
-          {msg.message}
-        </p>
-      </>
-    )}
-  </div>
-))}
+                    {chatMessages.map((msg, i) => (
+                      <div key={`chat-${i}`}>
+                        {msg.type === "SYSTEM" ? (
+                          <p className="text-xs text-gray-400 text-center py-1">{msg.message}</p>
+                        ) : (
+                          <>
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-xs font-bold">{msg.sender}</span>
+                              <span className="text-xs text-gray-300">{new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}</span>
+                            </div>
+                            <p className="text-sm bg-cream rounded-xl px-3 py-2 inline-block border border-gray-200">{msg.message}</p>
+                          </>
+                        )}
+                      </div>
+                    ))}
                     <div ref={chatBottomRef} />
                   </div>
                   <div className="p-4 border-t-[3px] border-dark">
-  <div className="flex flex-row items-center gap-2">  {/* ✅ flex-row items-center 추가 */}
-    <input
-      type="text"
-      value={chatInput}
-      onChange={(e) => setChatInput(e.target.value)}
-      onKeyDown={(e) => e.key === "Enter" && sendChat()}
-      placeholder="메시지 입력..."
-      className="flex-1 px-3 py-2 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none"
-    />
-    <button
-      onClick={sendChat}
-      disabled={!stompConnected}  // ✅ 연결 전엔 비활성화
-      className="shrink-0 px-4 py-2 bg-primary text-white border-[3px] border-dark rounded-xl font-bold text-sm shadow-kitsch-sm disabled:opacity-40 whitespace-nowrap"
-    >
-      전송
-    </button>
-  </div>
-  {!stompConnected && (
-    <p className="text-xs text-gray-400 mt-1">채팅 연결 중...</p>  // ✅ 연결 상태 표시
-  )}
+                    <div className="flex flex-row items-center gap-2">
+                      <input
+                        type="text"
+                        value={chatInput}
+                        onChange={(e) => setChatInput(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && sendChat()}
+                        placeholder="메시지 입력..."
+                        className="flex-1 px-3 py-2 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none"
+                      />
+                      <button onClick={sendChat} disabled={!stompConnected} className="shrink-0 px-4 py-2 bg-primary text-white border-[3px] border-dark rounded-xl font-bold text-sm shadow-kitsch-sm disabled:opacity-40">
+                        전송
+                      </button>
+                    </div>
+                    {!stompConnected && <p className="text-xs text-gray-400 mt-1">채팅 연결 중...</p>}
                   </div>
                 </div>
               </div>
@@ -506,18 +528,18 @@ useEffect(() => {
           )}
 
           {/* ========== 게임 진행 ========== */}
-          {gameState === "playing" && (
+          {gameState === "playing" && currentQuestion && (
             <div className="flex gap-6">
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-6">
                   <span className="px-4 py-2 bg-white border-[3px] border-dark rounded-xl font-title text-lg shadow-kitsch-sm">
-                    Q{mockQuestion.currentRound}/{mockQuestion.totalRounds}
+                    Q{currentRound}
                   </span>
                   <div className="flex items-center gap-3">
                     <div className="w-48 h-4 bg-gray-200 rounded-full border-2 border-dark overflow-hidden">
                       <div
-                        className={`h-full rounded-full transition-all ${timeLeft <= 5 ? "bg-red-500" : "bg-accent"}`}
-                        style={{ width: `${(timeLeft / mockQuestion.timeLimit) * 100}%` }}
+                        className={`h-full rounded-full transition-all duration-1000 ${timeLeft <= 5 ? "bg-red-500" : "bg-accent"}`}
+                        style={{ width: `${(timeLeft / currentQuestion.timeLimit) * 100}%` }}
                       />
                     </div>
                     <span className={`font-title text-2xl ${timeLeft <= 5 ? "text-red-500" : "text-dark"}`}>{timeLeft}초</span>
@@ -525,30 +547,19 @@ useEffect(() => {
                 </div>
 
                 <div className="bg-white border-[3px] border-dark rounded-2xl shadow-kitsch p-10 mb-6 text-center">
-                  <h2 className="font-title text-3xl">{mockQuestion.content}</h2>
+                  <h2 className="font-title text-3xl">{currentQuestion.content}</h2>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  {mockQuestion.choices.map((choice, i) => {
-                    const colors = [
-                      "hover:bg-primary hover:text-white hover:border-primary",
-                      "hover:bg-accent hover:text-white hover:border-accent",
-                      "hover:bg-secondary hover:border-secondary",
-                      "hover:bg-purple-500 hover:text-white hover:border-purple-500",
-                    ];
-                    const selectedColors = [
-                      "bg-primary text-white border-primary",
-                      "bg-accent text-white border-accent",
-                      "bg-secondary border-secondary",
-                      "bg-purple-500 text-white border-purple-500",
-                    ];
-                    const isSelected = selectedAnswer === i;
+                  {choices.map((choice, i) => {
+                    const isSelected = selectedAnswer === choice;
                     return (
                       <button
                         key={i}
-                        onClick={() => setSelectedAnswer(i)}
-                        className={`p-6 border-[3px] rounded-2xl font-bold text-lg shadow-kitsch-sm transition-all hover:-translate-y-0.5 hover:shadow-kitsch ${
-                          isSelected ? selectedColors[i] : `bg-white border-dark ${colors[i]}`
+                        onClick={() => handleSubmitAnswer(choice)}
+                        disabled={answerSubmitted}
+                        className={`p-6 border-[3px] rounded-2xl font-bold text-lg shadow-kitsch-sm transition-all hover:-translate-y-0.5 hover:shadow-kitsch disabled:cursor-not-allowed ${
+                          isSelected ? choiceColors[i].selected : `${choiceColors[i].base} ${choiceColors[i].hover}`
                         }`}
                       >
                         <span className="font-title mr-2">{i + 1}.</span>
@@ -557,81 +568,101 @@ useEffect(() => {
                     );
                   })}
                 </div>
+                {answerSubmitted && (
+                  <p className="text-center font-hand text-lg text-accent mt-4">정답을 제출했습니다! 결과를 기다려주세요...</p>
+                )}
               </div>
 
               <div className="w-72">
                 <div className="bg-white border-[3px] border-dark rounded-2xl shadow-kitsch p-5">
                   <h3 className="font-title text-lg mb-4">실시간 순위</h3>
                   <div className="flex flex-col gap-3">
-                    {mockScoreboard.map((p, i) => (
-                      <div key={p.nickname} className={`flex items-center gap-3 p-3 rounded-xl ${i === 0 ? "bg-primary/10 border-2 border-primary" : "bg-cream"}`}>
+                    {scoreboard.map((p, i) => (
+                      <div key={p.username} className={`flex items-center gap-3 p-3 rounded-xl ${i === 0 ? "bg-primary/10 border-2 border-primary" : "bg-cream"}`}>
                         <span className={`font-title text-xl w-6 ${i === 0 ? "text-primary" : i === 1 ? "text-accent" : i === 2 ? "text-secondary" : "text-gray-400"}`}>{i + 1}</span>
-                        <div className="w-8 h-8 rounded-full bg-cream border-2 border-dark flex items-center justify-center text-xs font-bold">{p.avatar}</div>
+                        <div className="w-8 h-8 rounded-full bg-cream border-2 border-dark flex items-center justify-center text-xs font-bold">{p.username.charAt(0)}</div>
                         <div className="flex-1">
-                          <p className="font-bold text-sm">{p.nickname}</p>
-                          <p className="text-xs text-gray-400">{p.correct}문제 정답</p>
+                          <p className="font-bold text-sm">{p.username}</p>
                         </div>
                         <span className="font-title text-lg">{p.score.toLocaleString()}</span>
                       </div>
                     ))}
                   </div>
                 </div>
-
-                <div className="bg-white border-[3px] border-dark rounded-2xl shadow-kitsch p-5 mt-4">
-                  <h3 className="font-title text-sm mb-3">제출 현황</h3>
-                  <div className="flex gap-2">
-                    <span className="w-8 h-8 rounded-full bg-accent border-2 border-dark flex items-center justify-center text-white text-xs font-bold">✓</span>
-                    <span className="w-8 h-8 rounded-full bg-accent border-2 border-dark flex items-center justify-center text-white text-xs font-bold">✓</span>
-                    <span className="w-8 h-8 rounded-full bg-gray-200 border-2 border-dark flex items-center justify-center text-gray-400 text-xs font-bold">?</span>
-                    <span className="w-8 h-8 rounded-full bg-gray-200 border-2 border-dark flex items-center justify-center text-gray-400 text-xs font-bold">?</span>
-                  </div>
-                  <p className="text-xs text-gray-400 mt-2">2/4명 제출 완료</p>
-                </div>
               </div>
             </div>
           )}
 
-          {/* ========== 결과 화면 ========== */}
+          {/* ========== 라운드 결과 ========== */}
+          {gameState === "roundResult" && roundResult && (
+            <div className="max-w-2xl mx-auto">
+              <div className="bg-white border-[3px] border-dark rounded-2xl shadow-kitsch p-8 mb-6 text-center">
+                <h2 className="font-title text-2xl mb-2">라운드 결과</h2>
+                <p className="font-hand text-lg text-gray-400 mb-4">정답: <span className="text-accent font-bold">{roundResult.correctAnswer}</span></p>
+                {roundResult.correctUsernames.length > 0 ? (
+                  <p className="text-sm font-bold text-primary">{roundResult.correctUsernames.join(", ")}님이 맞추셨습니다! 🎉</p>
+                ) : (
+                  <p className="text-sm font-bold text-gray-400">아무도 맞추지 못했습니다.</p>
+                )}
+              </div>
+
+              <div className="bg-white border-[3px] border-dark rounded-2xl shadow-kitsch p-6">
+                <h3 className="font-title text-lg mb-4">현재 순위</h3>
+                <div className="flex flex-col gap-3">
+                  {roundResult.scoreboard.map((p, i) => (
+                    <div key={p.username} className={`flex items-center gap-3 p-3 rounded-xl ${p.username === myNickname ? "bg-secondary/20 border-2 border-secondary" : "bg-cream"}`}>
+                      <span className={`font-title text-xl w-8 ${i === 0 ? "text-primary" : i === 1 ? "text-accent" : i === 2 ? "text-secondary" : "text-gray-400"}`}>{i + 1}</span>
+                      <div className="w-8 h-8 rounded-full bg-white border-2 border-dark flex items-center justify-center text-xs font-bold">{p.username.charAt(0)}</div>
+                      <p className="flex-1 font-bold text-sm">{p.username}</p>
+                      <span className="font-title text-lg">{p.score.toLocaleString()}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <p className="text-center font-hand text-gray-400 mt-4">다음 문제를 기다리는 중...</p>
+            </div>
+          )}
+
+          {/* ========== 최종 결과 ========== */}
           {gameState === "result" && (
             <div className="max-w-3xl mx-auto">
               <div className="text-center mb-10">
                 <h1 className="font-title text-4xl mb-2">🎉 게임 종료!</h1>
-                <p className="font-hand text-xl text-gray-400">{roomInfo?.quizSetTitle} · {roomInfo?.maxQuizzes}문제</p>
               </div>
 
-              <div className="bg-white border-[3px] border-primary rounded-2xl shadow-kitsch p-8 mb-6 text-center">
-                <div className="text-4xl mb-2">👑</div>
-                <div className="w-20 h-20 mx-auto rounded-full border-[4px] border-primary bg-primary/10 flex items-center justify-center mb-3">
-                  <span className="font-title text-3xl text-primary">{mockResult[0].nickname.charAt(0)}</span>
-                </div>
-                <h2 className="font-title text-2xl mb-1">{mockResult[0].nickname}</h2>
-                <p className="font-title text-4xl text-primary mb-2">{mockResult[0].score.toLocaleString()}점</p>
-                <div className="flex justify-center gap-4 text-sm text-gray-500">
-                  <span>{mockResult[0].correct}/{roomInfo?.maxQuizzes} 정답</span>
-                  <span className="text-accent font-bold">+{mockResult[0].earnedRankingScore} RP</span>
-                </div>
-              </div>
-
-              <div className="bg-white border-[3px] border-dark rounded-2xl shadow-kitsch overflow-hidden mb-8">
-                {mockResult.slice(1).map((r) => (
-                  <div key={r.rank} className="flex items-center px-6 py-5 border-b-2 border-dashed border-gray-200 last:border-b-0">
-                    <span className={`font-title text-2xl w-10 ${r.rank === 2 ? "text-accent" : r.rank === 3 ? "text-secondary" : "text-gray-400"}`}>{r.rank}</span>
-                    <div className="w-12 h-12 rounded-full bg-cream border-2 border-dark flex items-center justify-center font-bold mr-4">{r.nickname.charAt(0)}</div>
-                    <div className="flex-1">
-                      <p className="font-bold">{r.nickname}</p>
-                      <p className="text-xs text-gray-400">{r.correct}/{roomInfo?.maxQuizzes} 정답</p>
+              {scoreboard.length > 0 && (
+                <>
+                  <div className="bg-white border-[3px] border-primary rounded-2xl shadow-kitsch p-8 mb-6 text-center">
+                    <div className="text-4xl mb-2">👑</div>
+                    <div className="w-20 h-20 mx-auto rounded-full border-[4px] border-primary bg-primary/10 flex items-center justify-center mb-3">
+                      <span className="font-title text-3xl text-primary">{scoreboard[0].username.charAt(0)}</span>
                     </div>
-                    <div className="text-right mr-6">
-                      <p className="font-title text-xl">{r.score.toLocaleString()}점</p>
-                    </div>
-                    <span className="text-sm text-accent font-bold">+{r.earnedRankingScore} RP</span>
+                    <h2 className="font-title text-2xl mb-1">{scoreboard[0].username}</h2>
+                    <p className="font-title text-4xl text-primary">{scoreboard[0].score.toLocaleString()}점</p>
                   </div>
-                ))}
-              </div>
+
+                  <div className="bg-white border-[3px] border-dark rounded-2xl shadow-kitsch overflow-hidden mb-8">
+                    {scoreboard.slice(1).map((p, i) => (
+                      <div key={p.username} className={`flex items-center px-6 py-5 border-b-2 border-dashed border-gray-200 last:border-b-0 ${p.username === myNickname ? "bg-secondary/20" : ""}`}>
+                        <span className={`font-title text-2xl w-10 ${i + 2 === 2 ? "text-accent" : i + 2 === 3 ? "text-secondary" : "text-gray-400"}`}>{i + 2}</span>
+                        <div className="w-12 h-12 rounded-full bg-cream border-2 border-dark flex items-center justify-center font-bold mr-4">{p.username.charAt(0)}</div>
+                        <p className="flex-1 font-bold">{p.username}</p>
+                        <p className="font-title text-xl">{p.score.toLocaleString()}점</p>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
 
               <div className="flex gap-3">
                 <button
-                  onClick={() => setGameState("waiting")}
+                  onClick={() => {
+                    setGameState("waiting");
+                    setCurrentQuestion(null);
+                    setRoundResult(null);
+                    setScoreboard([]);
+                    setCurrentRound(0);
+                  }}
                   className="flex-1 py-4 bg-primary text-white font-bold text-lg border-[3px] border-dark rounded-2xl shadow-kitsch hover:shadow-kitsch-lg hover:-translate-y-0.5 transition-all"
                 >
                   한 판 더!
@@ -663,36 +694,25 @@ useEffect(() => {
     <>
       <Header />
       <div className="max-w-7xl mx-auto px-4 py-10 flex gap-6">
-        {/* 좌측 메인 */}
         <div className="flex-1">
           <div className="mb-6">
             <h1 className="font-title text-4xl mb-1">게임 대기실</h1>
             <p className="font-hand text-lg text-gray-400">참여할 퀴즈방을 선택하세요</p>
-            <button onClick={fetchLobbyData} className="font-title text-gray-400 ">
-   (새로고침)
-</button>
+            <button onClick={fetchLobbyData} className="font-title text-gray-400">(새로고침)</button>
           </div>
 
-          {/* 필터 */}
           <div className="flex gap-2 mb-6">
-            {[
-              { key: "all", label: "전체" },
-              { key: "waiting", label: "대기중" },
-              { key: "playing", label: "게임중" },
-            ].map((f) => (
+            {[{ key: "all", label: "전체" }, { key: "waiting", label: "대기중" }, { key: "playing", label: "게임중" }].map((f) => (
               <button
                 key={f.key}
                 onClick={() => setFilter(f.key)}
-                className={`px-5 py-2 border-[3px] border-dark rounded-full font-bold text-sm shadow-kitsch-sm transition-all ${
-                  filter === f.key ? "bg-secondary" : "bg-white hover:bg-gray-50"
-                }`}
+                className={`px-5 py-2 border-[3px] border-dark rounded-full font-bold text-sm shadow-kitsch-sm transition-all ${filter === f.key ? "bg-secondary" : "bg-white hover:bg-gray-50"}`}
               >
                 {f.label}
               </button>
             ))}
           </div>
 
-          {/* 방 목록 */}
           <div className="flex flex-col gap-3 mb-6">
             {filteredRooms.length === 0 ? (
               <div className="bg-white border-[3px] border-dark rounded-2xl p-10 shadow-kitsch text-center">
@@ -700,31 +720,20 @@ useEffect(() => {
               </div>
             ) : (
               filteredRooms.map((room) => (
-                <div
-                  key={room.gameSessionId}
-                  className="flex items-center bg-white border-[3px] border-dark rounded-2xl px-6 py-4 shadow-kitsch hover:shadow-kitsch-lg hover:-translate-y-0.5 transition-all cursor-pointer"
-                >
+                <div key={room.gameSessionId} className="flex items-center bg-white border-[3px] border-dark rounded-2xl px-6 py-4 shadow-kitsch hover:shadow-kitsch-lg hover:-translate-y-0.5 transition-all cursor-pointer">
                   <div className="flex-1">
                     <h3 className="font-bold mb-1">{room.roomName}</h3>
                     <p className="text-xs text-gray-400">{room.quizSetTitle} · {room.hostNickname}</p>
                   </div>
-
                   <div className="flex items-center gap-4">
                     <div className="text-right">
                       <p className="font-title text-xl text-primary">{room.currentPlayerCount}/{room.maxPlayer}</p>
                       <div className="w-16 h-2 bg-gray-200 rounded-full mt-1">
-                        <div
-                          className="h-full bg-primary rounded-full"
-                          style={{ width: `${(room.currentPlayerCount / room.maxPlayer) * 100}%` }}
-                        />
+                        <div className="h-full bg-primary rounded-full" style={{ width: `${(room.currentPlayerCount / room.maxPlayer) * 100}%` }} />
                       </div>
                     </div>
-
                     {room.status === "WAIT" ? (
-                      <button
-                        onClick={() => handleJoinRoom(room.gameSessionId)}
-                        className="px-4 py-2 bg-primary text-white border-[3px] border-dark rounded-xl text-sm font-bold shadow-kitsch-sm hover:shadow-kitsch hover:-translate-y-0.5 transition-all"
-                      >
+                      <button onClick={() => handleJoinRoom(room.gameSessionId)} className="px-4 py-2 bg-primary text-white border-[3px] border-dark rounded-xl text-sm font-bold shadow-kitsch-sm hover:shadow-kitsch hover:-translate-y-0.5 transition-all">
                         참여하기
                       </button>
                     ) : (
@@ -738,15 +747,11 @@ useEffect(() => {
             )}
           </div>
 
-          <button
-            onClick={handleOpenModal}
-            className="w-full py-4 bg-accent text-white font-bold text-lg border-[3px] border-dark rounded-2xl shadow-kitsch hover:shadow-kitsch-lg hover:-translate-y-0.5 transition-all"
-          >
+          <button onClick={handleOpenModal} className="w-full py-4 bg-accent text-white font-bold text-lg border-[3px] border-dark rounded-2xl shadow-kitsch hover:shadow-kitsch-lg hover:-translate-y-0.5 transition-all">
             + 새 방 만들기
           </button>
         </div>
 
-        {/* 우측 사이드바 */}
         <div className="w-80 flex flex-col gap-4">
           <div className="bg-white border-[3px] border-dark rounded-2xl p-6 shadow-kitsch">
             <h3 className="font-title text-lg mb-4">🏆 TOP 5</h3>
@@ -777,80 +782,42 @@ useEffect(() => {
           </div>
         </div>
 
-        {/* 방 만들기 모달 */}
         {showModal && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className="bg-white border-[3px] border-dark rounded-2xl shadow-kitsch-lg p-8 w-full max-w-md">
               <h2 className="font-title text-2xl mb-6">새 방 만들기</h2>
-
               {createError && (
-                <div className="mb-4 px-4 py-3 bg-red-50 border-2 border-red-300 rounded-xl text-sm text-red-600 font-bold">
-                  {createError}
-                </div>
+                <div className="mb-4 px-4 py-3 bg-red-50 border-2 border-red-300 rounded-xl text-sm text-red-600 font-bold">{createError}</div>
               )}
-
               <div className="mb-4">
                 <label className="block text-sm font-bold mb-2">방 제목</label>
-                <input
-                  type="text"
-                  placeholder="방 제목을 입력하세요"
-                  value={roomName}
-                  onChange={(e) => setRoomName(e.target.value)}
-                  className="w-full px-4 py-3 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none transition-colors"
-                />
+                <input type="text" placeholder="방 제목을 입력하세요" value={roomName} onChange={(e) => setRoomName(e.target.value)} className="w-full px-4 py-3 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none transition-colors" />
               </div>
-
               <div className="mb-4">
                 <label className="block text-sm font-bold mb-2">퀴즈셋</label>
-                <select
-                  value={selectedQuizSetId || ""}
-                  onChange={(e) => handleQuizSetChange(Number(e.target.value))}
-                  className="w-full px-4 py-3 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none transition-colors"
-                >
+                <select value={selectedQuizSetId || ""} onChange={(e) => handleQuizSetChange(Number(e.target.value))} className="w-full px-4 py-3 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none transition-colors">
                   {quizSets.map((q) => (
                     <option key={q.id} value={q.id}>{q.title} ({q.totalQuizCount}문제)</option>
                   ))}
                 </select>
               </div>
-
               <div className="grid grid-cols-2 gap-3 mb-6">
                 <div>
                   <label className="block text-sm font-bold mb-2">최대 인원</label>
-                  <select
-                    value={maxPlayers}
-                    onChange={(e) => setMaxPlayers(Number(e.target.value))}
-                    className="w-full px-4 py-3 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none transition-colors"
-                  >
-                    {[2, 3, 4, 5, 6, 7, 8].map((n) => (
-                      <option key={n} value={n}>{n}명</option>
-                    ))}
+                  <select value={maxPlayers} onChange={(e) => setMaxPlayers(Number(e.target.value))} className="w-full px-4 py-3 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none transition-colors">
+                    {[2, 3, 4, 5, 6, 7, 8].map((n) => <option key={n} value={n}>{n}명</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm font-bold mb-2">문제 수</label>
-                  <input
-                    type="number"
-                    min={1}
-                    max={quizSets.find((q) => q.id === selectedQuizSetId)?.totalQuizCount || 50}
-                    value={maxQuizzes}
-                    onChange={(e) => setMaxQuizzes(Number(e.target.value))}
-                    className="w-full px-4 py-3 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none transition-colors"
-                  />
+                  <input type="number" min={1} max={quizSets.find((q) => q.id === selectedQuizSetId)?.totalQuizCount || 50} value={maxQuizzes} onChange={(e) => setMaxQuizzes(Number(e.target.value))} className="w-full px-4 py-3 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none transition-colors" />
                 </div>
               </div>
-
               <div className="flex gap-3">
-                <button
-                  onClick={handleCreateRoom}
-                  disabled={creating}
-                  className="flex-1 py-4 bg-primary text-white font-bold text-lg border-[3px] border-dark rounded-xl shadow-kitsch hover:shadow-kitsch-lg hover:-translate-y-0.5 transition-all disabled:opacity-50"
-                >
+                <button onClick={handleCreateRoom} disabled={creating} className="flex-1 py-4 bg-primary text-white font-bold text-lg border-[3px] border-dark rounded-xl shadow-kitsch hover:shadow-kitsch-lg hover:-translate-y-0.5 transition-all disabled:opacity-50">
                   {creating ? "생성 중..." : "방 만들기"}
                 </button>
-                <button
-                  onClick={() => setShowModal(false)}
-                  className="px-6 py-4 bg-white text-dark font-bold border-[3px] border-dark rounded-xl shadow-kitsch-sm hover:shadow-kitsch hover:-translate-y-0.5 transition-all"
-                >
+                <button onClick={() => setShowModal(false)} className="px-6 py-4 bg-white text-dark font-bold border-[3px] border-dark rounded-xl shadow-kitsch-sm hover:shadow-kitsch hover:-translate-y-0.5 transition-all">
                   취소
                 </button>
               </div>

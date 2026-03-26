@@ -3,6 +3,7 @@ package com.eof.back.domain.auth.store;
 import com.eof.back.domain.auth.entity.RefreshToken;
 import com.eof.back.domain.auth.repository.RefreshTokenRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -35,6 +36,7 @@ import java.util.Optional;
  * @since 2026-03-23
  */
 @Component
+@ConditionalOnProperty(name = "custom.refresh-token.store", havingValue = "db", matchIfMissing = true)
 @RequiredArgsConstructor
 public class DbRefreshTokenStore implements RefreshTokenStore{
 

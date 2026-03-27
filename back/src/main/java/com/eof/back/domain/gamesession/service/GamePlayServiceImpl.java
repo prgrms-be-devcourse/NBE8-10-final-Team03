@@ -9,6 +9,8 @@ import com.eof.back.domain.quiz.dto.QuizBroadcastResponse;
 import com.eof.back.domain.quiz.dto.QuizResponse;
 import com.eof.back.domain.quiz.entity.Quiz;
 import com.eof.back.domain.quizset.dto.QuizSetResponse;
+import com.eof.back.domain.user.gamerecord.dto.GameResultRequest;
+import com.eof.back.domain.user.gamerecord.service.RecordService;
 import com.eof.back.global.exception.errorCode.GameSessionErrorCode;
 import com.eof.back.global.exception.exceptions.GameSessionException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -47,6 +49,7 @@ public class GamePlayServiceImpl implements GamePlayService {
     private final SimpMessagingTemplate messagingTemplate;
     private final ThreadPoolTaskScheduler gameTaskScheduler;
     private final GameSessionRepository gameSessionRepository;
+    private final RecordService recordService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     // 게임 방마다 실행 중인 스케줄러를 보관 (방 폭파나 게임 종료 시 멈추기 위함)
@@ -84,16 +87,19 @@ public class GamePlayServiceImpl implements GamePlayService {
         String maxRoundKey = getRedisKey(gameSessionId, "max_round");
         String questionsKey = getRedisKey(gameSessionId, "questions");
         String scoresKey = getRedisKey(gameSessionId, "scores");
+        String userMappingKey = getRedisKey(gameSessionId, "user_mapping");
 
         // 1. Redis 게임 상태 초기화
         redisTemplate.opsForValue().set(stateKey, "PLAYING");
         redisTemplate.opsForValue().set(roundKey, "0");
         redisTemplate.opsForValue().set(maxRoundKey, String.valueOf(maxQuizzes));
 
-        // 게임 스코어보드에 모든 참가자 0점 세팅
-        gameSession.getPlayers().forEach(player ->
-                redisTemplate.opsForZSet().add(scoresKey, player.getNickname(), 0.0)
-        );
+        // 게임 스코어보드 초기화 및 닉네임-ID 매핑 저장
+        gameSession.getPlayers().forEach(player -> {
+            redisTemplate.opsForZSet().add(scoresKey, player.getNickname(), 0.0);
+            // Redis에 저장 (nickname -> userId)
+            redisTemplate.opsForHash().put(userMappingKey, player.getNickname(), String.valueOf(player.getId()));
+        });
         redisTemplate.expire(scoresKey, REDIS_KEY_TTL);
 
         // 2. 문제 캐싱 (Preload)
@@ -145,9 +151,8 @@ public class GamePlayServiceImpl implements GamePlayService {
 
         // Redis 키 삭제
         List<String> keysToDelete = Stream.of(
-                "status", "round", "max_round", "questions", "current_answer", "answers", "scores"
+                "status", "round", "max_round", "questions", "current_answer", "answers", "scores", "user_mapping"
         ).map(suffix -> getRedisKey(gameSessionId, suffix)).collect(Collectors.toList());
-
         redisTemplate.delete(keysToDelete);
     }
 
@@ -168,6 +173,10 @@ public class GamePlayServiceImpl implements GamePlayService {
 
             if (currentRound >= maxRound) {
                 log.info("방 {} 의 모든 문제({}개)가 출제되어 게임이 종료됩니다.", gameSessionId, maxRound);
+
+                // 게임 결과 저장
+                endGame(gameSessionId);
+
                 broadcastToRoom(gameSessionId, GameMessageResponse.quizEnd());
                 stopGameTimer(gameSessionId);
                 return;
@@ -215,19 +224,61 @@ public class GamePlayServiceImpl implements GamePlayService {
     }
 
     @Override
-    public void submitAnswer(Long gameSessionId, String username, String answer) {
+    public void submitAnswer(Long gameSessionId, String nickname, String answer) {
         String answersKey = getRedisKey(gameSessionId, "answers");
         // 1. 키가 이미 존재하는지 확인
         Boolean hasKey = redisTemplate.hasKey(answersKey);
 
         // 2. 정답 저장
-        redisTemplate.opsForHash().put(answersKey, username, answer);
+        redisTemplate.opsForHash().put(answersKey, nickname, answer);
 
         //  3. 키가 없었던 경우에만 TTL을 설정
         if (Boolean.FALSE.equals(hasKey)) {
             redisTemplate.expire(answersKey, REDIS_KEY_TTL);
         }
-        log.info("방 {} - [{}] 님의 정답 제출: {}", gameSessionId, username, answer);
+        log.info("방 {} - [{}] 님의 정답 제출: {}", gameSessionId, nickname, answer);
+    }
+
+    private void endGame(Long gameSessionId) {
+        String scoresKey = getRedisKey(gameSessionId, "scores");
+        String userMappingKey = getRedisKey(gameSessionId, "user_mapping");
+
+        // 1. Redis에서 최종 점수 랭킹 조회 (내림차순)
+        Set<ZSetOperations.TypedTuple<String>> scoreTuples = redisTemplate.opsForZSet()
+                .reverseRangeWithScores(scoresKey, 0, -1);
+
+        if (scoreTuples == null || scoreTuples.isEmpty()) {
+            log.warn("방 {} - 저장할 게임 결과(점수)가 없습니다.", gameSessionId);
+            return;
+        }
+
+        // 2. Redis에서 닉네임 -> userId 매핑 정보 통째로 가져오기 (DB 조회 X)
+        Map<Object, Object> userMapping = redisTemplate.opsForHash().entries(userMappingKey);
+
+        List<GameResultRequest.PlayerResult> playerResults = new ArrayList<>();
+        int rank = 1;
+
+        for (ZSetOperations.TypedTuple<String> tuple : scoreTuples) {
+            String nickname = tuple.getValue();
+            int score = tuple.getScore() != null ? tuple.getScore().intValue() : 0;
+
+            // 3. 매핑 정보에서 userId 추출
+            Object userIdObj = userMapping.get(nickname);
+
+            if (userIdObj != null) {
+                Long userId = Long.valueOf(userIdObj.toString());
+                playerResults.add(new GameResultRequest.PlayerResult(userId, rank++, score));
+            } else {
+                log.warn("방 {} - 결과 저장 중 유저 매핑 실패 (닉네임: {})", gameSessionId, nickname);
+            }
+        }
+
+        // 4. 게임 결과 일괄 저장 (recordService 내부에서 @Transactional 시작됨)
+        if (!playerResults.isEmpty()) {
+            GameResultRequest gameResultRequest = new GameResultRequest(gameSessionId, playerResults);
+            recordService.saveGameResult(gameResultRequest);
+            log.info("방 {} - 게임 결과 저장 완료", gameSessionId);
+        }
     }
 
     private void gradeRound(Long gameSessionId) {
@@ -241,17 +292,17 @@ public class GamePlayServiceImpl implements GamePlayService {
 
         // 2. 유저들이 제출한 정답
         Map<Object, Object> submittedAnswers = redisTemplate.opsForHash().entries(answersKey);
-        List<String> correctUsernames = new ArrayList<>();
+        List<String> correctNickNames = new ArrayList<>();
 
         // 3. 채점 진행
         for (Map.Entry<Object, Object> entry : submittedAnswers.entrySet()) {
-            String username = (String) entry.getKey();
+            String nickname = (String) entry.getKey();
             String userAnswer = (String) entry.getValue();
 
             if (correctAnswer.trim().equals(userAnswer.trim())) {
                 // 정답을 맞췄다면 점수를 올리고, 정답자 명단에 이름 추가
-                redisTemplate.opsForZSet().incrementScore(scoresKey, username, 1.0);
-                correctUsernames.add(username);
+                redisTemplate.opsForZSet().incrementScore(scoresKey, nickname, 1.0);
+                correctNickNames.add(nickname);
             }
         }
 
@@ -266,10 +317,10 @@ public class GamePlayServiceImpl implements GamePlayService {
         }
 
         // 5. 프론트엔드로 정답, 정답자 명단, 순위표를 한 번에 발송
-        QuizResultResponse resultData = new QuizResultResponse(correctAnswer, correctUsernames, scoreboard);
+        QuizResultResponse resultData = new QuizResultResponse(correctAnswer, correctNickNames, scoreboard);
         broadcastToRoom(gameSessionId, GameMessageResponse.result(resultData));
 
-        log.info("방 {} - 채점 완료. 정답: {}, 정답자: {}, 순위표: {}", gameSessionId, correctAnswer, correctUsernames, scoreboard);
+        log.info("방 {} - 채점 완료. 정답: {}, 정답자: {}, 순위표: {}", gameSessionId, correctAnswer, correctNickNames, scoreboard);
 
         // 6. 다음 라운드를 위해 정답 제출 비우기
         redisTemplate.delete(answersKey);

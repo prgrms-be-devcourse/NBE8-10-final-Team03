@@ -20,6 +20,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 게임세션(room) 인터페이스의 기본 구현체입니다.
@@ -63,9 +64,11 @@ public class GameSessionServiceImpl implements GameSessionService {
     @Override
     @Transactional
     public List<GameSessionListResponse> getAllGameSessions() {
-        return gameSessionRepository.findAll().stream()
+        List<GameSession> waitingSessions = gameSessionRepository.findAllByStatus(GameSessionStatus.WAIT);
+
+        return waitingSessions.stream()
                 .map(GameSessionListResponse::from)
-                .toList();
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -78,7 +81,7 @@ public class GameSessionServiceImpl implements GameSessionService {
             throw new GameSessionException(GameSessionErrorCode.UNAUTHORIZED_HOST_ACTION, "방장이 아닌 사람이 방을 삭제할 수 없습니다.");
         }
         // 검증 후 삭제
-        gameSessionRepository.delete(gameSession);
+        gameSession.endGame();
     }
 
     @Override
@@ -135,7 +138,7 @@ public class GameSessionServiceImpl implements GameSessionService {
             // 게임 세션을 삭제하기 전에, 유저 리스트 비우기
             gameSession.getPlayers().clear();
             // [CASE 1] 나가는 사람이 방장인 경우: 방 자체를 DB에서 완전히 삭제
-            gameSessionRepository.delete(gameSession);
+            gameSession.endGame();
 
             // 방이 삭제 후, 돌아가고 있던 퀴즈 타이머도 종료
             gamePlayService.stopGameTimer(gameSessionId);

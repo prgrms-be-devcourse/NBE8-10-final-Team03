@@ -1,11 +1,12 @@
 package com.eof.back.domain.user.gamerecord.util;
 
-import com.eof.back.domain.user.gamerecord.util.ScoreCalculator;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.test.context.ActiveProfiles;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@ActiveProfiles("test")
 class ScoreCalculatorTest {
 
     @Test

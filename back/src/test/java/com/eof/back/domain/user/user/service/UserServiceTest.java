@@ -5,7 +5,6 @@ import com.eof.back.domain.user.user.dto.UserUpdateRequest;
 import com.eof.back.domain.user.user.dto.UserUpdateResponse;
 import com.eof.back.domain.user.user.entity.User;
 import com.eof.back.domain.user.user.repository.UserRepository;
-import com.eof.back.domain.user.user.service.UserServiceImpl;
 import com.eof.back.global.exception.errorCode.AuthErrorCode;
 import com.eof.back.global.exception.exceptions.AuthException;
 import org.junit.jupiter.api.DisplayName;
@@ -15,6 +14,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Optional;
@@ -40,6 +40,7 @@ import static org.mockito.Mockito.when;
  * @since 2026-03-18
  */
 @ExtendWith(MockitoExtension.class)
+@ActiveProfiles("test")
 public class UserServiceTest {
 
     @Mock

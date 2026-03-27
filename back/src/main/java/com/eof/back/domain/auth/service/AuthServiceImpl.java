@@ -118,7 +118,13 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findById(savedRefreshToken.getUserId())
                 .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND));
 
-        // 3. 새로운 Access Token, Refresh Token 생성
+        // 3. 탈퇴/정지 여부 확인 (비활성 계정이면 저장된 Refresh Token도 삭제)
+        if (!user.isActive()) {
+            refreshTokenStore.delete(user.getId());
+            throw new AuthException(AuthErrorCode.LOGIN_FAIL);
+        }
+
+        // 4. 새로운 Access Token, Refresh Token 생성
         String newAccessToken = jwtTokenProvider.createAccessToken(
                 user.getId(),
                 user.getUsername(),
@@ -127,7 +133,7 @@ public class AuthServiceImpl implements AuthService {
         );
         String newRefreshToken = jwtTokenProvider.createRefreshToken(user.getId());
 
-        // 4. Refresh Token 저장소 갱신
+        // 5. Refresh Token 저장소 갱신
         LocalDateTime refreshTokenExpiredAt = LocalDateTime.now().plusSeconds(refreshTokenExpireSeconds);
         refreshTokenStore.save(user.getId(), newRefreshToken, refreshTokenExpiredAt);
 

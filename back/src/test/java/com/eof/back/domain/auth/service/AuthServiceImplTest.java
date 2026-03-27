@@ -284,6 +284,7 @@ public class AuthServiceImplTest {
             given(jwtTokenProvider.getUserId(claims)).willReturn(USER_ID);
             given(refreshTokenStore.findByUserId(USER_ID)).willReturn(Optional.of(savedToken));
             given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
+            given(user.isActive()).willReturn(true);
             given(user.getId()).willReturn(USER_ID);
             given(user.getUsername()).willReturn("testuser");
             given(user.getRole()).willReturn(Role.USER);
@@ -298,6 +299,35 @@ public class AuthServiceImplTest {
             assertThat(response.accessToken()).isEqualTo(NEW_ACCESS_TOKEN);
             assertThat(response.refreshToken()).isEqualTo(NEW_REFRESH_TOKEN);
             verify(refreshTokenStore).save(eq(USER_ID), eq(NEW_REFRESH_TOKEN), any(LocalDateTime.class));
+        }
+
+        @Test
+        @DisplayName("실패 - 비활성 계정이면 LOGIN_FAIL 예외가 발생하고 RefreshToken이 삭제된다")
+        void fail_inactiveUser() {
+            // given
+            Claims claims = mock(Claims.class);
+            RefreshToken savedToken = RefreshToken.builder()
+                    .userId(USER_ID)
+                    .token(REFRESH_TOKEN)
+                    .expiredAt(LocalDateTime.now().plusDays(7))
+                    .build();
+            User user = mock(User.class);
+
+            given(jwtTokenProvider.validateToken(REFRESH_TOKEN)).willReturn(claims);
+            given(jwtTokenProvider.getUserId(claims)).willReturn(USER_ID);
+            given(refreshTokenStore.findByUserId(USER_ID)).willReturn(Optional.of(savedToken));
+            given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
+            given(user.isActive()).willReturn(false);
+            given(user.getId()).willReturn(USER_ID);
+
+            // when & then
+            assertThatThrownBy(() -> authService.reissue(REFRESH_TOKEN))
+                    .isInstanceOf(AuthException.class)
+                    .satisfies(e -> assertThat(((AuthException) e).getErrorCode())
+                            .isEqualTo(AuthErrorCode.LOGIN_FAIL));
+
+            verify(refreshTokenStore).delete(USER_ID);
+            verify(jwtTokenProvider, never()).createAccessToken(any(), any(), any(), any());
         }
 
         @Test

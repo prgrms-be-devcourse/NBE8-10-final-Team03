@@ -4,7 +4,6 @@ import com.eof.back.domain.user.gamerecord.dto.GameResultRequest;
 import com.eof.back.domain.user.gamerecord.dto.UserRecordResponse;
 import com.eof.back.domain.user.gamerecord.entity.GameRecord;
 import com.eof.back.domain.user.gamerecord.repository.GameRecordRepository;
-import com.eof.back.domain.user.gamerecord.service.RecordServiceImpl;
 import com.eof.back.domain.gamesession.entity.GameSession;
 import com.eof.back.domain.gamesession.repository.GameSessionRepository;
 import com.eof.back.domain.quizset.entity.QuizSet;
@@ -20,25 +19,24 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-
-
 import java.util.List;
 import java.util.Optional;
 
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.verify;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 
 @ExtendWith(MockitoExtension.class)
+@ActiveProfiles("test")
 class RecordServiceImplTest {
 
     @InjectMocks

@@ -15,9 +15,18 @@ import com.eof.back.domain.user.quizsetbookmark.entity.QuizSetBookmark;
  * @since 2026-03-25
  */
 public record BookmarkItemResponse(
-        Long quizSetId
+        Long quizSetId,
+        String title,
+        String description,
+        Integer totalQuizCount
 ) {
     public static BookmarkItemResponse from(QuizSetBookmark bookmark) {
-        return new BookmarkItemResponse(bookmark.getQuizSet().getId());
+        var quizSet = bookmark.getQuizSet();
+        return new BookmarkItemResponse(
+                quizSet.getId(),
+                quizSet.getTitle(),
+                quizSet.getDescription(),
+                quizSet.getTotalQuizCount()
+        );
     }
 }

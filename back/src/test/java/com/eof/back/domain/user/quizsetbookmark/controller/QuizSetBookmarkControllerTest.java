@@ -103,14 +103,18 @@ class QuizSetBookmarkControllerTest {
 
             given(quizSetBookmarkService.getBookmarks(userId))
                     .willReturn(List.of(
-                            new BookmarkItemResponse(10L),
-                            new BookmarkItemResponse(20L)
+                            new BookmarkItemResponse(10L, "퀴즈셋1", "설명1", 5),
+                            new BookmarkItemResponse(20L, "퀴즈셋2", "설명2", 10)
                     ));
 
             mockMvc.perform(get("/api/v1/users/1/bookmarks"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.data[0].quizSetId").value(10))
+                    .andExpect(jsonPath("$.data[0].title").value("퀴즈셋1"))
+                    .andExpect(jsonPath("$.data[0].totalQuizCount").value(5))
                     .andExpect(jsonPath("$.data[1].quizSetId").value(20))
+                    .andExpect(jsonPath("$.data[1].title").value("퀴즈셋2"))
+                    .andExpect(jsonPath("$.data[1].totalQuizCount").value(10))
                     .andExpect(jsonPath("$.message").value("내 퀴즈셋 북마크 목록을 조회했습니다."));
         }
 

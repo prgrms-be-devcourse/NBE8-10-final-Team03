@@ -176,10 +176,10 @@ class QuizSetBookmarkServiceImplTest {
             User user = User.builder().build();
             ReflectionTestUtils.setField(user, "id", userId);
 
-            QuizSet quizSet1 = QuizSet.builder().title("퀴즈셋1").build();
+            QuizSet quizSet1 = QuizSet.builder().title("퀴즈셋1").description("설명1").totalQuizCount(5).build();
             ReflectionTestUtils.setField(quizSet1, "id", 10L);
 
-            QuizSet quizSet2 = QuizSet.builder().title("퀴즈셋2").build();
+            QuizSet quizSet2 = QuizSet.builder().title("퀴즈셋2").description("설명2").totalQuizCount(10).build();
             ReflectionTestUtils.setField(quizSet2, "id", 20L);
 
             QuizSetBookmark bookmark1 = QuizSetBookmark.of(user, quizSet1);
@@ -195,7 +195,11 @@ class QuizSetBookmarkServiceImplTest {
             // then
             assertThat(result).hasSize(2);
             assertThat(result.get(0).quizSetId()).isEqualTo(10L);
+            assertThat(result.get(0).title()).isEqualTo("퀴즈셋1");
+            assertThat(result.get(0).totalQuizCount()).isEqualTo(5);
             assertThat(result.get(1).quizSetId()).isEqualTo(20L);
+            assertThat(result.get(1).title()).isEqualTo("퀴즈셋2");
+            assertThat(result.get(1).totalQuizCount()).isEqualTo(10);
         }
 
         @Test

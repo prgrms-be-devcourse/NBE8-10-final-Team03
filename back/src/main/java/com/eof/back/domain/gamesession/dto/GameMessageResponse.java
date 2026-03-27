@@ -34,9 +34,9 @@ public record GameMessageResponse<T>(
         return new GameMessageResponse<>(MessageType.LEAVE, sender, message, data);
     }
 
-    // 방 삭제용 팩토리 메서드
-    public static GameMessageResponse<Void> roomDeleted(String message) {
-        return new GameMessageResponse<>(MessageType.ROOM_DELETED, "SYSTEM", message, null);
+    // 방 종료용 팩토리 메서드
+    public static GameMessageResponse<Void> roomEnded(String message) {
+        return new GameMessageResponse<>(MessageType.ROOM_ENDED, "SYSTEM", message, null);
     }
 
     //문제 정보 전달 메소드

@@ -15,7 +15,7 @@ public enum MessageType {
     ENTER,  // 입장
     LEAVE,  // 퇴장
     CHAT,    // 일반 채팅
-    ROOM_DELETED, // 방삭제
+    ROOM_ENDED, // 방삭제
     QUIZ, // 퀴즈
     RESULT,
     QUIZ_END,

@@ -135,16 +135,16 @@ public class GameSessionServiceImpl implements GameSessionService {
         // 3. 방장 여부 확인 및 분기 처리
         if (gameSession.getHost().getId().equals(userId)) {
 
-            // 게임 세션을 삭제하기 전에, 유저 리스트 비우기
+            // 게임 세션의 status를 END로 바꾸기전에, 유저 리스트 비우기
             gameSession.getPlayers().clear();
-            // [CASE 1] 나가는 사람이 방장인 경우: 방 자체를 DB에서 완전히 삭제
+            // [CASE 1] 나가는 사람이 방장인 경우: 게임 세션의 status를 END로 변경
             gameSession.endGame();
 
-            // 방이 삭제 후, 돌아가고 있던 퀴즈 타이머도 종료
+            // 방에서 모든 유저가 나간 후, 돌아가고 있던 퀴즈 타이머도 종료
             gamePlayService.stopGameTimer(gameSessionId);
 
-            // 프론트엔드에게 방이 폭파되었음을 TYPE : ROOM_DELETED으로 알림
-            GameMessageResponse<Void> response = GameMessageResponse.roomDeleted("방장이 퇴장하여 게임 방이 삭제되었습니다.");
+            // 프론트엔드에게 방이 사라졌음을 TYPE : ROOM_DELETED으로 알림
+            GameMessageResponse<Void> response = GameMessageResponse.roomEnded("방장이 퇴장하여 게임 방이 종료되었습니다.");
             messagingTemplate.convertAndSend(destination, response);
         } else {
             // [CASE 2] 일반 참가자가 나가는 경우: 방 명단에서 해당 유저만 제거 및 카운트 감소

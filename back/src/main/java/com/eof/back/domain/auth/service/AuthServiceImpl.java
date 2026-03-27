@@ -92,9 +92,9 @@ public class AuthServiceImpl implements AuthService {
             throw new AuthException(AuthErrorCode.INVALID_CREDENTIALS);
         }
 
-        // 3. 탈퇴 여부 확인
-        if (user.isDeleted()) {
-            throw new AuthException(AuthErrorCode.USER_ALREADY_DELETED);
+        // 3. 탈퇴/정지 여부 확인 (구체적인 상태를 노출하지 않아 계정 열거 공격 방지)
+        if (!user.isActive()) {
+            throw new AuthException(AuthErrorCode.LOGIN_FAIL);
         }
 
         // 4. AccessToken, RefreshToken 생성

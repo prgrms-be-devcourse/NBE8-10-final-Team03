@@ -35,13 +35,13 @@ public interface UserRepository extends JpaRepository<User,Long> {
 
     Optional<User> findByUsername(String username);
 
-    @Query("SELECT u FROM User u WHERE u.deletedAt IS NULL " +
+    @Query("SELECT u FROM User u WHERE u.status = com.eof.back.domain.user.user.entity.UserStatus.ACTIVE " +
             "ORDER BY u.totalRankingScore DESC, u.id ASC")
     List<User> findTop10ActiveUsers(Pageable pageable);
 
     @Query("SELECT COUNT(u) + 1 FROM User u " +
             "WHERE u.totalRankingScore > " +
             "(SELECT u2.totalRankingScore FROM User u2 WHERE u2.id = :userId) " +
-            "AND u.deletedAt IS NULL")
+            "AND u.status = com.eof.back.domain.user.user.entity.UserStatus.ACTIVE")
     Long findMyRankByUserId(@Param("userId") Long userId);
 }

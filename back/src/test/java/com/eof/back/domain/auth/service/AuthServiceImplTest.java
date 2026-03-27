@@ -167,6 +167,7 @@ public class AuthServiceImplTest {
             given(userRepository.findByUsername("testUser")).willReturn(Optional.of(user));
             given(user.getPassword()).willReturn("encodedPassword");
             given(passwordEncoder.matches("password123", "encodedPassword")).willReturn(true);
+            given(user.isActive()).willReturn(true);
             given(user.getId()).willReturn(USER_ID);
             given(user.getUsername()).willReturn("testUser");
             given(user.getRole()).willReturn(Role.USER);
@@ -221,7 +222,7 @@ public class AuthServiceImplTest {
         }
 
         @Test
-        @DisplayName("실패 - 탈퇴한 사용자면 USER_ALREADY_DELETED 예외가 발생한다")
+        @DisplayName("실패 - 탈퇴한 사용자면 LOGIN_FAIL 예외가 발생한다")
         void fail_deletedUser() {
             // given
             LoginRequest req = new LoginRequest("testUser", "password123");
@@ -230,13 +231,34 @@ public class AuthServiceImplTest {
             given(userRepository.findByUsername("testUser")).willReturn(Optional.of(user));
             given(user.getPassword()).willReturn("encodedPassword");
             given(passwordEncoder.matches("password123", "encodedPassword")).willReturn(true);
-            given(user.isDeleted()).willReturn(true);
+            given(user.isActive()).willReturn(false);
 
             // when & then
             assertThatThrownBy(() -> authService.login(req))
                     .isInstanceOf(AuthException.class)
                     .satisfies(e -> assertThat(((AuthException) e).getErrorCode())
-                            .isEqualTo(AuthErrorCode.USER_ALREADY_DELETED));
+                            .isEqualTo(AuthErrorCode.LOGIN_FAIL));
+
+            verify(jwtTokenProvider, never()).createAccessToken(any(), any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("실패 - 정지된 사용자면 LOGIN_FAIL 예외가 발생한다")
+        void fail_suspendedUser() {
+            // given
+            LoginRequest req = new LoginRequest("testUser", "password123");
+            User user = mock(User.class);
+
+            given(userRepository.findByUsername("testUser")).willReturn(Optional.of(user));
+            given(user.getPassword()).willReturn("encodedPassword");
+            given(passwordEncoder.matches("password123", "encodedPassword")).willReturn(true);
+            given(user.isActive()).willReturn(false);
+
+            // when & then
+            assertThatThrownBy(() -> authService.login(req))
+                    .isInstanceOf(AuthException.class)
+                    .satisfies(e -> assertThat(((AuthException) e).getErrorCode())
+                            .isEqualTo(AuthErrorCode.LOGIN_FAIL));
 
             verify(jwtTokenProvider, never()).createAccessToken(any(), any(), any(), any());
         }

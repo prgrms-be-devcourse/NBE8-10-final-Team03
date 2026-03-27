@@ -26,6 +26,7 @@ public enum AuthErrorCode implements ErrorCode {
     USER_UPDATE_FAIL(HttpStatus.BAD_REQUEST, "사용자 정보 수정에 실패하였습니다."),
     USER_DELETE_FAIL(HttpStatus.BAD_REQUEST, "사용자 삭제에 실패하였습니다."),
     USER_ALREADY_DELETED(HttpStatus.GONE, "이미 탈퇴한 사용자입니다."),
+    USER_SUSPENDED(HttpStatus.FORBIDDEN, "정지된 계정입니다."),
 
     // 회원가입 및 로그인
     SIGNUP_FAIL(HttpStatus.BAD_REQUEST, "회원가입에 실패하였습니다."),

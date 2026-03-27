@@ -5,6 +5,7 @@ package com.eof.back.domain.user.user.entity;
  *
  * <ul>
  *     <li>ACTIVE : 정상 활동 중인 사용자</li>
+ *     <li>SUSPENDED : 관리자에 의해 정지된 사용자</li>
  *     <li>DELETED : 탈퇴 처리된 사용자</li>
  * </ul>
  *

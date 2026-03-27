@@ -101,7 +101,7 @@ public class AuthServiceImpl implements AuthService {
         String accessToken = jwtTokenProvider.createAccessToken(user.getId(), user.getUsername(), user.getRole().name(), user.getNickname());
         String refreshToken = jwtTokenProvider.createRefreshToken(user.getId());
 
-        // 4. RefreshToken 저장
+        // 5. RefreshToken 저장
         LocalDateTime refreshTokenExpiredAt = LocalDateTime.now().plusSeconds(refreshTokenExpireSeconds);
         refreshTokenStore.save(user.getId(), refreshToken, refreshTokenExpiredAt);
 

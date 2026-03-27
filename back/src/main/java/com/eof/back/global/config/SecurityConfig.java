@@ -16,6 +16,11 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
 
 /**
  * Spring Security 전반 설정을 담당하는 클래스입니다.
@@ -27,6 +32,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
  * <p><b>주요 기능:</b><br>
  * - PasswordEncoder Bean 등록 (BCrypt)
  * - JWT 인증 필터 등록
+ * - CORS 설정 (Next.js localhost:3000 허용)
  * - 인증/인가 정책 설정 (permitAll / authenticated)
  * - 세션 미사용(Stateless) 설정
  *
@@ -75,6 +81,36 @@ public class SecurityConfig {
     }
 
     /**
+     * CORS 설정을 구성합니다.
+     * <p>
+     * Next.js 개발 서버(localhost:3000)의 요청을 허용하며,
+     * Location 헤더를 노출하여 프론트엔드에서 리다이렉트 URL을 읽을 수 있도록 합니다.
+     * 배포 시 allowedOriginPatterns에 실제 도메인을 추가해야 합니다.
+     *
+     * @return CORS 설정 소스
+     */
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+
+        config.setExposedHeaders(List.of("Location"));
+        config.setAllowedOriginPatterns(List.of(
+                "http://localhost:3000",
+                "http://127.0.0.1:3000"
+        ));
+        config.setAllowedMethods(List.of(
+                "GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"
+        ));
+        config.setAllowedHeaders(List.of("*"));
+        config.setAllowCredentials(true);
+        config.setMaxAge(3600L);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
+    }
+
+    /**
      * Spring Security 필터 체인을 구성합니다.
      *
      * @param http HttpSecurity 객체
@@ -84,6 +120,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
@@ -91,14 +128,10 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authorizeHttpRequests(auth -> {
-                    // 모든 메서드 허용 URL 적용
                     auth.requestMatchers(SecurityUrlRegistry.PERMIT_ALL_URLS).permitAll();
-                    
-                    // 특정 메서드별 허용 URL 적용
-                    SecurityUrlRegistry.PUBLIC_METHOD_URLS.forEach((method, urls) -> 
+                    SecurityUrlRegistry.PUBLIC_METHOD_URLS.forEach((method, urls) ->
                             auth.requestMatchers(method, urls).permitAll()
                     );
-                    
                     auth.anyRequest().authenticated();
                 })
                 .exceptionHandling(ex -> ex

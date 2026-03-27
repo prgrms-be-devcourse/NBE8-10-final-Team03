@@ -1,11 +1,19 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 export default function Home() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    setIsLoggedIn(!!localStorage.getItem("accessToken"));
+  }, []);
+
   return (
     <>
       {/* 히어로 섹션 */}
       <section className="relative text-center py-20 px-4 overflow-hidden">
-        {/* 배경 장식 */}
         <span className="absolute top-12 left-12 font-title text-[120px] text-accent opacity-15 select-none -rotate-12">?</span>
         <span className="absolute top-20 right-16 font-title text-[100px] text-primary opacity-15 select-none rotate-12">!</span>
         <span className="absolute bottom-16 left-24 font-title text-[80px] text-secondary opacity-20 select-none rotate-6">?!</span>
@@ -37,10 +45,10 @@ export default function Home() {
         </div>
 
         <Link
-          href="/signup"
+          href={isLoggedIn ? "/rooms" : "/signup"}
           className="relative z-10 inline-block px-16 py-5 bg-primary text-white font-bold text-xl border-[3px] border-dark rounded-2xl shadow-kitsch hover:shadow-kitsch-lg hover:-translate-y-1 transition-all"
         >
-          시작하기
+          {isLoggedIn ? "대결하러 가기" : "시작하기"}
         </Link>
       </section>
 
@@ -70,10 +78,10 @@ export default function Home() {
       {/* 하단 CTA */}
       <section className="text-center pb-20">
         <Link
-          href="/rooms"
+          href={isLoggedIn ? "/rooms" : "/login"}
           className="inline-block px-12 py-5 bg-accent text-white font-bold text-xl border-[3px] border-dark rounded-2xl shadow-kitsch hover:shadow-kitsch-lg hover:-translate-y-1 transition-all"
         >
-          지금 바로 대결하러 가기
+          {isLoggedIn ? "지금 바로 대결하러 가기" : "로그인하고 대결하기"}
         </Link>
       </section>
     </>

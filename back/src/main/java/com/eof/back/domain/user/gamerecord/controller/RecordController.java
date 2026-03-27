@@ -2,6 +2,9 @@ package com.eof.back.domain.user.gamerecord.controller;
 
 import com.eof.back.domain.user.gamerecord.dto.UserRecordResponse;
 import com.eof.back.domain.user.gamerecord.service.RecordService;
+import com.eof.back.domain.user.gamerecord.dto.UserRecordResponse;
+import com.eof.back.domain.user.gamerecord.service.RecordService;
+import com.eof.back.global.jwt.UserPrincipal;
 import com.eof.back.global.response.CommonResponse;
 import com.eof.back.global.response.Response;
 import lombok.RequiredArgsConstructor;

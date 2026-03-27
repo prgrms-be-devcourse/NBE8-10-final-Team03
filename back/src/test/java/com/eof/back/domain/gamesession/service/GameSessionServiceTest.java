@@ -88,7 +88,7 @@ public class GameSessionServiceTest {
     }
 
     @Test
-    @DisplayName("전체 게임 세션 조회 테스트")
+    @DisplayName("대기 중인 전체 게임 세션 조회 테스트")
     void getAllGameSessions_Success() {
         GameSession session1 = mock(GameSession.class);
         GameSession session2 = mock(GameSession.class);
@@ -96,7 +96,8 @@ public class GameSessionServiceTest {
         setupMockSession(session1, 1L, "방1", "테스터1", 10L, "퀴즈1");
         setupMockSession(session2, 2L, "방2", "테스터2", 20L, "퀴즈2");
 
-        given(gameSessionRepository.findAll()).willReturn(List.of(session1, session2));
+        given(gameSessionRepository.findAllByStatus(GameSessionStatus.WAIT))
+                .willReturn(List.of(session1, session2));
 
         List<GameSessionListResponse> responses = gameSessionService.getAllGameSessions();
 
@@ -120,7 +121,7 @@ public class GameSessionServiceTest {
     }
 
     @Test
-    @DisplayName("게임 세션 삭제 성공 테스트")
+    @DisplayName("게임 세션 삭제(상태 변경) 성공 테스트")
     void deleteGameSession_Success() {
         // given
         Long userId = 1L; // 삭제를 요청한 유저 아이디
@@ -138,8 +139,11 @@ public class GameSessionServiceTest {
         gameSessionService.deleteGameSession(userId, gameSessionId);
 
         // then
-        // delete 메서드가 정확히 1번 호출되었는지 검증
-        verify(gameSessionRepository, times(1)).delete(mockSession);
+        // [수정된 부분] 레포지토리의 delete 대신 엔티티의 endGame() 호출 검증
+        verify(mockSession, times(1)).endGame(); // (엔티티에 작성하신 상태 변경 메서드명으로 맞춰주세요)
+
+        // (선택 사항) delete가 절대 호출되지 않았는지 명시적으로 검증할 수도 있습니다.
+        verify(gameSessionRepository, never()).delete(any());
     }
 
     @Test
@@ -266,7 +270,8 @@ public class GameSessionServiceTest {
 
         gameSessionService.leaveRoom(hostId, gameSessionId);
 
-        verify(gameSessionRepository, times(1)).delete(mockSession); // 방 삭제 로직이 실행되었는지 확인
+        verify(mockSession, times(1)).endGame(); //
+
         verify(mockSession, never()).leave(any()); // 일반 퇴장 로직은 실행되지 않아야 함
     }
 

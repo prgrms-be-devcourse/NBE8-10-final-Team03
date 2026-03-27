@@ -38,8 +38,8 @@ public interface GamePlayService {
      * 유저가 제출한 퀴즈 정답을 저장소에 임시로 기록합니다.
      *
      * @param gameSessionId 정답을 제출한 게임 세션의 아이디
-     * @param username      정답을 제출한 유저의 닉네임
+     * @param nickname      정답을 제출한 유저의 닉네임
      * @param answer        유저가 제출한 정답 내용
      */
-    void submitAnswer(Long gameSessionId, String username, String answer);
+    void submitAnswer(Long gameSessionId, String nickname, String answer);
 }

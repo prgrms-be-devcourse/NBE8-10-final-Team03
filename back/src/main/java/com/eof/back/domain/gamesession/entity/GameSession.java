@@ -157,4 +157,8 @@ public class GameSession extends BaseEntity {
             this.currentPlayersCount--;
         }
     }
+
+    public void endGame() {
+        this.status = GameSessionStatus.END;
+    }
 }

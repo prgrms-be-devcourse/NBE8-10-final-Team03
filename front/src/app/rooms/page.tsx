@@ -226,7 +226,7 @@ export default function RoomsPage() {
                 }
                 break;
 
-              case "ROOM_DELETED":
+              case "ROOM_ENDED":
                 alert("방장이 나가 방이 삭제되었습니다.");
                 stompClientRef.current?.deactivate();
                 stompClientRef.current = null;

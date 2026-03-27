@@ -1,6 +1,7 @@
 package com.eof.back.domain.gamesession.repository;
 
 import com.eof.back.domain.gamesession.entity.GameSession;
+import com.eof.back.domain.gamesession.entity.GameSessionStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -42,4 +43,12 @@ public interface GameSessionRepository extends JpaRepository<GameSession, Long> 
     @Modifying(clearAutomatically = true)
     @Query("DELETE FROM GameSession gs WHERE gs.quizSet.id = :quizSetId")
     void deleteByQuizSetId(@Param("quizSetId") Long quizSetId);
+
+    /**
+     * 게임세션의 상태에 따라서 DB에서 조회
+     *
+     * @param status
+     * @return
+     */
+    List<GameSession> findAllByStatus(GameSessionStatus status);
 }

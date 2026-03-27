@@ -57,10 +57,10 @@ public class GamePlayController {
 
         UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
 
-        log.info("[방 {} 채팅] {} : {}", gameSessionId, userPrincipal.username(), request.message());
+        log.info("[방 {} 채팅] {} : {}", gameSessionId, userPrincipal.nickname(), request.message());
 
         GameMessageResponse<Void> response = GameMessageResponse.chat(
-                userPrincipal.username(),
+                userPrincipal.nickname(),
                 request.message()
         );
 
@@ -89,6 +89,6 @@ public class GamePlayController {
     ) {
         UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
 
-        gamePlayService.submitAnswer(gameSessionId, userPrincipal.username(), request.answer());
+        gamePlayService.submitAnswer(gameSessionId, userPrincipal.nickname(), request.answer());
     }
 }

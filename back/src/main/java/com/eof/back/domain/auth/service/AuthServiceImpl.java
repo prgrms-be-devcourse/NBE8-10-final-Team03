@@ -46,7 +46,6 @@ import java.time.LocalDateTime;
  */
 @Service
 @RequiredArgsConstructor
-@Transactional
 public class AuthServiceImpl implements AuthService {
 
     private final JwtTokenProvider jwtTokenProvider;
@@ -58,6 +57,7 @@ public class AuthServiceImpl implements AuthService {
     private long refreshTokenExpireSeconds;
 
     @Override
+    @Transactional
     public SignupResponse signup(SignupRequest req) {
 
         // 1. 아이디/닉네임 중복 검증
@@ -81,6 +81,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional
     public LoginResponse login(LoginRequest req) {
 
         // 1. username으로 사용자 조회
@@ -109,6 +110,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional
     public ReissueResponse reissue(String refreshToken) {
 
         // 1. Refresh Token 검증 및 저장된 토큰 조회
@@ -141,6 +143,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional
     public void logout(String refreshToken) {
 
         // 1. Refresh Token 검증 및 저장된 토큰 조회
@@ -151,6 +154,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional
     public void withdraw(Long userId) {
 
         // 1. 사용자 조회

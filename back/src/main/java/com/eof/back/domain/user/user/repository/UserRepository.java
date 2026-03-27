@@ -29,19 +29,21 @@ import java.util.Optional;
  */
 public interface UserRepository extends JpaRepository<User,Long> {
 
+    String ACTIVE = "com.eof.back.domain.user.user.entity.UserStatus.ACTIVE";
+
     boolean existsByUsername(String username);
 
     boolean existsByNickname(String nickname);
 
     Optional<User> findByUsername(String username);
 
-    @Query("SELECT u FROM User u WHERE u.status = com.eof.back.domain.user.user.entity.UserStatus.ACTIVE " +
-            "ORDER BY u.totalRankingScore DESC, u.id ASC")
+    @Query("SELECT u FROM User u WHERE u.status = " + ACTIVE +
+            " ORDER BY u.totalRankingScore DESC, u.id ASC")
     List<User> findTop10ActiveUsers(Pageable pageable);
 
     @Query("SELECT COUNT(u) + 1 FROM User u " +
             "WHERE u.totalRankingScore > " +
             "(SELECT u2.totalRankingScore FROM User u2 WHERE u2.id = :userId) " +
-            "AND u.status = com.eof.back.domain.user.user.entity.UserStatus.ACTIVE")
+            "AND u.status = " + ACTIVE)
     Long findMyRankByUserId(@Param("userId") Long userId);
 }

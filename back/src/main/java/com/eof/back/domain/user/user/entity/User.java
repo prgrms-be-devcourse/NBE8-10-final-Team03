@@ -59,11 +59,19 @@ public class User extends BaseEntity {
     private Long totalRankingScore = 0L;
 
     /**
-     * 사용자가 탈퇴한 일시.
-     * null이면 활성 사용자, 값이 있으면 탈퇴한 사용자입니다.
+     * 사용자 계정 상태.
+     * ACTIVE면 정상 활동 중, SUSPENDED면 정지, DELETED면 탈퇴한 사용자입니다.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private UserStatus status = UserStatus.ACTIVE;
+
+    /**
+     * 현재 상태로 변경된 시각.
+     * 정지 기간 계산, 탈퇴 후 복구 기간 계산 등에 활용됩니다.
      */
     @Column
-    private LocalDateTime deletedAt;
+    private LocalDateTime statusChangedAt;
 
     /**
      * 게임 결과에 따른 랭킹 점수를 누적 합산합니다.
@@ -88,6 +96,7 @@ public class User extends BaseEntity {
         this.nickname = nickname;
         this.role = role;
         this.totalRankingScore = 0L;
+        this.status = UserStatus.ACTIVE;
     }
 
     /**
@@ -115,11 +124,30 @@ public class User extends BaseEntity {
         this.password = encodedPassword;
     }
 
+    public void suspend() {
+        this.status = UserStatus.SUSPENDED;
+        this.statusChangedAt = LocalDateTime.now();
+    }
+
+    public void activate() {
+        this.status = UserStatus.ACTIVE;
+        this.statusChangedAt = LocalDateTime.now();
+    }
+
     public void delete() {
-        this.deletedAt = LocalDateTime.now();
+        this.status = UserStatus.DELETED;
+        this.statusChangedAt = LocalDateTime.now();
+    }
+
+    public boolean isActive() {
+        return this.status == UserStatus.ACTIVE;
+    }
+
+    public boolean isSuspended() {
+        return this.status == UserStatus.SUSPENDED;
     }
 
     public boolean isDeleted() {
-        return this.deletedAt != null;
+        return this.status == UserStatus.DELETED;
     }
 }

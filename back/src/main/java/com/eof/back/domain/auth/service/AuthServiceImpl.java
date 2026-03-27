@@ -92,16 +92,16 @@ public class AuthServiceImpl implements AuthService {
             throw new AuthException(AuthErrorCode.INVALID_CREDENTIALS);
         }
 
-        // 3. 탈퇴 여부 확인
-        if (user.isDeleted()) {
-            throw new AuthException(AuthErrorCode.USER_ALREADY_DELETED);
+        // 3. 탈퇴/정지 여부 확인 (구체적인 상태를 노출하지 않아 계정 열거 공격 방지)
+        if (!user.isActive()) {
+            throw new AuthException(AuthErrorCode.LOGIN_FAIL);
         }
 
         // 4. AccessToken, RefreshToken 생성
         String accessToken = jwtTokenProvider.createAccessToken(user.getId(), user.getUsername(), user.getRole().name(), user.getNickname());
         String refreshToken = jwtTokenProvider.createRefreshToken(user.getId());
 
-        // 4. RefreshToken 저장
+        // 5. RefreshToken 저장
         LocalDateTime refreshTokenExpiredAt = LocalDateTime.now().plusSeconds(refreshTokenExpireSeconds);
         refreshTokenStore.save(user.getId(), refreshToken, refreshTokenExpiredAt);
 
@@ -118,7 +118,13 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findById(savedRefreshToken.getUserId())
                 .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND));
 
-        // 3. 새로운 Access Token, Refresh Token 생성
+        // 3. 탈퇴/정지 여부 확인 (비활성 계정이면 저장된 Refresh Token도 삭제)
+        if (!user.isActive()) {
+            refreshTokenStore.delete(user.getId());
+            throw new AuthException(AuthErrorCode.LOGIN_FAIL);
+        }
+
+        // 4. 새로운 Access Token, Refresh Token 생성
         String newAccessToken = jwtTokenProvider.createAccessToken(
                 user.getId(),
                 user.getUsername(),
@@ -127,7 +133,7 @@ public class AuthServiceImpl implements AuthService {
         );
         String newRefreshToken = jwtTokenProvider.createRefreshToken(user.getId());
 
-        // 4. Refresh Token 저장소 갱신
+        // 5. Refresh Token 저장소 갱신
         LocalDateTime refreshTokenExpiredAt = LocalDateTime.now().plusSeconds(refreshTokenExpireSeconds);
         refreshTokenStore.save(user.getId(), newRefreshToken, refreshTokenExpiredAt);
 

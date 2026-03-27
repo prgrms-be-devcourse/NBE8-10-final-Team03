@@ -2,7 +2,15 @@ package com.eof.back.domain.quizreport.entity;
 
 /**
  * <p>퀴즈 신고에 대한 처리 단계(Status)를 정의하는 열거형입니다.</p>
- * 운영진이나 관리자에 의해 신고가 검토되고 해결되었는지를 관리합니다.
+ * <p>
+ * 신고가 접수되었는지, 검토가 완료되었는지를 구분합니다.
+ * </p>
+ *
+ * <p><b>상속 정보:</b><br>
+ * {@link Enum}을 상속받습니다.
+ *
+ * <p><b>외부 모듈:</b><br>
+ * 없음
  *
  * @author MintyU
  * @since 2026-03-18

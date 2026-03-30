@@ -1,6 +1,8 @@
 package com.eof.back.domain.auth.oauth2;
 
 import com.eof.back.domain.user.user.entity.Role;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.core.user.OAuth2User;
@@ -19,6 +21,8 @@ import java.util.Map;
  * @author 5h6vm
  * @since 2026-03-30
  */
+@Getter
+@RequiredArgsConstructor
 public class CustomOAuth2User implements OAuth2User {
 
     private final OAuth2User delegate;
@@ -27,21 +31,6 @@ public class CustomOAuth2User implements OAuth2User {
     private final Role role;
     private final String nickname;
     private final boolean active;
-
-    public CustomOAuth2User(OAuth2User delegate, Long userId, String username, Role role, String nickname, boolean active) {
-        this.delegate = delegate;
-        this.userId = userId;
-        this.username = username;
-        this.role = role;
-        this.nickname = nickname;
-        this.active = active;
-    }
-
-    public Long getUserId() { return userId; }
-    public String getUsername() { return username; }
-    public Role getRole() { return role; }
-    public String getNickname() { return nickname; }
-    public boolean isActive() { return active; }
 
     @Override
     public Map<String, Object> getAttributes() { return delegate.getAttributes(); }

@@ -85,6 +85,19 @@ class CustomOAuth2UserServiceTest {
         }
 
         @Test
+        @DisplayName("실패 - 비활성 계정이면 OAuth2AuthenticationException이 발생한다")
+        void inactiveUser_throwsOAuth2Exception() {
+            User inactiveUser = mock(User.class);
+            given(inactiveUser.isActive()).willReturn(false);
+            given(userRepository.findByProviderAndProviderId(AuthProvider.GOOGLE, "google_123"))
+                    .willReturn(Optional.of(inactiveUser));
+
+            assertThatThrownBy(() ->
+                    ReflectionTestUtils.invokeMethod(userService, "findOrCreateUser", googleAttributes())
+            ).isInstanceOf(OAuth2AuthenticationException.class);
+        }
+
+        @Test
         @DisplayName("실패 - 동시 가입으로 닉네임 충돌 시 OAuth2AuthenticationException이 발생한다")
         void concurrentSignup_throwsOAuth2Exception() {
             given(userRepository.findByProviderAndProviderId(AuthProvider.GOOGLE, "google_123"))

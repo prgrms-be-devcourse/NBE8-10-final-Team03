@@ -56,7 +56,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         // 3. 제공자별 응답을 통일된 OAuthAttributes로 파싱
         OAuthAttributes attributes = OAuthAttributes.of(registrationId, oAuth2User.getAttributes());
 
-        // 4. 기존 유저 조회 또는 신규 생성
+        // 4. 기존 유저 조회 또는 신규 생성 (비활성 계정이면 예외 발생)
         User user = findOrCreateUser(attributes);
 
         // 5. User 정보를 담은 CustomOAuth2User 반환 (SuccessHandler에서 DB 재조회 불필요)
@@ -72,8 +72,15 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
      * @param attributes 파싱된 소셜 사용자 정보
      */
     private User findOrCreateUser(OAuthAttributes attributes) {
-        return userRepository.findByProviderAndProviderId(attributes.getProvider(), attributes.getProviderId())
+        User user = userRepository.findByProviderAndProviderId(attributes.getProvider(), attributes.getProviderId())
                 .orElseGet(() -> createUser(attributes));
+
+        if (!user.isActive()) {
+            throw new OAuth2AuthenticationException(
+                    new OAuth2Error("login_fail"), "로그인에 실패하였습니다.");
+        }
+
+        return user;
     }
 
     /**

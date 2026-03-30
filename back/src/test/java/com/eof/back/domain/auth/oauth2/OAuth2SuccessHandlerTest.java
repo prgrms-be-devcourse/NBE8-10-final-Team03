@@ -15,19 +15,17 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
-import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
+import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.never;
 
 /**
  * OAuth2SuccessHandler의 단위 테스트입니다.
@@ -91,23 +89,13 @@ class OAuth2SuccessHandlerTest {
             verify(cookieUtil).addAccessTokenCookie(response, ACCESS_TOKEN);
             verify(cookieUtil).addRefreshTokenCookie(response, REFRESH_TOKEN);
             verify(refreshTokenStore).save(eq(USER_ID), eq(REFRESH_TOKEN), any());
-            assertThat(response.getRedirectedUrl())
-                    .startsWith(REDIRECT_URI)
-                    .contains("userId=" + USER_ID)
-                    .contains("nickname=");
+            String expectedUrl = UriComponentsBuilder.fromUriString(REDIRECT_URI)
+                    .queryParam("userId", USER_ID)
+                    .queryParam("nickname", "홍길동")
+                    .build()
+                    .toUriString();
+            assertThat(response.getRedirectedUrl()).isEqualTo(expectedUrl);
         }
 
-        @Test
-        @DisplayName("실패 - 비활성 계정이면 OAuth2AuthenticationException이 발생한다")
-        void fail_inactiveUser() {
-            MockHttpServletRequest request = new MockHttpServletRequest();
-            MockHttpServletResponse response = new MockHttpServletResponse();
-
-            assertThatThrownBy(() ->
-                    successHandler.onAuthenticationSuccess(request, response, buildAuthToken(false))
-            ).isInstanceOf(OAuth2AuthenticationException.class);
-
-            verify(cookieUtil, never()).addAccessTokenCookie(any(), any());
-        }
     }
 }

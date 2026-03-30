@@ -9,15 +9,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
-import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
-import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import org.springframework.web.util.UriComponentsBuilder;
 
 /**
  * 소셜 로그인 성공 시 JWT 토큰을 발급하고 프론트엔드로 redirect하는 핸들러입니다.
@@ -69,28 +66,25 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         OAuth2AuthenticationToken authToken = (OAuth2AuthenticationToken) authentication;
         CustomOAuth2User customUser = (CustomOAuth2User) authToken.getPrincipal();
 
-        // 1. 계정 상태 검증
-        if (!customUser.isActive()) {
-            throw new OAuth2AuthenticationException(
-                    new OAuth2Error("login_fail"), "로그인에 실패하였습니다.");
-        }
-
-        // 2. AccessToken, RefreshToken 발급
+        // 1. AccessToken, RefreshToken 발급
         String accessToken = jwtTokenProvider.createAccessToken(
                 customUser.getUserId(), customUser.getUsername(), customUser.getRole().name(), customUser.getNickname());
         String refreshToken = jwtTokenProvider.createRefreshToken(customUser.getUserId());
 
-        // 3. RefreshToken 저장소에 저장
+        // 2. RefreshToken 저장소에 저장
         LocalDateTime refreshTokenExpiredAt = LocalDateTime.now().plusSeconds(refreshTokenExpireSeconds);
         refreshTokenStore.save(customUser.getUserId(), refreshToken, refreshTokenExpiredAt);
 
-        // 4. 토큰을 HttpOnly 쿠키로 설정
+        // 3. 토큰을 HttpOnly 쿠키로 설정
         cookieUtil.addAccessTokenCookie(response, accessToken);
         cookieUtil.addRefreshTokenCookie(response, refreshToken);
 
-        // 5. 프론트엔드로 redirect
-        String encodedNickname = URLEncoder.encode(customUser.getNickname(), StandardCharsets.UTF_8);
-        String redirectUrl = redirectUri + "?userId=" + customUser.getUserId() + "&nickname=" + encodedNickname;
+        // 4. 프론트엔드로 redirect
+        String redirectUrl = UriComponentsBuilder.fromUriString(redirectUri)
+                .queryParam("userId", customUser.getUserId())
+                .queryParam("nickname", customUser.getNickname())
+                .build()
+                .toUriString();
         getRedirectStrategy().sendRedirect(request, response, redirectUrl);
     }
 }

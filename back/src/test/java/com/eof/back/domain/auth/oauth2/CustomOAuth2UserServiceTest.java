@@ -16,7 +16,10 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.BDDMockito.given;
@@ -79,6 +82,19 @@ class CustomOAuth2UserServiceTest {
                     user.getNickname().equals("홍길동") &&
                     user.getProvider() == AuthProvider.GOOGLE
             ));
+        }
+
+        @Test
+        @DisplayName("실패 - 동시 가입으로 닉네임 충돌 시 OAuth2AuthenticationException이 발생한다")
+        void concurrentSignup_throwsOAuth2Exception() {
+            given(userRepository.findByProviderAndProviderId(AuthProvider.GOOGLE, "google_123"))
+                    .willReturn(Optional.empty());
+            given(userRepository.findNicknamesStartingWith("홍길동")).willReturn(Set.of());
+            given(userRepository.save(any(User.class))).willThrow(new DataIntegrityViolationException("duplicate"));
+
+            assertThatThrownBy(() ->
+                    ReflectionTestUtils.invokeMethod(userService, "findOrCreateUser", googleAttributes())
+            ).isInstanceOf(OAuth2AuthenticationException.class);
         }
     }
 

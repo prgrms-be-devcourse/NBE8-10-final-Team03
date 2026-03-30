@@ -91,7 +91,10 @@ class OAuth2SuccessHandlerTest {
             verify(cookieUtil).addAccessTokenCookie(response, ACCESS_TOKEN);
             verify(cookieUtil).addRefreshTokenCookie(response, REFRESH_TOKEN);
             verify(refreshTokenStore).save(eq(USER_ID), eq(REFRESH_TOKEN), any());
-            assertThat(response.getRedirectedUrl()).isEqualTo(REDIRECT_URI);
+            assertThat(response.getRedirectedUrl())
+                    .startsWith(REDIRECT_URI)
+                    .contains("userId=" + USER_ID)
+                    .contains("nickname=");
         }
 
         @Test

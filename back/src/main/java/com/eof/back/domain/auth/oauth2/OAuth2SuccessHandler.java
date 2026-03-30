@@ -15,6 +15,8 @@ import org.springframework.security.web.authentication.SimpleUrlAuthenticationSu
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 
 /**
@@ -87,7 +89,8 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         cookieUtil.addRefreshTokenCookie(response, refreshToken);
 
         // 5. 프론트엔드로 redirect
-        String redirectUrl = redirectUri + "?userId=" + customUser.getUserId() + "&nickname=" + customUser.getNickname();
+        String encodedNickname = URLEncoder.encode(customUser.getNickname(), StandardCharsets.UTF_8);
+        String redirectUrl = redirectUri + "?userId=" + customUser.getUserId() + "&nickname=" + encodedNickname;
         getRedirectStrategy().sendRedirect(request, response, redirectUrl);
     }
 }

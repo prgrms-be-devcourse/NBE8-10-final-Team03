@@ -50,7 +50,8 @@ public class OAuthAttributes {
         return switch (registrationId.toLowerCase()) {
             case "google" -> ofGoogle(attributes);
             case "kakao" -> ofKakao(attributes);
-            default -> throw new RuntimeException("지원하지 않는 소셜 로그인 제공자입니다: " + registrationId);
+            default -> throw new OAuth2AuthenticationException(
+                    new OAuth2Error("unsupported_provider"), "지원하지 않는 소셜 로그인 제공자입니다: " + registrationId);
         };
     }
 

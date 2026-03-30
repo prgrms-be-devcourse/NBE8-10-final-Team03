@@ -1,10 +1,7 @@
 package com.eof.back.domain.auth.oauth2;
 
 import com.eof.back.domain.auth.store.RefreshTokenStore;
-import com.eof.back.domain.user.user.entity.AuthProvider;
 import com.eof.back.domain.user.user.entity.Role;
-import com.eof.back.domain.user.user.entity.User;
-import com.eof.back.domain.user.user.repository.UserRepository;
 import com.eof.back.global.jwt.CookieUtil;
 import com.eof.back.global.jwt.JwtTokenProvider;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,9 +19,6 @@ import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.util.ReflectionTestUtils;
-
-import java.util.Map;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -45,9 +39,6 @@ import static org.mockito.Mockito.never;
 @ExtendWith(MockitoExtension.class)
 @ActiveProfiles("test")
 class OAuth2SuccessHandlerTest {
-
-    @Mock
-    private UserRepository userRepository;
 
     @Mock
     private JwtTokenProvider jwtTokenProvider;
@@ -72,16 +63,12 @@ class OAuth2SuccessHandlerTest {
         ReflectionTestUtils.setField(successHandler, "refreshTokenExpireSeconds", 1209600L);
     }
 
-    private OAuth2AuthenticationToken buildGoogleAuthToken() {
-        OAuth2User oAuth2User = mock(OAuth2User.class);
-        given(oAuth2User.getAttributes()).willReturn(Map.of(
-                "sub", "google_123",
-                "email", "test@gmail.com",
-                "name", "홍길동"
-        ));
+    private OAuth2AuthenticationToken buildAuthToken(boolean isActive) {
+        CustomOAuth2User customUser = new CustomOAuth2User(
+                mock(OAuth2User.class), USER_ID, "GOOGLE_google_123", Role.USER, "홍길동", isActive
+        );
         OAuth2AuthenticationToken authToken = mock(OAuth2AuthenticationToken.class);
-        given(authToken.getPrincipal()).willReturn(oAuth2User);
-        given(authToken.getAuthorizedClientRegistrationId()).willReturn("google");
+        given(authToken.getPrincipal()).willReturn(customUser);
         return authToken;
     }
 
@@ -92,14 +79,6 @@ class OAuth2SuccessHandlerTest {
         @Test
         @DisplayName("성공 - JWT 쿠키를 설정하고 프론트엔드로 redirect한다")
         void success() throws Exception {
-            User user = mock(User.class);
-            given(user.getId()).willReturn(USER_ID);
-            given(user.getUsername()).willReturn("GOOGLE_google_123");
-            given(user.getRole()).willReturn(Role.USER);
-            given(user.getNickname()).willReturn("홍길동");
-            given(user.isActive()).willReturn(true);
-            given(userRepository.findByProviderAndProviderId(AuthProvider.GOOGLE, "google_123"))
-                    .willReturn(Optional.of(user));
             given(jwtTokenProvider.createAccessToken(eq(USER_ID), any(), any(), any()))
                     .willReturn(ACCESS_TOKEN);
             given(jwtTokenProvider.createRefreshToken(USER_ID)).willReturn(REFRESH_TOKEN);
@@ -107,7 +86,7 @@ class OAuth2SuccessHandlerTest {
             MockHttpServletRequest request = new MockHttpServletRequest();
             MockHttpServletResponse response = new MockHttpServletResponse();
 
-            successHandler.onAuthenticationSuccess(request, response, buildGoogleAuthToken());
+            successHandler.onAuthenticationSuccess(request, response, buildAuthToken(true));
 
             verify(cookieUtil).addAccessTokenCookie(response, ACCESS_TOKEN);
             verify(cookieUtil).addRefreshTokenCookie(response, REFRESH_TOKEN);
@@ -116,34 +95,13 @@ class OAuth2SuccessHandlerTest {
         }
 
         @Test
-        @DisplayName("실패 - DB에 유저가 없으면 OAuth2AuthenticationException이 발생한다")
-        void fail_userNotFound() {
-            given(userRepository.findByProviderAndProviderId(AuthProvider.GOOGLE, "google_123"))
-                    .willReturn(Optional.empty());
-
-            MockHttpServletRequest request = new MockHttpServletRequest();
-            MockHttpServletResponse response = new MockHttpServletResponse();
-
-            assertThatThrownBy(() ->
-                    successHandler.onAuthenticationSuccess(request, response, buildGoogleAuthToken())
-            ).isInstanceOf(OAuth2AuthenticationException.class);
-
-            verify(cookieUtil, never()).addAccessTokenCookie(any(), any());
-        }
-
-        @Test
         @DisplayName("실패 - 비활성 계정이면 OAuth2AuthenticationException이 발생한다")
         void fail_inactiveUser() {
-            User user = mock(User.class);
-            given(user.isActive()).willReturn(false);
-            given(userRepository.findByProviderAndProviderId(AuthProvider.GOOGLE, "google_123"))
-                    .willReturn(Optional.of(user));
-
             MockHttpServletRequest request = new MockHttpServletRequest();
             MockHttpServletResponse response = new MockHttpServletResponse();
 
             assertThatThrownBy(() ->
-                    successHandler.onAuthenticationSuccess(request, response, buildGoogleAuthToken())
+                    successHandler.onAuthenticationSuccess(request, response, buildAuthToken(false))
             ).isInstanceOf(OAuth2AuthenticationException.class);
 
             verify(cookieUtil, never()).addAccessTokenCookie(any(), any());

@@ -103,11 +103,10 @@ class OAuthAttributesTest {
     class Unsupported {
 
         @Test
-        @DisplayName("실패 - 지원하지 않는 provider면 RuntimeException이 발생한다")
+        @DisplayName("실패 - 지원하지 않는 provider면 OAuth2AuthenticationException이 발생한다")
         void fail_unsupportedProvider() {
             assertThatThrownBy(() -> OAuthAttributes.of("naver", Map.of()))
-                    .isInstanceOf(RuntimeException.class)
-                    .hasMessageContaining("naver");
+                    .isInstanceOf(OAuth2AuthenticationException.class);
         }
     }
 }

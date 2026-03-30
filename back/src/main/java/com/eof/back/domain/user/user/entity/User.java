@@ -106,9 +106,13 @@ public class User extends BaseEntity {
     /**
      * 빌더 패턴을 이용한 생성자입니다.
      *
-     * @param username 사용자 아이디
-     * @param password 암호화된 비밀번호
-     * @param nickname 사용자 닉네임
+     * @param username   사용자 아이디
+     * @param email      이메일 주소 (소셜 로그인 시 제공자로부터 수신)
+     * @param password   암호화된 비밀번호 (소셜 로그인 사용자는 null)
+     * @param nickname   사용자 닉네임
+     * @param role       사용자 권한
+     * @param provider   인증 제공자 (LOCAL, GOOGLE, KAKAO)
+     * @param providerId 소셜 제공자가 부여한 고유 ID (LOCAL 사용자는 null)
      */
     @Builder
     private User(String username, String email, String password, String nickname, Role role, AuthProvider provider, String providerId) {
@@ -125,6 +129,11 @@ public class User extends BaseEntity {
 
     /**
      * 일반 회원가입(LOCAL) 유저 생성 팩토리 메서드입니다.
+     *
+     * @param username 사용자 아이디
+     * @param password 암호화된 비밀번호
+     * @param nickname 사용자 닉네임
+     * @return 생성된 User 엔티티 객체
      */
     public static User of(String username, String password, String nickname) {
         return User.builder()
@@ -139,6 +148,12 @@ public class User extends BaseEntity {
     /**
      * 소셜 로그인 유저 생성 팩토리 메서드입니다.
      * username은 "{provider}_{providerId}" 형태로 자동 생성됩니다.
+     *
+     * @param email      소셜 제공자로부터 받은 이메일 주소
+     * @param nickname   소셜 제공자로부터 받은 닉네임
+     * @param provider   인증 제공자 (GOOGLE, KAKAO)
+     * @param providerId 소셜 제공자가 부여한 고유 ID
+     * @return 생성된 User 엔티티 객체
      */
     public static User ofSocial(String email, String nickname, AuthProvider provider, String providerId) {
         return User.builder()

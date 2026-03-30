@@ -5,10 +5,10 @@ package com.eof.back.domain.auth.dto;
  *
  * <p>로그인이 성공적으로 완료된 후 클라이언트에게 반환되는 정보를 담습니다.</p>
  *
+ * <p>토큰은 HttpOnly 쿠키로 전달되므로 응답 body에는 포함되지 않습니다.</p>
+ *
  * <p>주요 목적:</p>
  * <ul>
- *     <li>인증에 사용할 JWT AccessToken 반환</li>
- *     <li>토큰 재발급에 사용할 JWT RefreshToken 반환</li>
  *     <li>클라이언트에서 사용자 식별에 필요한 기본 정보 반환</li>
  * </ul>
  *
@@ -16,8 +16,6 @@ package com.eof.back.domain.auth.dto;
  * @since 2026-03-23
  */
 public record LoginResponse(
-        String accessToken,
-        String refreshToken,
         Long userId,
         String nickname
 ) {

@@ -38,6 +38,10 @@ spring:
             user-info-uri: https://kapi.kakao.com/v2/user/me
             user-name-attribute: id
 
+springdoc:
+  swagger-ui:
+    with-credentials: true  # Swagger UI가 쿠키를 포함해서 요청을 보낼 수 있도록 설정
+
 custom:
   refresh-token:
     store: redis  # "db" 또는 "redis" — 부하 테스트 비교 시 변경

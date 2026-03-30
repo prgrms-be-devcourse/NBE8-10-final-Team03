@@ -4,6 +4,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
@@ -93,19 +94,23 @@ public class CookieUtil {
 
     /**
      * 실제 쿠키를 생성하고 응답에 추가하는 내부 메서드입니다.
+     * ResponseCookie를 사용해 SameSite=Lax를 설정합니다.
+     * SameSite=Lax: 같은 사이트 요청 + 외부에서 링크 클릭(GET)만 쿠키 포함 (CSRF 방어)
      *
      * @param name   쿠키 이름
      * @param value  쿠키 값 (JWT 토큰)
      * @param maxAge 쿠키 유효 시간 (초 단위, JWT 만료 시간과 동일하게 설정)
      */
     private void addCookie(HttpServletResponse response, String name, String value, int maxAge) {
-        Cookie cookie = new Cookie(name, value);
-        cookie.setHttpOnly(true);   // JS 접근 차단 (XSS 방어)
-        cookie.setPath("/");        // 모든 경로에서 쿠키 전송
-        cookie.setMaxAge(maxAge);
-        // TODO: 운영 환경에서는 HTTPS 전용으로 setSecure(true) 활성화 필요
-        // cookie.setSecure(true);
-        response.addCookie(cookie);
+        ResponseCookie cookie = ResponseCookie.from(name, value)
+                .httpOnly(true)     // JS 접근 차단 (XSS 방어)
+                .path("/")          // 모든 경로에서 쿠키 전송
+                .maxAge(maxAge)
+                .sameSite("Lax")    // CSRF 방어
+                // TODO: 운영 환경에서는 HTTPS 전용으로 secure(true) 활성화 필요
+                // .secure(true)
+                .build();
+        response.addHeader("Set-Cookie", cookie.toString());
     }
 
     /**
@@ -113,10 +118,12 @@ public class CookieUtil {
      * maxAge를 0으로 설정하면 브라우저가 해당 쿠키를 즉시 만료 처리합니다.
      */
     private void deleteCookie(HttpServletResponse response, String name) {
-        Cookie cookie = new Cookie(name, null);
-        cookie.setHttpOnly(true);
-        cookie.setPath("/");
-        cookie.setMaxAge(0);
-        response.addCookie(cookie);
+        ResponseCookie cookie = ResponseCookie.from(name, "")
+                .httpOnly(true)
+                .path("/")
+                .maxAge(0)
+                .sameSite("Lax")
+                .build();
+        response.addHeader("Set-Cookie", cookie.toString());
     }
 }

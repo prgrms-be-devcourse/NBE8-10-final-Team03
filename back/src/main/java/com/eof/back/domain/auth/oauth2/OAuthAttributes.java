@@ -96,7 +96,7 @@ public class OAuthAttributes {
 
         return new OAuthAttributes(
                 String.valueOf(attributes.get("id")),
-                (String) kakaoAccount.get("email"),
+                kakaoAccount != null ? (String) kakaoAccount.get("email") : null,
                 (String) profile.get("nickname"),
                 AuthProvider.KAKAO
         );

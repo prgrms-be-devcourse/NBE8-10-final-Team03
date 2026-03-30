@@ -4,6 +4,9 @@ import com.eof.back.domain.user.user.entity.AuthProvider;
 import com.eof.back.domain.user.user.entity.User;
 import com.eof.back.domain.user.user.repository.UserRepository;
 import java.util.Set;
+import java.util.TreeSet;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.oauth2.core.OAuth2Error;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
@@ -82,7 +85,12 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
     private User createUser(OAuthAttributes attributes) {
         String nickname = generateUniqueNickname(attributes.getNickname());
         User user = User.ofSocial(attributes.getEmail(), nickname, attributes.getProvider(), attributes.getProviderId());
-        return userRepository.save(user);
+        try {
+            return userRepository.save(user);
+        } catch (DataIntegrityViolationException e) {
+            throw new OAuth2AuthenticationException(
+                    new OAuth2Error("signup_conflict"), "일시적인 오류가 발생했습니다. 다시 시도해주세요.");
+        }
     }
 
     /**
@@ -95,7 +103,9 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
      */
     private String generateUniqueNickname(String nickname) {
         // 한 번의 쿼리로 관련 닉네임 전부 조회 후 메모리에서 처리
-        Set<String> existingNicknames = userRepository.findNicknamesStartingWith(nickname);
+        // TreeSet(CASE_INSENSITIVE_ORDER): MySQL utf8mb4_unicode_ci(대소문자 무시)와 동일하게 비교
+        Set<String> existingNicknames = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+        existingNicknames.addAll(userRepository.findNicknamesStartingWith(nickname));
 
         if (!existingNicknames.contains(nickname)) {
             return nickname;

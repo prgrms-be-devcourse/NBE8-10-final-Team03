@@ -1,8 +1,7 @@
 package com.eof.back.domain.auth.service;
 
 import com.eof.back.domain.auth.dto.LoginRequest;
-import com.eof.back.domain.auth.dto.LoginResponse;
-import com.eof.back.domain.auth.dto.ReissueResponse;
+import com.eof.back.domain.auth.dto.LoginResult;
 import com.eof.back.domain.auth.dto.SignupRequest;
 import com.eof.back.domain.auth.dto.SignupResponse;
 import com.eof.back.domain.auth.entity.RefreshToken;
@@ -178,7 +177,7 @@ public class AuthServiceImplTest {
             given(jwtTokenProvider.createRefreshToken(USER_ID)).willReturn(NEW_REFRESH_TOKEN);
 
             // when
-            LoginResponse response = authService.login(req);
+            LoginResult response = authService.login(req);
 
             // then
             assertThat(response.accessToken()).isEqualTo(NEW_ACCESS_TOKEN);
@@ -295,7 +294,7 @@ public class AuthServiceImplTest {
             given(jwtTokenProvider.createRefreshToken(USER_ID)).willReturn(NEW_REFRESH_TOKEN);
 
             // when
-            ReissueResponse response = authService.reissue(REFRESH_TOKEN);
+            LoginResult response = authService.reissue(REFRESH_TOKEN);
 
             // then
             assertThat(response.accessToken()).isEqualTo(NEW_ACCESS_TOKEN);

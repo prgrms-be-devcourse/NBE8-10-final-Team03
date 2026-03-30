@@ -1,4 +1,11 @@
 spring:
+  autoconfigure:
+    exclude:
+      # oauth2-client 의존성 추가 후 @WebMvcTest 슬라이스에서 OAuth2 자동 설정이 로딩되면서
+      # HttpSecurity 빈을 찾지 못해 컨텍스트 로딩에 실패하는 문제를 방지합니다
+      - org.springframework.boot.security.oauth2.client.autoconfigure.servlet.OAuth2ClientWebSecurityAutoConfiguration
+      - org.springframework.boot.security.oauth2.client.autoconfigure.OAuth2ClientAutoConfiguration
+
   datasource:
     url: jdbc:h2:mem:testdb;MODE=MySQL
     username: sa

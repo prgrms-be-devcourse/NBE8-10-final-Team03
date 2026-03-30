@@ -22,6 +22,7 @@ import com.eof.back.domain.quizset.service.QuizSetService;
 import com.eof.back.global.jwt.UserPrincipal;
 import com.eof.back.global.exception.errorCode.QuizSetErrorCode;
 import com.eof.back.global.exception.exceptions.QuizSetException;
+import com.eof.back.global.jwt.CookieUtil;
 import com.eof.back.global.jwt.JwtAuthenticationEntryPoint;
 import com.eof.back.global.jwt.JwtTokenProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -57,6 +58,9 @@ class QuizSetControllerTest {
 
     @MockitoBean
     private JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+
+    @MockitoBean
+    private CookieUtil cookieUtil;
 
     @Test
     @DisplayName("퀴즈 세트 생성 API 호출 성공")

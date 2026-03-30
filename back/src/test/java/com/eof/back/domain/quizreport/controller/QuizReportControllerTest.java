@@ -4,6 +4,7 @@ import com.eof.back.domain.quizreport.dto.QuizReportCreateRequest;
 import com.eof.back.domain.quizreport.dto.QuizReportResponse;
 import com.eof.back.domain.quizreport.entity.QuizReportStatus;
 import com.eof.back.domain.quizreport.service.QuizReportService;
+import com.eof.back.global.jwt.CookieUtil;
 import com.eof.back.global.jwt.JwtAuthenticationEntryPoint;
 import com.eof.back.global.jwt.JwtTokenProvider;
 import com.eof.back.global.jwt.UserPrincipal;
@@ -57,6 +58,9 @@ class QuizReportControllerTest {
 
     @MockitoBean
     private JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+
+    @MockitoBean
+    private CookieUtil cookieUtil;
 
     private UserPrincipal principal;
 

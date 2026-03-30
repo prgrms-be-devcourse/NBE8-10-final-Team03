@@ -1,15 +1,16 @@
 package com.eof.back.domain.auth.controller;
 
-import com.eof.back.domain.auth.dto.LoginResponse;
-import com.eof.back.domain.auth.dto.ReissueResponse;
+import com.eof.back.domain.auth.dto.LoginResult;
 import com.eof.back.domain.auth.dto.SignupResponse;
 import com.eof.back.domain.auth.service.AuthService;
 import com.eof.back.global.exception.errorCode.AuthErrorCode;
 import com.eof.back.global.exception.exceptionHadler.DefaultExceptionHandler;
 import com.eof.back.global.exception.exceptions.AuthException;
+import com.eof.back.global.jwt.CookieUtil;
 import com.eof.back.global.jwt.JwtAuthenticationEntryPoint;
 import com.eof.back.global.jwt.JwtTokenProvider;
 import com.eof.back.global.jwt.UserPrincipal;
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -30,6 +31,7 @@ import org.springframework.web.method.support.ModelAndViewContainer;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
@@ -50,6 +52,9 @@ class AuthControllerTest {
 
     @MockitoBean
     private AuthService authService;
+
+    @MockitoBean
+    private CookieUtil cookieUtil;
 
     @MockitoBean
     private JwtTokenProvider jwtTokenProvider;
@@ -108,17 +113,17 @@ class AuthControllerTest {
     class Login {
 
         @Test
-        @DisplayName("성공 - 로그인 후 토큰을 반환한다")
+        @DisplayName("성공 - 로그인 후 userId, nickname을 반환하고 토큰은 쿠키로 설정된다")
         void success() throws Exception {
             given(authService.login(any()))
-                    .willReturn(new LoginResponse("access.token", "refresh.token", 1L, "테스트닉네임"));
+                    .willReturn(new LoginResult("access.token", "refresh.token", 1L, "테스트닉네임"));
 
             mockMvc.perform(post("/api/v1/auth/login")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("{\"username\":\"testuser\",\"password\":\"password1\"}"))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.data.accessToken").value("access.token"))
-                    .andExpect(jsonPath("$.data.refreshToken").value("refresh.token"))
+                    .andExpect(jsonPath("$.data.userId").value(1L))
+                    .andExpect(jsonPath("$.data.nickname").value("테스트닉네임"))
                     .andExpect(jsonPath("$.message").value("로그인에 성공했습니다."));
         }
 
@@ -154,33 +159,43 @@ class AuthControllerTest {
     class Reissue {
 
         @Test
-        @DisplayName("성공 - 새로운 토큰을 반환한다")
+        @DisplayName("성공 - 쿠키의 refreshToken으로 재발급하고 새 토큰을 쿠키로 설정한다")
         void success() throws Exception {
+            given(cookieUtil.resolveToken(any(), any()))
+                    .willReturn(Optional.of("valid.refresh.token"));
             given(authService.reissue(any()))
-                    .willReturn(new ReissueResponse("new.access.token", "new.refresh.token"));
+                    .willReturn(new LoginResult("new.access.token", "new.refresh.token", 1L, "테스트닉네임"));
 
             mockMvc.perform(post("/api/v1/auth/reissue")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"refreshToken\":\"valid.refresh.token\"}"))
+                            .cookie(new Cookie(CookieUtil.REFRESH_TOKEN_COOKIE, "valid.refresh.token")))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.data.accessToken").value("new.access.token"))
-                    .andExpect(jsonPath("$.data.refreshToken").value("new.refresh.token"))
                     .andExpect(jsonPath("$.message").value("토큰이 재발급되었습니다."));
+        }
+
+        @Test
+        @DisplayName("실패 - refreshToken 쿠키가 없으면 401을 반환한다")
+        void fail_noCookie() throws Exception {
+            given(cookieUtil.resolveToken(any(), any()))
+                    .willReturn(Optional.empty());
+
+            mockMvc.perform(post("/api/v1/auth/reissue"))
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.message").value("유효하지 않은 토큰입니다."));
         }
 
         @Test
         @DisplayName("실패 - 유효하지 않은 토큰이면 401을 반환한다")
         void fail_invalidToken() throws Exception {
+            given(cookieUtil.resolveToken(any(), any()))
+                    .willReturn(Optional.of("invalid.token"));
             given(authService.reissue(any()))
                     .willThrow(new AuthException(AuthErrorCode.TOKEN_INVALID));
 
             mockMvc.perform(post("/api/v1/auth/reissue")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"refreshToken\":\"invalid.token\"}"))
+                            .cookie(new Cookie(CookieUtil.REFRESH_TOKEN_COOKIE, "invalid.token")))
                     .andExpect(status().isUnauthorized())
                     .andExpect(jsonPath("$.message").value("유효하지 않은 토큰입니다."));
         }
-
     }
 
     @Nested
@@ -188,26 +203,39 @@ class AuthControllerTest {
     class Logout {
 
         @Test
-        @DisplayName("성공 - 로그아웃 후 200을 반환한다")
+        @DisplayName("성공 - 로그아웃 후 200을 반환하고 쿠키가 삭제된다")
         void success() throws Exception {
+            given(cookieUtil.resolveToken(any(), any()))
+                    .willReturn(Optional.of("valid.refresh.token"));
             willDoNothing().given(authService).logout(any());
 
             mockMvc.perform(post("/api/v1/auth/logout")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"refreshToken\":\"valid.refresh.token\"}"))
+                            .cookie(new Cookie(CookieUtil.REFRESH_TOKEN_COOKIE, "valid.refresh.token")))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.message").value("로그아웃이 완료되었습니다."));
         }
 
         @Test
+        @DisplayName("실패 - refreshToken 쿠키가 없으면 401을 반환한다")
+        void fail_noCookie() throws Exception {
+            given(cookieUtil.resolveToken(any(), any()))
+                    .willReturn(Optional.empty());
+
+            mockMvc.perform(post("/api/v1/auth/logout"))
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.message").value("유효하지 않은 토큰입니다."));
+        }
+
+        @Test
         @DisplayName("실패 - 유효하지 않은 토큰이면 401을 반환한다")
         void fail_invalidToken() throws Exception {
+            given(cookieUtil.resolveToken(any(), any()))
+                    .willReturn(Optional.of("invalid.token"));
             willThrow(new AuthException(AuthErrorCode.TOKEN_INVALID))
                     .given(authService).logout(any());
 
             mockMvc.perform(post("/api/v1/auth/logout")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"refreshToken\":\"invalid.token\"}"))
+                            .cookie(new Cookie(CookieUtil.REFRESH_TOKEN_COOKIE, "invalid.token")))
                     .andExpect(status().isUnauthorized())
                     .andExpect(jsonPath("$.message").value("유효하지 않은 토큰입니다."));
         }

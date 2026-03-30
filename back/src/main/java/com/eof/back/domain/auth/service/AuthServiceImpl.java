@@ -1,8 +1,7 @@
 package com.eof.back.domain.auth.service;
 
 import com.eof.back.domain.auth.dto.LoginRequest;
-import com.eof.back.domain.auth.dto.LoginResponse;
-import com.eof.back.domain.auth.dto.ReissueResponse;
+import com.eof.back.domain.auth.dto.LoginResult;
 import com.eof.back.domain.auth.dto.SignupRequest;
 import com.eof.back.domain.auth.dto.SignupResponse;
 import com.eof.back.domain.auth.entity.RefreshToken;
@@ -82,7 +81,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public LoginResponse login(LoginRequest req) {
+    public LoginResult login(LoginRequest req) {
 
         // 1. username으로 사용자 조회
         User user = userRepository.findByUsername(req.username())
@@ -98,20 +97,12 @@ public class AuthServiceImpl implements AuthService {
             throw new AuthException(AuthErrorCode.LOGIN_FAIL);
         }
 
-        // 4. AccessToken, RefreshToken 생성
-        String accessToken = jwtTokenProvider.createAccessToken(user.getId(), user.getUsername(), user.getRole().name(), user.getNickname());
-        String refreshToken = jwtTokenProvider.createRefreshToken(user.getId());
-
-        // 5. RefreshToken 저장
-        LocalDateTime refreshTokenExpiredAt = LocalDateTime.now().plusSeconds(refreshTokenExpireSeconds);
-        refreshTokenStore.save(user.getId(), refreshToken, refreshTokenExpiredAt);
-
-        return new LoginResponse(accessToken, refreshToken, user.getId(), user.getNickname());
+        return issueTokens(user);
     }
 
     @Override
     @Transactional
-    public ReissueResponse reissue(String refreshToken) {
+    public LoginResult reissue(String refreshToken) {
 
         // 1. Refresh Token 검증 및 저장된 토큰 조회
         RefreshToken savedRefreshToken = validateAndGetRefreshToken(refreshToken);
@@ -126,20 +117,7 @@ public class AuthServiceImpl implements AuthService {
             throw new AuthException(AuthErrorCode.LOGIN_FAIL);
         }
 
-        // 4. 새로운 Access Token, Refresh Token 생성
-        String newAccessToken = jwtTokenProvider.createAccessToken(
-                user.getId(),
-                user.getUsername(),
-                user.getRole().name(),
-                user.getNickname()
-        );
-        String newRefreshToken = jwtTokenProvider.createRefreshToken(user.getId());
-
-        // 5. Refresh Token 저장소 갱신
-        LocalDateTime refreshTokenExpiredAt = LocalDateTime.now().plusSeconds(refreshTokenExpireSeconds);
-        refreshTokenStore.save(user.getId(), newRefreshToken, refreshTokenExpiredAt);
-
-        return new ReissueResponse(newAccessToken, newRefreshToken);
+        return issueTokens(user);
     }
 
     @Override
@@ -171,6 +149,21 @@ public class AuthServiceImpl implements AuthService {
 
         // 4. Refresh Token 삭제
         refreshTokenStore.delete(userId);
+    }
+
+    /**
+     * AccessToken, RefreshToken을 발급하고 저장소에 저장한 뒤 LoginResult로 반환합니다.
+     * login과 reissue에서 공통으로 사용됩니다.
+     */
+    private LoginResult issueTokens(User user) {
+        String accessToken = jwtTokenProvider.createAccessToken(
+                user.getId(), user.getUsername(), user.getRole().name(), user.getNickname());
+        String refreshToken = jwtTokenProvider.createRefreshToken(user.getId());
+
+        LocalDateTime refreshTokenExpiredAt = LocalDateTime.now().plusSeconds(refreshTokenExpireSeconds);
+        refreshTokenStore.save(user.getId(), refreshToken, refreshTokenExpiredAt);
+
+        return new LoginResult(accessToken, refreshToken, user.getId(), user.getNickname());
     }
 
     private RefreshToken validateAndGetRefreshToken(String refreshToken) {

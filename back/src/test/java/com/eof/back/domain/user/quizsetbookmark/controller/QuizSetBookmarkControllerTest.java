@@ -7,6 +7,7 @@ import com.eof.back.global.exception.errorCode.QuizSetErrorCode;
 import com.eof.back.global.exception.exceptionHadler.DefaultExceptionHandler;
 import com.eof.back.global.exception.exceptions.AuthException;
 import com.eof.back.global.exception.exceptions.QuizSetException;
+import com.eof.back.global.jwt.CookieUtil;
 import com.eof.back.global.jwt.JwtAuthenticationEntryPoint;
 import com.eof.back.global.jwt.JwtTokenProvider;
 import org.junit.jupiter.api.DisplayName;
@@ -47,6 +48,9 @@ class QuizSetBookmarkControllerTest {
 
     @MockitoBean
     private JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+
+    @MockitoBean
+    private CookieUtil cookieUtil;
 
     @Nested
     @DisplayName("createBookmark")

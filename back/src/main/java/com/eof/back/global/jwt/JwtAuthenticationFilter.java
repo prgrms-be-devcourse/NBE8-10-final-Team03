@@ -19,7 +19,7 @@ import java.util.List;
 /**
  * JWT 기반 사용자 인증을 처리하는 필터입니다.
  * <p>
- * 모든 HTTP 요청에 대해 Authorization 헤더의 Bearer 토큰을 확인하고,
+ * 모든 HTTP 요청에 대해 쿠키의 accessToken을 확인하고,
  * 토큰이 유효한 경우 사용자 정보를 생성하여 SecurityContext에 저장합니다.
  * 이를 통해 이후의 인가 처리에서 로그인된 사용자로 식별할 수 있도록 합니다.
  *
@@ -41,16 +41,15 @@ import java.util.List;
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private static final String AUTHORIZATION_HEADER = "Authorization";
-    private static final String BEARER_PREFIX = "Bearer ";
     private static final String ROLE_PREFIX = "ROLE_";
 
     private final JwtTokenProvider jwtTokenProvider;
+    private final CookieUtil cookieUtil;
 
     /**
      * 요청마다 JWT 인증을 수행합니다.
      *
-     * <p>Authorization 헤더에서 Bearer 토큰을 추출한 뒤,
+     * <p>쿠키에서 accessToken을 추출한 뒤,
      * 토큰이 유효하면 사용자 정보와 권한을 기반으로 인증 객체를 생성하여
      * SecurityContext에 저장합니다.
      *
@@ -68,8 +67,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
-        // 1. Authorization 헤더에서 토큰 추출
-        String token = resolveToken(request);
+        // 1. 쿠키에서 accessToken 추출
+        String token = cookieUtil.resolveToken(request, CookieUtil.ACCESS_TOKEN_COOKIE).orElse(null);
 
         try {
             // 2. 토큰이 존재하면 검증 후 Claims 반환 (파싱 1회)
@@ -107,19 +106,4 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
-    /**
-     * Authorization 헤더에서 Bearer 토큰을 추출합니다.
-     *
-     * @param request HTTP 요청
-     * @return Bearer 접두어가 제거된 JWT 토큰, 없거나 형식이 올바르지 않으면 null
-     */
-    private String resolveToken(HttpServletRequest request) {
-        String bearer = request.getHeader(AUTHORIZATION_HEADER);
-
-        if (bearer != null && bearer.startsWith(BEARER_PREFIX)) {
-            return bearer.substring(BEARER_PREFIX.length());
-        }
-
-        return null;
-    }
 }

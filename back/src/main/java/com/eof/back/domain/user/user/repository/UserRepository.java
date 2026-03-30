@@ -1,5 +1,6 @@
 package com.eof.back.domain.user.user.repository;
 
+import com.eof.back.domain.user.user.entity.AuthProvider;
 import com.eof.back.domain.user.user.entity.User;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -34,6 +35,8 @@ public interface UserRepository extends JpaRepository<User,Long> {
     boolean existsByNickname(String nickname);
 
     Optional<User> findByUsername(String username);
+
+    Optional<User> findByProviderAndProviderId(AuthProvider provider, String providerId);
 
     @Query("SELECT u FROM User u WHERE u.status = 'ACTIVE' " +
             "ORDER BY u.totalRankingScore DESC, u.id ASC")

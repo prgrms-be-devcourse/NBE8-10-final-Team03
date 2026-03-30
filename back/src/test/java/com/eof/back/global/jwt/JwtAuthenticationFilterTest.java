@@ -1,10 +1,10 @@
 package com.eof.back.global.jwt;
 
-import com.eof.back.global.jwt.UserPrincipal;
 import com.eof.back.global.exception.errorCode.AuthErrorCode;
 import com.eof.back.global.exception.exceptions.AuthException;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -17,6 +17,8 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.util.Optional;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
@@ -28,13 +30,16 @@ class JwtAuthenticationFilterTest {
     private JwtTokenProvider jwtTokenProvider;
 
     @Mock
+    private CookieUtil cookieUtil;
+
+    @Mock
     private FilterChain filterChain;
 
     private JwtAuthenticationFilter filter;
 
     @BeforeEach
     void setUp() {
-        filter = new JwtAuthenticationFilter(jwtTokenProvider);
+        filter = new JwtAuthenticationFilter(jwtTokenProvider, cookieUtil);
         SecurityContextHolder.clearContext();
     }
 
@@ -44,17 +49,20 @@ class JwtAuthenticationFilterTest {
     }
 
     @Test
-    @DisplayName("유효한 Bearer 토큰이면 SecurityContext에 인증 정보가 저장된다")
+    @DisplayName("유효한 accessToken 쿠키가 있으면 SecurityContext에 인증 정보가 저장된다")
     void validToken_setsAuthentication() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest();
-        request.addHeader("Authorization", "Bearer validToken");
+        request.setCookies(new Cookie(CookieUtil.ACCESS_TOKEN_COOKIE, "validToken"));
         MockHttpServletResponse response = new MockHttpServletResponse();
 
         Claims claims = mock(Claims.class);
+        when(cookieUtil.resolveToken(request, CookieUtil.ACCESS_TOKEN_COOKIE))
+                .thenReturn(Optional.of("validToken"));
         when(jwtTokenProvider.validateToken("validToken")).thenReturn(claims);
         when(jwtTokenProvider.getUserId(claims)).thenReturn(1L);
         when(jwtTokenProvider.getUsername(claims)).thenReturn("testUser");
         when(jwtTokenProvider.getRole(claims)).thenReturn("USER");
+        when(jwtTokenProvider.getNickname(claims)).thenReturn("tester");
 
         filter.doFilter(request, response, filterChain);
 
@@ -72,24 +80,13 @@ class JwtAuthenticationFilterTest {
     }
 
     @Test
-    @DisplayName("Authorization 헤더가 없으면 SecurityContext에 인증 정보가 저장되지 않는다")
+    @DisplayName("accessToken 쿠키가 없으면 SecurityContext에 인증 정보가 저장되지 않는다")
     void noToken_noAuthentication() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest();
         MockHttpServletResponse response = new MockHttpServletResponse();
 
-        filter.doFilter(request, response, filterChain);
-
-        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
-        verifyNoInteractions(jwtTokenProvider);
-        verify(filterChain).doFilter(request, response);
-    }
-
-    @Test
-    @DisplayName("Bearer 접두어가 없는 헤더는 무시된다")
-    void tokenWithoutBearerPrefix_ignored() throws Exception {
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        request.addHeader("Authorization", "Basic someToken");
-        MockHttpServletResponse response = new MockHttpServletResponse();
+        when(cookieUtil.resolveToken(request, CookieUtil.ACCESS_TOKEN_COOKIE))
+                .thenReturn(Optional.empty());
 
         filter.doFilter(request, response, filterChain);
 
@@ -102,9 +99,11 @@ class JwtAuthenticationFilterTest {
     @DisplayName("만료된 토큰이면 SecurityContext가 비워지고 다음 필터로 넘어간다")
     void expiredToken_clearsContextAndContinues() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest();
-        request.addHeader("Authorization", "Bearer expiredToken");
+        request.setCookies(new Cookie(CookieUtil.ACCESS_TOKEN_COOKIE, "expiredToken"));
         MockHttpServletResponse response = new MockHttpServletResponse();
 
+        when(cookieUtil.resolveToken(request, CookieUtil.ACCESS_TOKEN_COOKIE))
+                .thenReturn(Optional.of("expiredToken"));
         doThrow(new AuthException(AuthErrorCode.TOKEN_EXPIRED))
                 .when(jwtTokenProvider).validateToken("expiredToken");
 
@@ -118,9 +117,11 @@ class JwtAuthenticationFilterTest {
     @DisplayName("유효하지 않은 토큰이면 SecurityContext가 비워지고 다음 필터로 넘어간다")
     void invalidToken_clearsContextAndContinues() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest();
-        request.addHeader("Authorization", "Bearer invalidToken");
+        request.setCookies(new Cookie(CookieUtil.ACCESS_TOKEN_COOKIE, "invalidToken"));
         MockHttpServletResponse response = new MockHttpServletResponse();
 
+        when(cookieUtil.resolveToken(request, CookieUtil.ACCESS_TOKEN_COOKIE))
+                .thenReturn(Optional.of("invalidToken"));
         doThrow(new AuthException(AuthErrorCode.TOKEN_INVALID))
                 .when(jwtTokenProvider).validateToken("invalidToken");
 

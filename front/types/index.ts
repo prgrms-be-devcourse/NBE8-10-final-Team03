@@ -18,6 +18,16 @@ export interface UserRecordResponse {
   totalElements: number;
 }
 
+export interface Slice<T> {
+  content: T[];
+  last: boolean;
+  number: number;
+  size: number;
+  numberOfElements: number;
+  first: boolean;
+  empty: boolean;
+}
+
 export interface CommonResponse<T> {
   status: string;
   data: T;

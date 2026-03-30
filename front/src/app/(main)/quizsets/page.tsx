@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import api from "@/lib/api";
+import { Slice } from "../../../../types";
 
 interface QuizSet {
   id: number;
@@ -15,6 +16,9 @@ interface QuizSet {
 export default function QuizSetsPage() {
   const [quizSets, setQuizSets] = useState<QuizSet[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchingMore, setFetchingMore] = useState(false);
+  const [page, setPage] = useState(0);
+  const [isLast, setIsLast] = useState(false);
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<number>>(new Set());
   const [userId, setUserId] = useState<number | null>(null);
 
@@ -24,20 +28,37 @@ export default function QuizSetsPage() {
     if (storedUserId) setUserId(Number(storedUserId));
   }, []);
 
-  useEffect(() => {
-    const fetchQuizSets = async () => {
-      try {
-        const res = await api.get("/quizsets");
-        const sorted = res.data.data.sort((a: QuizSet, b: QuizSet) => b.id - a.id);
-        setQuizSets(sorted);
-      } catch (err) {
-        console.error("퀴즈셋 조회 실패", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchQuizSets();
+  const fetchQuizSets = useCallback(async (pageNumber: number) => {
+    try {
+      if (pageNumber === 0) setLoading(true);
+      else setFetchingMore(true);
+
+      // 백엔드에 page와 size 파라미터 전달
+      const res = await api.get(`/quizsets?page=${pageNumber}&size=12`);
+      const { content, last } = res.data.data as Slice<QuizSet>;
+
+      // 기존 데이터에 새 데이터를 이어붙임 (첫 페이지면 교체)
+      setQuizSets(prev => (pageNumber === 0 ? content : [...prev, ...content]));
+      setIsLast(last);
+      setPage(pageNumber);
+    } catch (err) {
+      console.error("퀴즈셋 조회 실패", err);
+    } finally {
+      setLoading(false);
+      setFetchingMore(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchQuizSets(0);
+  }, [fetchQuizSets]);
+
+  // '더 보기' 버튼 클릭 핸들러
+  const handleLoadMore = () => {
+    if (!isLast && !fetchingMore) {
+      fetchQuizSets(page + 1);
+    }
+  };
 
   // 북마크 목록 조회
   useEffect(() => {
@@ -120,24 +141,24 @@ export default function QuizSetsPage() {
 
                 {/* 북마크 버튼 */}
                 {userId && (
-  <button
-    onClick={(e) => toggleBookmark(e, quiz.id)}
-    className="absolute top-3 right-3 hover:scale-125 transition-transform"
-  >
-    <svg
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill={bookmarkedIds.has(quiz.id) ? "#FFFF00" : "none"}
-      stroke="#2B2D42"
-      strokeWidth="2.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-    </svg>
-  </button>
-)}
+                  <button
+                    onClick={(e) => toggleBookmark(e, quiz.id)}
+                    className="absolute top-3 right-3 hover:scale-125 transition-transform"
+                  >
+                    <svg
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill={bookmarkedIds.has(quiz.id) ? "#FFFF00" : "none"}
+                      stroke="#2B2D42"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                    </svg>
+                  </button>
+                )}
               </div>
 
               {/* 정보 */}
@@ -153,6 +174,19 @@ export default function QuizSetsPage() {
               </div>
             </Link>
           ))}
+        </div>
+      )}
+
+      {/* 더 보기 버튼 */}
+      {!isLast && (
+        <div className="text-center mt-8">
+          <button
+            onClick={handleLoadMore}
+            disabled={fetchingMore}
+            className="px-6 py-3 bg-primary text-white font-bold border-[3px] border-dark rounded-xl shadow-kitsch hover:shadow-kitsch-lg hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {fetchingMore ? "불러오는 중..." : "더 보기"}
+          </button>
         </div>
       )}
     </div>

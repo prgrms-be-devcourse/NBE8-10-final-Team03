@@ -87,6 +87,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         cookieUtil.addRefreshTokenCookie(response, refreshToken);
 
         // 5. 프론트엔드로 redirect
-        getRedirectStrategy().sendRedirect(request, response, redirectUri);
+        String redirectUrl = redirectUri + "?userId=" + customUser.getUserId() + "&nickname=" + customUser.getNickname();
+        getRedirectStrategy().sendRedirect(request, response, redirectUrl);
     }
 }

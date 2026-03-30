@@ -114,6 +114,8 @@ public class RankingServiceImpl implements RankingService {
     // 내 순위 계산 (비로그인 시 null 반환)
     private Long getMyRank(Long userId) {
         if (userId == null) return null;
-        return userRepository.findMyRankByUserId(userId);
+        return userRepository.findById(userId)
+                .map(user -> userRepository.findMyRankByUserId(userId, user.getTotalRankingScore()))
+                .orElse(null);
     }
 }

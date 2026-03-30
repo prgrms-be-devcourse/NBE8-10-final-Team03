@@ -40,8 +40,8 @@ public interface UserRepository extends JpaRepository<User,Long> {
     List<User> findTop10ActiveUsers(Pageable pageable);
 
     @Query("SELECT COUNT(u) + 1 FROM User u " +
-            "WHERE u.totalRankingScore > " +
-            "(SELECT u2.totalRankingScore FROM User u2 WHERE u2.id = :userId) " +
-            "AND u.status = 'ACTIVE'")
-    Long findMyRankByUserId(@Param("userId") Long userId);
+            "WHERE u.status = 'ACTIVE' " +
+            "AND (u.totalRankingScore > :score " +
+            "OR (u.totalRankingScore = :score AND u.id < :userId))")
+    Long findMyRankByUserId(@Param("userId") Long userId, @Param("score") Long score);
 }

@@ -19,6 +19,8 @@ import com.eof.back.global.exception.exceptions.QuizSetException;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -85,10 +87,9 @@ public class QuizSetServiceImpl implements QuizSetService {
      * 전체 {@link QuizSet} 엔티티를 조회한 후, 요약 정보만 포함된 {@link QuizSetListResponse} 목록으로 변환합니다.
      */
     @Override
-    public List<QuizSetListResponse> getAllQuizSets() {
-        return quizSetRepository.findAll().stream()
-                .map(QuizSetListResponse::from)
-                .collect(Collectors.toList());
+    public Slice<QuizSetListResponse> getAllQuizSets(Pageable pageable) {
+        return quizSetRepository.findAllWithCreator(pageable)
+                .map(QuizSetListResponse::from);
     }
 
     /**

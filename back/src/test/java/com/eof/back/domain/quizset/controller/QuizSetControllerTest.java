@@ -32,6 +32,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.SliceImpl;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
@@ -199,15 +203,23 @@ class QuizSetControllerTest {
                 .totalQuizCount(10)
                 .build();
 
-        given(quizSetService.getAllQuizSets()).willReturn(List.of(response1, response2));
+        Pageable pageable = PageRequest.of(0, 12);
+        Slice<QuizSetListResponse> slice = new SliceImpl<>(List.of(response1, response2), pageable, false);
+
+        given(quizSetService.getAllQuizSets(any(Pageable.class))).willReturn(slice);
 
         // when & then
-        mockMvc.perform(get("/api/v1/quizsets"))
+        mockMvc.perform(get("/api/v1/quizsets")
+                        .param("page", "0")
+                        .param("size", "12")
+                        .param("sort", "createdAt,desc"))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("success"))
-                .andExpect(jsonPath("$.data[0].title").value("세트1"))
-                .andExpect(jsonPath("$.data[1].title").value("세트2"));
+                .andExpect(jsonPath("$.data.content[0].title").value("세트1"))
+                .andExpect(jsonPath("$.data.content[1].title").value("세트2"))
+                .andExpect(jsonPath("$.data.last").value(true));
+
     }
 
     @Test

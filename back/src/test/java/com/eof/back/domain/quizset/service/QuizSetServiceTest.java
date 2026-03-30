@@ -30,6 +30,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.SliceImpl;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -171,16 +175,21 @@ class QuizSetServiceTest {
         QuizSet quizSet1 = QuizSet.builder().title("세트1").creator(creator).build();
         QuizSet quizSet2 = QuizSet.builder().title("세트2").creator(creator).build();
 
-        given(quizSetRepository.findAll()).willReturn(List.of(quizSet1, quizSet2));
+        PageRequest pageable = PageRequest.of(0, 12);
+        Slice<QuizSet> slice = new SliceImpl<>(List.of(quizSet1, quizSet2), pageable, false);
+
+        given(quizSetRepository.findAllWithCreator(any(Pageable.class))).willReturn(slice);
 
         // when
-        List<QuizSetListResponse> responses = quizSetService.getAllQuizSets();
+        Slice<QuizSetListResponse> responses = quizSetService.getAllQuizSets(pageable);
 
         // then
-        assertThat(responses).hasSize(2);
-        assertThat(responses.get(0).getTitle()).isEqualTo("세트1");
-        assertThat(responses.get(1).getTitle()).isEqualTo("세트2");
-        verify(quizSetRepository).findAll();
+        assertThat(responses.getContent()).hasSize(2);
+        assertThat(responses.getContent().get(0).getTitle()).isEqualTo("세트1");
+        assertThat(responses.getContent().get(1).getTitle()).isEqualTo("세트2");
+        assertThat(responses.hasNext()).isFalse();
+
+        verify(quizSetRepository).findAllWithCreator(pageable);
     }
 
     @Test

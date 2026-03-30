@@ -1,5 +1,8 @@
 package com.eof.back.global.config;
 
+import com.eof.back.domain.auth.oauth2.CustomOAuth2UserService;
+import com.eof.back.domain.auth.oauth2.OAuth2FailureHandler;
+import com.eof.back.domain.auth.oauth2.OAuth2SuccessHandler;
 import com.eof.back.global.jwt.JwtAuthenticationEntryPoint;
 import com.eof.back.global.jwt.JwtAuthenticationFilter;
 import com.eof.back.global.security.SecurityUrlRegistry;
@@ -25,20 +28,23 @@ import java.util.List;
 /**
  * Spring Security 전반 설정을 담당하는 클래스입니다.
  *
- * <p>JWT 기반 인증을 사용하는 Stateless 구조로 설정하며,
- * 다음과 같은 보안 정책을 구성합니다.</p>
+ * <p>JWT 기반 인증(HttpOnly 쿠키)과 OAuth2 소셜 로그인을 함께 지원하는 보안 설정 클래스입니다.
  * {@link SecurityUrlRegistry}에 정의된 URL 목록을 바탕으로 인가 정책을 구성합니다.</p>
  *
  * <p><b>주요 기능:</b><br>
- * - PasswordEncoder Bean 등록 (BCrypt)
- * - JWT 인증 필터 등록
- * - CORS 설정 (Next.js localhost:3000 허용)
+ * - PasswordEncoder Bean 등록 (BCrypt)<br>
+ * - JWT 인증 필터 등록 (쿠키에서 accessToken 읽기)<br>
+ * - OAuth2 소셜 로그인 설정 (Google, Kakao)<br>
+ * - CORS 설정 (Next.js localhost:3000 허용)<br>
  * - 인증/인가 정책 설정 (permitAll / authenticated)
- * - 세션 미사용(Stateless) 설정
+ *
+ * <p><b>세션 정책:</b><br>
+ * OAuth2 인증 흐름에서 state 파라미터 보관을 위해 {@code IF_REQUIRED} 정책을 사용합니다.
+ * 인증 완료 후 JWT 쿠키가 발급되므로, 일반 API 요청에서는 세션이 생성되지 않습니다.
  *
  * <p><b>보안 흐름:</b><br>
  * 1. 요청 발생<br>
- * 2. JwtAuthenticationFilter에서 토큰 검증<br>
+ * 2. JwtAuthenticationFilter에서 쿠키의 accessToken 검증<br>
  * 3. 유효한 경우 SecurityContext에 인증 저장<br>
  * 4. 이후 인가 처리 진행
  *
@@ -53,6 +59,9 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+    private final CustomOAuth2UserService customOAuth2UserService;
+    private final OAuth2SuccessHandler oAuth2SuccessHandler;
+    private final OAuth2FailureHandler oAuth2FailureHandler;
 
     /**
      * 비밀번호 암호화를 위한 PasswordEncoder Bean을 등록합니다.
@@ -113,6 +122,10 @@ public class SecurityConfig {
     /**
      * Spring Security 필터 체인을 구성합니다.
      *
+     * <p>JWT 쿠키 인증과 OAuth2 소셜 로그인을 함께 설정합니다.<br>
+     * OAuth2 인증 흐름은 {@link CustomOAuth2UserService}에서 유저를 조회/생성하고,
+     * {@link OAuth2SuccessHandler}에서 JWT 쿠키를 발급하여 프론트엔드로 redirect합니다.</p>
+     *
      * @param http HttpSecurity 객체
      * @return 구성된 SecurityFilterChain
      * @throws Exception 설정 중 예외 발생 시
@@ -124,8 +137,10 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
+                // OAuth2 인증 흐름 중 state 파라미터 보관을 위해 IF_REQUIRED 사용
+                // 일반 API 요청에서는 JWT 쿠키를 사용하므로 세션이 생성되지 않음
                 .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                        session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
                 )
                 .authorizeHttpRequests(auth -> {
                     auth.requestMatchers(SecurityUrlRegistry.PERMIT_ALL_URLS).permitAll();
@@ -134,6 +149,16 @@ public class SecurityConfig {
                     );
                     auth.anyRequest().authenticated();
                 })
+                .oauth2Login(oauth2 -> oauth2
+                        .userInfoEndpoint(userInfo -> userInfo
+                                // 소셜 제공자에서 받은 사용자 정보로 DB 유저를 조회/생성
+                                .userService(customOAuth2UserService)
+                        )
+                        // 인증 성공: JWT 쿠키 발급 후 프론트엔드로 redirect
+                        .successHandler(oAuth2SuccessHandler)
+                        // 인증 실패: error 파라미터와 함께 프론트엔드로 redirect
+                        .failureHandler(oAuth2FailureHandler)
+                )
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(jwtAuthenticationEntryPoint)
                 )

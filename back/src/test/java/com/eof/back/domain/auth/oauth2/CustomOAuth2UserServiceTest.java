@@ -60,6 +60,7 @@ class CustomOAuth2UserServiceTest {
         @DisplayName("성공 - 기존 유저가 있으면 save를 호출하지 않는다")
         void existingUser_noSave() {
             User existingUser = mock(User.class);
+            given(existingUser.isActive()).willReturn(true);
             given(userRepository.findByProviderAndProviderId(AuthProvider.GOOGLE, "google_123"))
                     .willReturn(Optional.of(existingUser));
 
@@ -74,7 +75,9 @@ class CustomOAuth2UserServiceTest {
             given(userRepository.findByProviderAndProviderId(AuthProvider.GOOGLE, "google_123"))
                     .willReturn(Optional.empty());
             given(userRepository.findNicknamesStartingWith("홍길동")).willReturn(Set.of());
-            given(userRepository.save(any(User.class))).willReturn(mock(User.class));
+            User savedUser = mock(User.class);
+            given(savedUser.isActive()).willReturn(true);
+            given(userRepository.save(any(User.class))).willReturn(savedUser);
 
             ReflectionTestUtils.invokeMethod(userService, "findOrCreateUser", googleAttributes());
 

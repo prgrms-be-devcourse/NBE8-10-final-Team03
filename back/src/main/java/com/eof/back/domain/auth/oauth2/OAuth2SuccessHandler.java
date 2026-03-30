@@ -3,8 +3,6 @@ package com.eof.back.domain.auth.oauth2;
 import com.eof.back.domain.auth.store.RefreshTokenStore;
 import com.eof.back.domain.user.user.entity.User;
 import com.eof.back.domain.user.user.repository.UserRepository;
-import com.eof.back.global.exception.errorCode.AuthErrorCode;
-import com.eof.back.global.exception.exceptions.AuthException;
 import com.eof.back.global.jwt.CookieUtil;
 import com.eof.back.global.jwt.JwtTokenProvider;
 import jakarta.servlet.http.HttpServletRequest;
@@ -13,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
+import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
@@ -74,8 +74,11 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         OAuthAttributes attributes = OAuthAttributes.of(registrationId, oAuth2User.getAttributes());
 
         // 2. providerId로 DB에서 User 조회
+        // CustomOAuth2UserService에서 이미 findOrCreateUser()가 실행됐으므로
+        // 여기서 유저가 없으면 로직 오류 또는 데이터 정합성 문제 → OAuth2 인증 실패로 처리
         User user = userRepository.findByProviderAndProviderId(attributes.getProvider(), attributes.getProviderId())
-                .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new OAuth2AuthenticationException(
+                        new OAuth2Error("user_not_found"), "소셜 로그인 처리 중 오류가 발생했습니다."));
 
         // 3. AccessToken, RefreshToken 발급
         String accessToken = jwtTokenProvider.createAccessToken(

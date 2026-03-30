@@ -3,6 +3,7 @@ package com.eof.back.domain.auth.oauth2;
 import com.eof.back.domain.user.user.entity.AuthProvider;
 import com.eof.back.domain.user.user.entity.User;
 import com.eof.back.domain.user.user.repository.UserRepository;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
@@ -92,7 +93,10 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
      * @return DB에서 사용 가능한 고유 닉네임
      */
     private String generateUniqueNickname(String nickname) {
-        if (!userRepository.existsByNickname(nickname)) {
+        // 한 번의 쿼리로 관련 닉네임 전부 조회 후 메모리에서 처리
+        Set<String> existingNicknames = userRepository.findNicknamesStartingWith(nickname);
+
+        if (!existingNicknames.contains(nickname)) {
             return nickname;
         }
 
@@ -100,7 +104,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         String candidate;
         do {
             candidate = nickname + "_" + suffix++;
-        } while (userRepository.existsByNickname(candidate));
+        } while (existingNicknames.contains(candidate));
 
         return candidate;
     }

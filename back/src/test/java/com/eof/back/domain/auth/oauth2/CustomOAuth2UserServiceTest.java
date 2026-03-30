@@ -15,6 +15,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -69,7 +70,7 @@ class CustomOAuth2UserServiceTest {
         void newUser_save() {
             given(userRepository.findByProviderAndProviderId(AuthProvider.GOOGLE, "google_123"))
                     .willReturn(Optional.empty());
-            given(userRepository.existsByNickname("홍길동")).willReturn(false);
+            given(userRepository.findNicknamesStartingWith("홍길동")).willReturn(Set.of());
             given(userRepository.save(any(User.class))).willReturn(mock(User.class));
 
             ReflectionTestUtils.invokeMethod(userService, "findOrCreateUser", googleAttributes());
@@ -88,7 +89,7 @@ class CustomOAuth2UserServiceTest {
         @Test
         @DisplayName("성공 - 닉네임 중복 없으면 그대로 반환한다")
         void noConflict() {
-            given(userRepository.existsByNickname("홍길동")).willReturn(false);
+            given(userRepository.findNicknamesStartingWith("홍길동")).willReturn(Set.of());
 
             String result = ReflectionTestUtils.invokeMethod(userService, "generateUniqueNickname", "홍길동");
 
@@ -98,8 +99,7 @@ class CustomOAuth2UserServiceTest {
         @Test
         @DisplayName("성공 - 닉네임 중복 시 _1 suffix를 붙인다")
         void conflict_addSuffix() {
-            given(userRepository.existsByNickname("홍길동")).willReturn(true);
-            given(userRepository.existsByNickname("홍길동_1")).willReturn(false);
+            given(userRepository.findNicknamesStartingWith("홍길동")).willReturn(Set.of("홍길동"));
 
             String result = ReflectionTestUtils.invokeMethod(userService, "generateUniqueNickname", "홍길동");
 
@@ -109,9 +109,7 @@ class CustomOAuth2UserServiceTest {
         @Test
         @DisplayName("성공 - _1도 중복이면 _2를 붙인다")
         void conflict_addSuffix2() {
-            given(userRepository.existsByNickname("홍길동")).willReturn(true);
-            given(userRepository.existsByNickname("홍길동_1")).willReturn(true);
-            given(userRepository.existsByNickname("홍길동_2")).willReturn(false);
+            given(userRepository.findNicknamesStartingWith("홍길동")).willReturn(Set.of("홍길동", "홍길동_1"));
 
             String result = ReflectionTestUtils.invokeMethod(userService, "generateUniqueNickname", "홍길동");
 

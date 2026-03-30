@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  User 엔티티에 대한 데이터 접근을 담당하는 Repository입니다.
@@ -37,6 +38,9 @@ public interface UserRepository extends JpaRepository<User,Long> {
     Optional<User> findByUsername(String username);
 
     Optional<User> findByProviderAndProviderId(AuthProvider provider, String providerId);
+
+    @Query("SELECT u.nickname FROM User u WHERE u.nickname = :nickname OR u.nickname LIKE CONCAT(:nickname, '\\_%')")
+    Set<String> findNicknamesStartingWith(@Param("nickname") String nickname);
 
     @Query("SELECT u FROM User u WHERE u.status = 'ACTIVE' " +
             "ORDER BY u.totalRankingScore DESC, u.id ASC")

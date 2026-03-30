@@ -1,6 +1,8 @@
 package com.eof.back.domain.quizset.repository;
 
 import com.eof.back.domain.quizset.entity.QuizSet;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -27,4 +29,7 @@ public interface QuizSetRepository extends JpaRepository<QuizSet, Long> {
     @Modifying(clearAutomatically = true)
     @Query("DELETE FROM QuizSet q WHERE q.id = :id AND q.creator.id = :userId")
     int deleteByIdAndCreatorId(@Param("id") Long id, @Param("userId") Long userId);
+
+    @Query("SELECT q FROM QuizSet q JOIN FETCH q.creator")
+    Slice<QuizSet> findAllWithCreator(Pageable pageable);
 }

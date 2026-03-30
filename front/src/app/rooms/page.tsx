@@ -111,10 +111,11 @@ export default function RoomsPage() {
     if (quizSetIdParam && quizSets.length === 0) {
       const openModalWithQuizSet = async () => {
         try {
-          const res = await api.get("/quizsets");
-          setQuizSets(res.data.data);
+          const res = await api.get("/quizsets?size=100");
+          const content = res.data.data.content as QuizSet[];
+          setQuizSets(content);
           const targetId = Number(quizSetIdParam);
-          const target = res.data.data.find((q: QuizSet) => q.id === targetId);
+          const target = content.find((q: QuizSet) => q.id === targetId);
           if (target) {
             setSelectedQuizSetId(target.id);
             setMaxQuizzes(target.totalQuizCount);
@@ -164,13 +165,13 @@ export default function RoomsPage() {
     try {
       const res = await api.post(`/rooms/${gameSessionId}/join`);
       console.log("✅ join 응답:", res.data.data);
-  
+
       // 퀴즈셋 정보 + 방 정보 병렬 조회
       const [quizSetRes, roomsRes] = await Promise.all([
         api.get(`/quizsets/${res.data.data.quizSetId}`),
         api.get("/rooms"),
       ]);
-  
+
       const roomDetail = roomsRes.data.data.find((r: any) => r.gameSessionId === gameSessionId);
 
       const enrichedRoom = {
@@ -178,7 +179,7 @@ export default function RoomsPage() {
         quizSetTitle: quizSetRes.data.data.title,
         // maxPlayer, maxQuizzes는 이제 join 응답에서 바로 옴
       };
-      
+
       setCurrentRoom(enrichedRoom);
       setGameState("waiting");
       setSelectedAnswer(null);
@@ -339,11 +340,12 @@ export default function RoomsPage() {
 
   const handleOpenModal = async () => {
     try {
-      const res = await api.get("/quizsets");
-      setQuizSets(res.data.data);
-      if (res.data.data.length > 0) {
-        setSelectedQuizSetId(res.data.data[0].id);
-        setMaxQuizzes(res.data.data[0].totalQuizCount);
+      const res = await api.get("/quizsets?size=100");
+      const content = res.data.data.content as QuizSet[];
+      setQuizSets(content);
+      if (content.length > 0) {
+        setSelectedQuizSetId(content[0].id);
+        setMaxQuizzes(content[0].totalQuizCount);
       }
     } catch (err) {
       console.error("퀴즈셋 조회 실패", err);
@@ -481,9 +483,9 @@ export default function RoomsPage() {
                 <div className="bg-white border-[3px] border-dark rounded-2xl shadow-kitsch p-5">
                   <h3 className="font-title text-lg mb-3">퀴즈 정보</h3>
                   <div className="flex flex-col gap-2 text-sm">
-                  <div className="flex justify-between"><span className="text-gray-400">퀴즈셋</span><span className="font-bold">{roomInfo?.quizSetTitle}</span></div>
-                  <div className="flex justify-between"><span className="text-gray-400">문제 수</span><span className="font-bold">{roomInfo?.maxQuizzes}문제</span></div>
-                    <div className="flex justify-between"><span className="text-gray-400">최대 인원</span><span className="font-bold">{roomInfo?.maxPlayers}명</span></div>
+                    <div className="flex justify-between"><span className="text-gray-400">퀴즈셋</span><span className="font-bold">{roomInfo?.quizSetTitle}</span></div>
+                    <div className="flex justify-between"><span className="text-gray-400">문제 수</span><span className="font-bold">{roomInfo?.maxQuizzes}문제</span></div>
+                    <div className="flex justify-between"><span className="text-gray-400">최대 인원</span><span className="font-bold">{roomInfo?.maxPlayer}명</span></div>
                   </div>
                 </div>
                 <div className="bg-white border-[3px] border-dark rounded-2xl shadow-kitsch flex-1 flex flex-col overflow-hidden" style={{ maxHeight: "400px" }}>
@@ -558,9 +560,8 @@ export default function RoomsPage() {
                         key={i}
                         onClick={() => handleSubmitAnswer(choice)}
                         disabled={answerSubmitted}
-                        className={`p-6 border-[3px] rounded-2xl font-bold text-lg shadow-kitsch-sm transition-all hover:-translate-y-0.5 hover:shadow-kitsch disabled:cursor-not-allowed ${
-                          isSelected ? choiceColors[i].selected : `${choiceColors[i].base} ${choiceColors[i].hover}`
-                        }`}
+                        className={`p-6 border-[3px] rounded-2xl font-bold text-lg shadow-kitsch-sm transition-all hover:-translate-y-0.5 hover:shadow-kitsch disabled:cursor-not-allowed ${isSelected ? choiceColors[i].selected : `${choiceColors[i].base} ${choiceColors[i].hover}`
+                          }`}
                       >
                         <span className="font-title mr-2">{i + 1}.</span>
                         {choice}

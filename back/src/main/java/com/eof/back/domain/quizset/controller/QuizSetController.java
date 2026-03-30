@@ -11,6 +11,10 @@ import com.eof.back.global.response.Response;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -75,8 +79,10 @@ public class QuizSetController {
      * @return 퀴즈 세트 요약 정보 목록
      */
     @GetMapping
-    public ResponseEntity<Response<List<QuizSetListResponse>>> getAllQuizSets() {
-        List<QuizSetListResponse> response = quizSetService.getAllQuizSets();
+    public ResponseEntity<Response<Slice<QuizSetListResponse>>> getAllQuizSets(
+            @PageableDefault(size = 12, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
+        Slice<QuizSetListResponse> response = quizSetService.getAllQuizSets(pageable);
         return ResponseEntity.ok(CommonResponse.success(response));
     }
 

@@ -3,6 +3,9 @@ package com.eof.back.domain.quizset.service;
 import com.eof.back.domain.quizset.dto.QuizSetCreateRequest;
 import com.eof.back.domain.quizset.dto.QuizSetListResponse;
 import com.eof.back.domain.quizset.dto.QuizSetResponse;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
+
 import java.util.List;
 
 /**
@@ -63,7 +66,7 @@ public interface QuizSetService {
      *
      * @return 등록된 모든 퀴즈 세트의 요약 정보 목록
      */
-    List<QuizSetListResponse> getAllQuizSets();
+    Slice<QuizSetListResponse> getAllQuizSets(Pageable pageable);
 
     /**
      * 기존 퀴즈 세트의 정보를 수정합니다.

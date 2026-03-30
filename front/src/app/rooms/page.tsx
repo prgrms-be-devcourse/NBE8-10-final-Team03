@@ -176,8 +176,7 @@ export default function RoomsPage() {
       const enrichedRoom = {
         ...res.data.data,
         quizSetTitle: quizSetRes.data.data.title,
-        maxQuizzes: quizSetRes.data.data.totalQuizCount, // 일단 퀴즈셋 전체로
-        maxPlayer: roomDetail?.maxPlayer,
+        // maxPlayer, maxQuizzes는 이제 join 응답에서 바로 옴
       };
       
       setCurrentRoom(enrichedRoom);
@@ -362,6 +361,7 @@ export default function RoomsPage() {
     setCreateError("");
     if (!roomName.trim()) { setCreateError("방 제목을 입력하세요."); return; }
     if (!selectedQuizSetId) { setCreateError("퀴즈셋을 선택하세요."); return; }
+    if (maxQuizzes < 5) { setCreateError("문제 수는 최소 5개 이상이어야 합니다."); return; }
     setCreating(true);
     try {
       const res = await api.post("/rooms", { roomName, quizSetId: selectedQuizSetId, maxPlayers, maxQuizzes });
@@ -427,7 +427,7 @@ export default function RoomsPage() {
                   <div className="w-full h-4 bg-gray-200 rounded-full border-2 border-dark">
                     <div
                       className="h-full bg-primary rounded-full"
-                      style={{ width: `${Math.min((roomInfo?.players?.length ?? 0) / (roomInfo?.maxPlayer || 4) * 100, 100)}%` }}
+                      style={{ width: `${Math.min((roomInfo?.players?.length ?? 0) / (roomInfo?.maxPlayers || 4) * 100, 100)}%` }}
                     />
                   </div>
                 </div>
@@ -446,7 +446,7 @@ export default function RoomsPage() {
                       {p.nickname === myNickname && <span className="text-sm text-accent font-bold">나</span>}
                     </div>
                   ))}
-                  {Array.from({ length: (roomInfo?.maxPlayer || 4) - (roomInfo?.players?.length || 0) }).map((_, i) => (
+                  {Array.from({ length: (roomInfo?.maxPlayers || 4) - (roomInfo?.players?.length || 0) }).map((_, i) => (
                     <div key={`empty-${i}`} className="flex flex-col items-center justify-center p-5 border-[3px] border-dashed border-gray-300 rounded-2xl">
                       <div className="w-14 h-14 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center mb-2">
                         <span className="text-gray-300 text-xl">?</span>
@@ -483,7 +483,7 @@ export default function RoomsPage() {
                   <div className="flex flex-col gap-2 text-sm">
                   <div className="flex justify-between"><span className="text-gray-400">퀴즈셋</span><span className="font-bold">{roomInfo?.quizSetTitle}</span></div>
                   <div className="flex justify-between"><span className="text-gray-400">문제 수</span><span className="font-bold">{roomInfo?.maxQuizzes}문제</span></div>
-                    <div className="flex justify-between"><span className="text-gray-400">최대 인원</span><span className="font-bold">{roomInfo?.maxPlayer}명</span></div>
+                    <div className="flex justify-between"><span className="text-gray-400">최대 인원</span><span className="font-bold">{roomInfo?.maxPlayers}명</span></div>
                   </div>
                 </div>
                 <div className="bg-white border-[3px] border-dark rounded-2xl shadow-kitsch flex-1 flex flex-col overflow-hidden" style={{ maxHeight: "400px" }}>
@@ -810,7 +810,7 @@ export default function RoomsPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-bold mb-2">문제 수</label>
-                  <input type="number" min={1} max={quizSets.find((q) => q.id === selectedQuizSetId)?.totalQuizCount || 50} value={maxQuizzes} onChange={(e) => setMaxQuizzes(Number(e.target.value))} className="w-full px-4 py-3 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none transition-colors" />
+                  <input type="number" min={5} max={quizSets.find((q) => q.id === selectedQuizSetId)?.totalQuizCount || 50} value={maxQuizzes} onChange={(e) => setMaxQuizzes(Number(e.target.value))} className="w-full px-4 py-3 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none transition-colors" />
                 </div>
               </div>
               <div className="flex gap-3">

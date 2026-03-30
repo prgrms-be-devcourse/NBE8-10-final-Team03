@@ -41,7 +41,8 @@ public interface UserRepository extends JpaRepository<User,Long> {
 
     @Query("SELECT COUNT(u) + 1 FROM User u " +
             "WHERE u.status = 'ACTIVE' " +
-            "AND (u.totalRankingScore > :score " +
-            "OR (u.totalRankingScore = :score AND u.id < :userId))")
-    Long findMyRankByUserId(@Param("userId") Long userId, @Param("score") Long score);
+            "AND (u.totalRankingScore > (SELECT u2.totalRankingScore FROM User u2 WHERE u2.id = :userId) " +
+            "OR (u.totalRankingScore = (SELECT u2.totalRankingScore FROM User u2 WHERE u2.id = :userId) " +
+            "AND u.id < :userId))")
+    Long findMyRankByUserId(@Param("userId") Long userId);
 }

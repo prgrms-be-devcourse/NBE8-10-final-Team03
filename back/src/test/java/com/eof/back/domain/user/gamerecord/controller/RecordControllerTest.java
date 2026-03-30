@@ -2,6 +2,7 @@ package com.eof.back.domain.user.gamerecord.controller;
 
 import com.eof.back.domain.user.gamerecord.dto.UserRecordResponse;
 import com.eof.back.domain.user.gamerecord.service.RecordService;
+import com.eof.back.global.jwt.CookieUtil;
 import com.eof.back.global.jwt.JwtTokenProvider;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -33,6 +34,9 @@ class RecordControllerTest {
 
     @MockitoBean
     private JwtTokenProvider jwtTokenProvider;
+
+    @MockitoBean
+    private CookieUtil cookieUtil;
 
     @Test
     @DisplayName("내 전적 조회 - 정상")

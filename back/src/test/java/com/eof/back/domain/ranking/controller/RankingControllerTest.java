@@ -2,6 +2,7 @@ package com.eof.back.domain.ranking.controller;
 
 import com.eof.back.domain.ranking.dto.RankingResponse;
 import com.eof.back.domain.ranking.service.RankingService;
+import com.eof.back.global.jwt.CookieUtil;
 import com.eof.back.global.jwt.JwtTokenProvider;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,6 +39,9 @@ class RankingControllerTest {
 
     @MockitoBean
     private JwtTokenProvider jwtTokenProvider;
+
+    @MockitoBean
+    private CookieUtil cookieUtil;
 
     private final UserPrincipal principal = new UserPrincipal(1L, "testuser", "tester", "USER");
 

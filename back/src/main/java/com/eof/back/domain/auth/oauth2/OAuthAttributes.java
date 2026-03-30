@@ -2,6 +2,8 @@ package com.eof.back.domain.auth.oauth2;
 
 import com.eof.back.domain.user.user.entity.AuthProvider;
 import lombok.Getter;
+import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
+import org.springframework.security.oauth2.core.OAuth2Error;
 
 import java.util.Map;
 
@@ -81,7 +83,6 @@ public class OAuthAttributes {
      * {
      *   "id": 9876543,                          // 사용자 고유 ID
      *   "kakao_account": {
-     *     "email": "user@kakao.com",
      *     "profile": {
      *       "nickname": "홍길동"
      *     }
@@ -92,11 +93,18 @@ public class OAuthAttributes {
     @SuppressWarnings("unchecked")
     private static OAuthAttributes ofKakao(Map<String, Object> attributes) {
         Map<String, Object> kakaoAccount = (Map<String, Object>) attributes.get("kakao_account");
-        Map<String, Object> profile = (Map<String, Object>) kakaoAccount.get("profile");
+        Map<String, Object> profile = kakaoAccount != null
+                ? (Map<String, Object>) kakaoAccount.get("profile")
+                : null;
+
+        if (kakaoAccount == null || profile == null) {
+            throw new OAuth2AuthenticationException(
+                    new OAuth2Error("invalid_response"), "카카오 응답에서 필수 정보를 가져올 수 없습니다.");
+        }
 
         return new OAuthAttributes(
                 String.valueOf(attributes.get("id")),
-                kakaoAccount != null ? (String) kakaoAccount.get("email") : null,
+                null,   // 카카오는 이메일 동의 없이 수집하지 않음
                 (String) profile.get("nickname"),
                 AuthProvider.KAKAO
         );

@@ -80,20 +80,26 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
                 .orElseThrow(() -> new OAuth2AuthenticationException(
                         new OAuth2Error("user_not_found"), "소셜 로그인 처리 중 오류가 발생했습니다."));
 
-        // 3. AccessToken, RefreshToken 발급
+        // 3. 계정 상태 검증
+        if (!user.isActive()) {
+            throw new OAuth2AuthenticationException(
+                    new OAuth2Error("login_fail"), "로그인에 실패하였습니다.");
+        }
+
+        // 4. AccessToken, RefreshToken 발급
         String accessToken = jwtTokenProvider.createAccessToken(
                 user.getId(), user.getUsername(), user.getRole().name(), user.getNickname());
         String refreshToken = jwtTokenProvider.createRefreshToken(user.getId());
 
-        // 4. RefreshToken 저장소에 저장
+        // 5. RefreshToken 저장소에 저장
         LocalDateTime refreshTokenExpiredAt = LocalDateTime.now().plusSeconds(refreshTokenExpireSeconds);
         refreshTokenStore.save(user.getId(), refreshToken, refreshTokenExpiredAt);
 
-        // 5. 토큰을 HttpOnly 쿠키로 설정
+        // 6. 토큰을 HttpOnly 쿠키로 설정
         cookieUtil.addAccessTokenCookie(response, accessToken);
         cookieUtil.addRefreshTokenCookie(response, refreshToken);
 
-        // 6. 프론트엔드로 redirect
+        // 7. 프론트엔드로 redirect
         getRedirectStrategy().sendRedirect(request, response, redirectUri);
     }
 }

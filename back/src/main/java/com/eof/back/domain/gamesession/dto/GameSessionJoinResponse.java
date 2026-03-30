@@ -33,6 +33,8 @@ public record GameSessionJoinResponse(
         String title,
         Long quizSetId,
         String status,
+        int maxPlayers,
+        int maxQuizzes,
         List<PlayerInfo> players
 ) {
     /**
@@ -55,6 +57,8 @@ public record GameSessionJoinResponse(
                 session.getRoomName(),
                 session.getQuizSet().getId(),
                 session.getStatus().name(),
+                session.getMaxPlayers(),
+                session.getMaxQuizzes(),
                 playerInfos
         );
     }

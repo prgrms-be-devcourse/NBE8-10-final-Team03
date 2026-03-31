@@ -51,9 +51,6 @@ import java.util.List;
 public class StompHandler implements ChannelInterceptor {
 
     private final JwtTokenProvider jwtTokenProvider;
-
-    private static final String AUTHORIZATION_HEADER = "Authorization";
-    private static final String BEARER_PREFIX = "Bearer ";
     private static final String ROLE_PREFIX = "ROLE_";
 
     @Override
@@ -63,10 +60,7 @@ public class StompHandler implements ChannelInterceptor {
         // 1. 최초 연결(CONNECT) 시: 토큰 검사 후 신분증을 만들어서 세션 주머니에 넣습니다.
         if (StompCommand.CONNECT.equals(accessor.getCommand())) {
 
-            String bearerToken = accessor.getFirstNativeHeader(AUTHORIZATION_HEADER);
-            if (bearerToken == null) bearerToken = accessor.getFirstNativeHeader(AUTHORIZATION_HEADER.toLowerCase());
-
-            String token = resolveToken(bearerToken);
+            String token = (String) accessor.getSessionAttributes().get("accessToken");
 
             if (token != null) {
                 try {
@@ -108,12 +102,5 @@ public class StompHandler implements ChannelInterceptor {
         }
 
         return message;
-    }
-
-    private String resolveToken(String bearer) {
-        if (bearer != null && bearer.startsWith(BEARER_PREFIX)) {
-            return bearer.substring(BEARER_PREFIX.length());
-        }
-        return null;
     }
 }

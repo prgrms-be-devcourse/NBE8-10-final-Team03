@@ -8,6 +8,8 @@ import org.junit.jupiter.api.Test;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -61,62 +63,38 @@ class OAuthAttributesTest {
     class Kakao {
 
         @Test
-        @DisplayName("성공 - Kakao 응답을 올바르게 파싱한다 (email 포함)")
-        void success_withEmail() {
+        @DisplayName("성공 - Kakao 응답을 올바르게 파싱한다")
+        void success() {
             Map<String, Object> profile = Map.of("nickname", "카카오유저");
-            Map<String, Object> kakaoAccount = new HashMap<>();
-            kakaoAccount.put("email", "test@kakao.com");
-            kakaoAccount.put("profile", profile);
-
-            Map<String, Object> attrs = Map.of(
-                    "id", 9876543L,
-                    "kakao_account", kakaoAccount
-            );
+            Map<String, Object> kakaoAccount = Map.of("profile", profile);
+            Map<String, Object> attrs = Map.of("id", 9876543L, "kakao_account", kakaoAccount);
 
             OAuthAttributes result = OAuthAttributes.of("kakao", attrs);
 
             assertThat(result.getProviderId()).isEqualTo("9876543");
-            assertThat(result.getEmail()).isEqualTo("test@kakao.com");
+            assertThat(result.getEmail()).isNull();  // 카카오는 이메일 수집 안 함
             assertThat(result.getNickname()).isEqualTo("카카오유저");
             assertThat(result.getProvider()).isEqualTo(AuthProvider.KAKAO);
         }
 
         @Test
-        @DisplayName("성공 - email 동의 없이도 null로 파싱한다")
-        void success_withoutEmail() {
-            Map<String, Object> profile = Map.of("nickname", "카카오유저");
-            Map<String, Object> kakaoAccount = new HashMap<>();
-            kakaoAccount.put("profile", profile);
-            // email 없음
+        @DisplayName("실패 - kakao_account가 없으면 OAuth2AuthenticationException이 발생한다")
+        void fail_nullKakaoAccount() {
+            Map<String, Object> attrs = Map.of("id", 9876543L);
 
-            Map<String, Object> attrs = Map.of(
-                    "id", 9876543L,
-                    "kakao_account", kakaoAccount
-            );
-
-            OAuthAttributes result = OAuthAttributes.of("kakao", attrs);
-
-            assertThat(result.getEmail()).isNull();
-            assertThat(result.getNickname()).isEqualTo("카카오유저");
+            assertThatThrownBy(() -> OAuthAttributes.of("kakao", attrs))
+                    .isInstanceOf(OAuth2AuthenticationException.class);
         }
 
         @Test
-        @DisplayName("성공 - kakaoAccount.email이 null이어도 nickname은 정상 파싱한다")
-        void success_nullEmail_nicknameNotNull() {
-            Map<String, Object> profile = Map.of("nickname", "카카오유저");
+        @DisplayName("실패 - profile이 없으면 OAuth2AuthenticationException이 발생한다")
+        void fail_nullProfile() {
             Map<String, Object> kakaoAccount = new HashMap<>();
-            kakaoAccount.put("email", null);
-            kakaoAccount.put("profile", profile);
+            // profile 없음
+            Map<String, Object> attrs = Map.of("id", 9876543L, "kakao_account", kakaoAccount);
 
-            Map<String, Object> attrs = Map.of(
-                    "id", 1L,
-                    "kakao_account", kakaoAccount
-            );
-
-            OAuthAttributes result = OAuthAttributes.of("kakao", attrs);
-
-            assertThat(result.getEmail()).isNull();
-            assertThat(result.getNickname()).isEqualTo("카카오유저");
+            assertThatThrownBy(() -> OAuthAttributes.of("kakao", attrs))
+                    .isInstanceOf(OAuth2AuthenticationException.class);
         }
     }
 
@@ -125,11 +103,10 @@ class OAuthAttributesTest {
     class Unsupported {
 
         @Test
-        @DisplayName("실패 - 지원하지 않는 provider면 RuntimeException이 발생한다")
+        @DisplayName("실패 - 지원하지 않는 provider면 OAuth2AuthenticationException이 발생한다")
         void fail_unsupportedProvider() {
             assertThatThrownBy(() -> OAuthAttributes.of("naver", Map.of()))
-                    .isInstanceOf(RuntimeException.class)
-                    .hasMessageContaining("naver");
+                    .isInstanceOf(OAuth2AuthenticationException.class);
         }
     }
 }

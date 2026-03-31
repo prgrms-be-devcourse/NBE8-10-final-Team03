@@ -3,6 +3,10 @@ package com.eof.back.domain.auth.oauth2;
 import com.eof.back.domain.user.user.entity.AuthProvider;
 import com.eof.back.domain.user.user.entity.User;
 import com.eof.back.domain.user.user.repository.UserRepository;
+import java.util.Set;
+import java.util.TreeSet;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.oauth2.core.OAuth2Error;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
@@ -52,10 +56,11 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         // 3. 제공자별 응답을 통일된 OAuthAttributes로 파싱
         OAuthAttributes attributes = OAuthAttributes.of(registrationId, oAuth2User.getAttributes());
 
-        // 4. 기존 유저 조회 또는 신규 생성
-        findOrCreateUser(attributes);
+        // 4. 기존 유저 조회 또는 신규 생성 (비활성 계정이면 예외 발생)
+        User user = findOrCreateUser(attributes);
 
-        return oAuth2User;
+        // 5. User 정보를 담은 CustomOAuth2User 반환 (SuccessHandler에서 DB 재조회 불필요)
+        return new CustomOAuth2User(oAuth2User, user.getId(), user.getUsername(), user.getRole(), user.getNickname(), user.isActive());
     }
 
     /**
@@ -66,9 +71,16 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
      *
      * @param attributes 파싱된 소셜 사용자 정보
      */
-    private void findOrCreateUser(OAuthAttributes attributes) {
-        userRepository.findByProviderAndProviderId(attributes.getProvider(), attributes.getProviderId())
+    private User findOrCreateUser(OAuthAttributes attributes) {
+        User user = userRepository.findByProviderAndProviderId(attributes.getProvider(), attributes.getProviderId())
                 .orElseGet(() -> createUser(attributes));
+
+        if (!user.isActive()) {
+            throw new OAuth2AuthenticationException(
+                    new OAuth2Error("login_fail"), "로그인에 실패하였습니다.");
+        }
+
+        return user;
     }
 
     /**
@@ -80,7 +92,12 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
     private User createUser(OAuthAttributes attributes) {
         String nickname = generateUniqueNickname(attributes.getNickname());
         User user = User.ofSocial(attributes.getEmail(), nickname, attributes.getProvider(), attributes.getProviderId());
-        return userRepository.save(user);
+        try {
+            return userRepository.save(user);
+        } catch (DataIntegrityViolationException e) {
+            throw new OAuth2AuthenticationException(
+                    new OAuth2Error("signup_conflict"), "일시적인 오류가 발생했습니다. 다시 시도해주세요.");
+        }
     }
 
     /**
@@ -92,7 +109,12 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
      * @return DB에서 사용 가능한 고유 닉네임
      */
     private String generateUniqueNickname(String nickname) {
-        if (!userRepository.existsByNickname(nickname)) {
+        // 한 번의 쿼리로 관련 닉네임 전부 조회 후 메모리에서 처리
+        // TreeSet(CASE_INSENSITIVE_ORDER): MySQL utf8mb4_unicode_ci(대소문자 무시)와 동일하게 비교
+        Set<String> existingNicknames = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+        existingNicknames.addAll(userRepository.findNicknamesStartingWith(nickname));
+
+        if (!existingNicknames.contains(nickname)) {
             return nickname;
         }
 
@@ -100,7 +122,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         String candidate;
         do {
             candidate = nickname + "_" + suffix++;
-        } while (userRepository.existsByNickname(candidate));
+        } while (existingNicknames.contains(candidate));
 
         return candidate;
     }

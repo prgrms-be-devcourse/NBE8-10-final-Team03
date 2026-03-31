@@ -15,10 +15,9 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.context.RequestAttributeSecurityContextRepository;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -62,16 +61,6 @@ public class SecurityConfig {
     private final CustomOAuth2UserService customOAuth2UserService;
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
     private final OAuth2FailureHandler oAuth2FailureHandler;
-
-    /**
-     * 비밀번호 암호화를 위한 PasswordEncoder Bean을 등록합니다.
-     *
-     * @return BCryptPasswordEncoder 인스턴스
-     */
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
 
     /**
      * JwtAuthenticationFilter의 서블릿 자동 등록을 비활성화합니다.
@@ -138,9 +127,13 @@ public class SecurityConfig {
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 // OAuth2 인증 흐름 중 state 파라미터 보관을 위해 IF_REQUIRED 사용
-                // 일반 API 요청에서는 JWT 쿠키를 사용하므로 세션이 생성되지 않음
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
+                )
+                // SecurityContext를 세션이 아닌 요청 속성에만 저장
+                // → JWT API 요청에서 의도치 않은 세션 생성 방지
+                .securityContext(ctx -> ctx
+                        .securityContextRepository(new RequestAttributeSecurityContextRepository())
                 )
                 .authorizeHttpRequests(auth -> {
                     auth.requestMatchers(SecurityUrlRegistry.PERMIT_ALL_URLS).permitAll();

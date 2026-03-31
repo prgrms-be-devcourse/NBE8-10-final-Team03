@@ -1,10 +1,6 @@
 package com.eof.back.domain.auth.oauth2;
 
 import com.eof.back.domain.auth.store.RefreshTokenStore;
-import com.eof.back.domain.user.user.entity.User;
-import com.eof.back.domain.user.user.repository.UserRepository;
-import com.eof.back.global.exception.errorCode.AuthErrorCode;
-import com.eof.back.global.exception.exceptions.AuthException;
 import com.eof.back.global.jwt.CookieUtil;
 import com.eof.back.global.jwt.JwtTokenProvider;
 import jakarta.servlet.http.HttpServletRequest;
@@ -13,25 +9,27 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
-import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import org.springframework.web.util.UriComponentsBuilder;
 
 /**
  * 소셜 로그인 성공 시 JWT 토큰을 발급하고 프론트엔드로 redirect하는 핸들러입니다.
  *
  * <p>Spring Security의 {@link SimpleUrlAuthenticationSuccessHandler}를 상속합니다.
- * OAuth2 인증이 완료되면 이 핸들러가 호출되어 다음을 수행합니다.</p>
+ * {@link CustomOAuth2UserService}가 {@link CustomOAuth2User}에 User 정보를 담아 전달하므로,
+ * 이 핸들러에서는 DB 재조회나 OAuthAttributes 재파싱 없이 바로 JWT를 발급할 수 있습니다.</p>
  *
  * <p><b>처리 흐름:</b><br>
- * 1. 인증된 소셜 유저 정보로 DB에서 User 조회<br>
- * 2. AccessToken, RefreshToken 발급<br>
- * 3. RefreshToken을 저장소에 저장<br>
- * 4. 토큰을 HttpOnly 쿠키로 설정<br>
- * 5. 프론트엔드 redirect URI로 이동
+ * 1. CustomOAuth2User에서 사용자 정보 추출<br>
+ * 2. 계정 활성 상태 검증<br>
+ * 3. AccessToken, RefreshToken 발급<br>
+ * 4. RefreshToken을 저장소에 저장<br>
+ * 5. 토큰을 HttpOnly 쿠키로 설정<br>
+ * 6. 프론트엔드 redirect URI로 이동
  *
  * @author 5h6vm
  * @since 2026-03-30
@@ -40,7 +38,6 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
-    private final UserRepository userRepository;
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenStore refreshTokenStore;
     private final CookieUtil cookieUtil;
@@ -54,8 +51,8 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     /**
      * 소셜 로그인 성공 시 호출됩니다.
      *
-     * <p>인증된 소셜 유저의 providerId로 DB에서 User를 조회한 뒤
-     * JWT 토큰을 발급하고 쿠키에 담아 프론트엔드로 redirect합니다.
+     * <p>CustomOAuth2User에서 사용자 정보를 꺼내 JWT 토큰을 발급하고
+     * 쿠키에 담아 프론트엔드로 redirect합니다.
      *
      * @param request        HTTP 요청
      * @param response       HTTP 응답 (쿠키 설정에 사용)
@@ -67,30 +64,27 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
                                         Authentication authentication) throws IOException {
 
         OAuth2AuthenticationToken authToken = (OAuth2AuthenticationToken) authentication;
-        OAuth2User oAuth2User = authToken.getPrincipal();
-        String registrationId = authToken.getAuthorizedClientRegistrationId();
+        CustomOAuth2User customUser = (CustomOAuth2User) authToken.getPrincipal();
 
-        // 1. 소셜 제공자 응답을 파싱하여 providerId 추출
-        OAuthAttributes attributes = OAuthAttributes.of(registrationId, oAuth2User.getAttributes());
-
-        // 2. providerId로 DB에서 User 조회
-        User user = userRepository.findByProviderAndProviderId(attributes.getProvider(), attributes.getProviderId())
-                .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND));
-
-        // 3. AccessToken, RefreshToken 발급
+        // 1. AccessToken, RefreshToken 발급
         String accessToken = jwtTokenProvider.createAccessToken(
-                user.getId(), user.getUsername(), user.getRole().name(), user.getNickname());
-        String refreshToken = jwtTokenProvider.createRefreshToken(user.getId());
+                customUser.getUserId(), customUser.getUsername(), customUser.getRole().name(), customUser.getNickname());
+        String refreshToken = jwtTokenProvider.createRefreshToken(customUser.getUserId());
 
-        // 4. RefreshToken 저장소에 저장
+        // 2. RefreshToken 저장소에 저장
         LocalDateTime refreshTokenExpiredAt = LocalDateTime.now().plusSeconds(refreshTokenExpireSeconds);
-        refreshTokenStore.save(user.getId(), refreshToken, refreshTokenExpiredAt);
+        refreshTokenStore.save(customUser.getUserId(), refreshToken, refreshTokenExpiredAt);
 
-        // 5. 토큰을 HttpOnly 쿠키로 설정
+        // 3. 토큰을 HttpOnly 쿠키로 설정
         cookieUtil.addAccessTokenCookie(response, accessToken);
         cookieUtil.addRefreshTokenCookie(response, refreshToken);
 
-        // 6. 프론트엔드로 redirect
-        getRedirectStrategy().sendRedirect(request, response, redirectUri);
+        // 4. 프론트엔드로 redirect
+        String redirectUrl = UriComponentsBuilder.fromUriString(redirectUri)
+                .queryParam("userId", customUser.getUserId())
+                .queryParam("nickname", customUser.getNickname())
+                .build()
+                .toUriString();
+        getRedirectStrategy().sendRedirect(request, response, redirectUrl);
     }
 }

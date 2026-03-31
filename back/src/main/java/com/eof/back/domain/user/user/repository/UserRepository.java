@@ -42,12 +42,12 @@ public interface UserRepository extends JpaRepository<User,Long> {
     @Query("SELECT u.nickname FROM User u WHERE u.nickname = :nickname OR u.nickname LIKE CONCAT(:nickname, '\\_%')")
     Set<String> findNicknamesStartingWith(@Param("nickname") String nickname);
 
-    @Query("SELECT u FROM User u WHERE u.status = 'ACTIVE' " +
+    @Query("SELECT u FROM User u WHERE u.status = 'ACTIVE' AND u.role != 'ADMIN' " +
             "ORDER BY u.totalRankingScore DESC, u.id ASC")
     List<User> findTop10ActiveUsers(Pageable pageable);
 
     @Query("SELECT COUNT(u) + 1 FROM User u " +
-            "WHERE u.status = 'ACTIVE' " +
+            "WHERE u.status = 'ACTIVE' AND u.role != 'ADMIN' " +
             "AND (u.totalRankingScore > (SELECT u2.totalRankingScore FROM User u2 WHERE u2.id = :userId) " +
             "OR (u.totalRankingScore = (SELECT u2.totalRankingScore FROM User u2 WHERE u2.id = :userId) " +
             "AND u.id < :userId))")

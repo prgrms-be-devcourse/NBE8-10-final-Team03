@@ -6,7 +6,6 @@ import api from "@/lib/api";
 import Header from "@/components/common/Header";
 import { Client } from "@stomp/stompjs";
 import { useSearchParams } from "next/navigation";
-import { jwtDecode } from "jwt-decode";
 
 interface Room {
   gameSessionId: number;
@@ -29,6 +28,7 @@ interface QuizSet {
   id: number;
   title: string;
   totalQuizCount: number;
+  creatorNickname: string;
 }
 
 interface ChatMessage {
@@ -72,6 +72,13 @@ export default function RoomsPage() {
   const searchParams = useSearchParams();
   const [myNickname, setMyNickname] = useState<string | null>(null);
   const [myUserId, setMyUserId] = useState<string | null>(null);
+  const [showQuizSetModal, setShowQuizSetModal] = useState(false);
+const [quizSetSearch, setQuizSetSearch] = useState("");
+const [quizSetTab, setQuizSetTab] = useState<"all" | "mine" | "bookmark">("all");
+const [bookmarkedQuizSetIds, setBookmarkedQuizSetIds] = useState<Set<number>>(new Set());
+const [selectedQuizSet, setSelectedQuizSet] = useState<QuizSet | null>(null);
+const [myQuizSets, setMyQuizSets] = useState<QuizSet[]>([]);
+const [bookmarkedQuizSets, setBookmarkedQuizSets] = useState<QuizSet[]>([]);
 
   // 방 만들기 모달
   const [showModal, setShowModal] = useState(false);
@@ -102,11 +109,7 @@ export default function RoomsPage() {
 
   useEffect(() => {
     setMyNickname(localStorage.getItem("nickname"));
-    const token = localStorage.getItem("accessToken");
-    if (token) {
-      const decoded: any = jwtDecode(token);
-      setMyUserId(decoded.sub);
-    }
+    setMyUserId(localStorage.getItem("userId"));
     const quizSetIdParam = searchParams.get("quizSetId");
     if (quizSetIdParam && quizSets.length === 0) {
       const openModalWithQuizSet = async () => {
@@ -311,6 +314,14 @@ export default function RoomsPage() {
     setViewMode("lobby");
   };
 
+  const handleSelectQuizSet = (quiz: QuizSet) => {
+    setSelectedQuizSet(quiz);
+    setSelectedQuizSetId(quiz.id);
+    setMaxQuizzes(quiz.totalQuizCount);
+    setShowQuizSetModal(false);
+    setQuizSetSearch("");
+  };
+
   const handleStartGame = () => {
     if (!stompClientRef.current?.connected || !currentRoom) return;
     stompClientRef.current.publish({
@@ -339,13 +350,29 @@ export default function RoomsPage() {
   };
 
   const handleOpenModal = async () => {
+    const userId = localStorage.getItem("userId");
+    const nickname = localStorage.getItem("nickname");
     try {
-      const res = await api.get("/quizsets?size=100");
-      const content = res.data.data.content as QuizSet[];
-      setQuizSets(content);
-      if (content.length > 0) {
-        setSelectedQuizSetId(content[0].id);
-        setMaxQuizzes(content[0].totalQuizCount);
+      const promises: Promise<any>[] = [api.get("/quizsets")];
+      if (userId) {
+        promises.push(api.get(`/users/${userId}/bookmarks`));
+      }
+      const [quizSetsRes, bookmarksRes] = await Promise.all(promises);
+      const allQuizSets: QuizSet[] = quizSetsRes.data.data.content ?? quizSetsRes.data.data;
+      setQuizSets(allQuizSets);
+      setMyQuizSets(allQuizSets.filter((q: any) => q.creatorNickname === nickname));
+  
+      if (bookmarksRes) {
+        const bookmarkIds = bookmarksRes.data.data.map((b: any) => b.quizSetId);
+        setBookmarkedQuizSetIds(new Set(bookmarkIds));
+        const bookmarked = allQuizSets.filter((q: QuizSet) => bookmarkIds.includes(q.id));
+        setBookmarkedQuizSets(bookmarked);
+      }
+  
+      if (allQuizSets.length > 0 && !selectedQuizSet) {
+        setSelectedQuizSet(allQuizSets[0]);
+        setSelectedQuizSetId(allQuizSets[0].id);
+        setMaxQuizzes(allQuizSets[0].totalQuizCount);
       }
     } catch (err) {
       console.error("퀴즈셋 조회 실패", err);
@@ -795,13 +822,100 @@ export default function RoomsPage() {
                 <input type="text" placeholder="방 제목을 입력하세요" value={roomName} onChange={(e) => setRoomName(e.target.value)} className="w-full px-4 py-3 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none transition-colors" />
               </div>
               <div className="mb-4">
-                <label className="block text-sm font-bold mb-2">퀴즈셋</label>
-                <select value={selectedQuizSetId || ""} onChange={(e) => handleQuizSetChange(Number(e.target.value))} className="w-full px-4 py-3 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none transition-colors">
-                  {quizSets.map((q) => (
-                    <option key={q.id} value={q.id}>{q.title} ({q.totalQuizCount}문제)</option>
-                  ))}
-                </select>
+  <label className="block text-sm font-bold mb-2">퀴즈셋</label>
+  <button
+    onClick={() => setShowQuizSetModal(true)}
+    className="w-full px-4 py-3 bg-cream border-[3px] border-dark rounded-xl text-sm text-left hover:border-primary transition-colors"
+  >
+    {selectedQuizSet
+      ? `${selectedQuizSet.title} (${selectedQuizSet.totalQuizCount}문제)`
+      : "퀴즈셋을 선택하세요"}
+  </button>
+</div>
+{showQuizSetModal && (
+  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]">
+    <div className="bg-white border-[3px] border-dark rounded-2xl shadow-kitsch-lg p-6 w-full max-w-lg max-h-[80vh] flex flex-col">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-title text-xl">퀴즈셋 선택</h3>
+        <button
+          onClick={() => { setShowQuizSetModal(false); setQuizSetSearch(""); }}
+          className="text-gray-400 hover:text-dark font-bold text-lg"
+        >
+          ✕
+        </button>
+      </div>
+
+      {/* 검색 */}
+      <input
+        type="text"
+        placeholder="퀴즈셋 검색..."
+        value={quizSetSearch}
+        onChange={(e) => setQuizSetSearch(e.target.value)}
+        className="w-full px-4 py-2 bg-cream border-[3px] border-dark rounded-xl text-sm outline-none focus:border-primary mb-4"
+      />
+
+      {/* 탭 */}
+      <div className="flex gap-2 mb-4">
+        {([
+          { key: "all", label: "전체" },
+          { key: "mine", label: "내 퀴즈셋" },
+          { key: "bookmark", label: "북마크" },
+        ] as const).map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setQuizSetTab(tab.key)}
+            className={`px-4 py-2 border-[3px] border-dark rounded-full font-bold text-sm transition-colors ${
+              quizSetTab === tab.key ? "bg-secondary" : "bg-white hover:bg-gray-50"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* 목록 */}
+      <div className="flex-1 overflow-y-auto flex flex-col gap-2">
+        {(quizSetTab === "all" ? quizSets
+          : quizSetTab === "mine" ? myQuizSets
+          : bookmarkedQuizSets
+        )
+          .filter((q) => q.title.toLowerCase().includes(quizSetSearch.toLowerCase()))
+          .map((q) => (
+            <button
+              key={q.id}
+              onClick={() => handleSelectQuizSet(q)}
+              className={`w-full flex items-center justify-between px-4 py-3 border-[3px] rounded-xl text-left transition-all hover:-translate-y-0.5 ${
+                selectedQuizSetId === q.id
+                  ? "border-primary bg-primary/5 shadow-kitsch-sm"
+                  : "border-dark bg-white hover:shadow-kitsch-sm"
+              }`}
+            >
+              <div>
+                <p className="font-bold text-sm">{q.title}</p>
+                <p className="text-xs text-gray-400">{(q as any).creatorNickname}</p>
               </div>
+              <div className="flex items-center gap-2">
+                {bookmarkedQuizSetIds.has(q.id) && (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="#FFFF00" stroke="#2B2D42" strokeWidth="2.5">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                  </svg>
+                )}
+                <span className="text-xs font-bold text-gray-400">{q.totalQuizCount}문제</span>
+              </div>
+            </button>
+          ))}
+        {(quizSetTab === "all" ? quizSets
+          : quizSetTab === "mine" ? myQuizSets
+          : bookmarkedQuizSets
+        ).filter((q) => q.title.toLowerCase().includes(quizSetSearch.toLowerCase())).length === 0 && (
+          <div className="text-center py-10">
+            <p className="font-hand text-gray-400">퀴즈셋이 없어요!</p>
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+)}
               <div className="grid grid-cols-2 gap-3 mb-6">
                 <div>
                   <label className="block text-sm font-bold mb-2">최대 인원</label>

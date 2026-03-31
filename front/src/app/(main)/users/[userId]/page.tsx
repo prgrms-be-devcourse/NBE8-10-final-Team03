@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import api from "@/lib/api";
-import { jwtDecode } from "jwt-decode";
 
 interface UserInfo {
   nickname: string;
@@ -25,17 +24,14 @@ export default function MyPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // ✅ JWT에서 userId 추출
-        const token = localStorage.getItem("accessToken");
-        if (!token) throw new Error("토큰 없음");
-
-        const decoded: any = jwtDecode(token);
-        const myUserId = decoded.sub;  // ✅ sub이 userId
-        setMyUserId(myUserId);
+        const userId = localStorage.getItem("userId");
+        if (!userId) throw new Error("userId 없음");
+  
+        setMyUserId(userId);
         
         const [userRes, recordsRes] = await Promise.all([
-          api.get(`/users/${myUserId}`),
-          api.get(`/users/${myUserId}/records?page=0&size=1`),
+          api.get(`/users/${userId}`),
+          api.get(`/users/${userId}/records?page=0&size=1`),
         ]);
         setUser(userRes.data.data);
         setStats(recordsRes.data.data);

@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { jwtDecode } from "jwt-decode";
 
 export default function Header() {
   const router = useRouter();
@@ -12,17 +11,7 @@ export default function Header() {
 
   useEffect(() => {
     setNickname(localStorage.getItem("nickname"));
-
-    // ✅ JWT에서 userId 추출
-    const token = localStorage.getItem("accessToken");
-    if (token) {
-      try {
-        const decoded: any = jwtDecode(token);
-        setMyUserId(decoded.sub);  // "2"
-      } catch (e) {
-        console.error("토큰 decode 실패", e);
-      }
-    }
+    setMyUserId(localStorage.getItem("userId"));
   }, []);
 
   const handleLogout = () => {

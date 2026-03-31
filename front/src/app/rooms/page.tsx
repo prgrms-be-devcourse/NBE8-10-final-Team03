@@ -6,6 +6,7 @@ import api from "@/lib/api";
 import Header from "@/components/common/Header";
 import { Client } from "@stomp/stompjs";
 import { useSearchParams } from "next/navigation";
+import { Suspense } from "react"
 
 interface Room {
   gameSessionId: number;
@@ -14,7 +15,7 @@ interface Room {
   quizSetId: number;
   quizSetTitle: string;
   currentPlayerCount: number;
-  maxPlayer: number;
+  maxPlayers: number;
   status: string;
 }
 
@@ -61,7 +62,7 @@ interface QuizResultResponse {
 type GameState = "waiting" | "playing" | "roundResult" | "result";
 type ViewMode = "lobby" | "room";
 
-export default function RoomsPage() {
+function RoomsContent() {
   const [viewMode, setViewMode] = useState<ViewMode>("lobby");
   const [rooms, setRooms] = useState<Room[]>([]);
   const [rankings, setRankings] = useState<RankingItem[]>([]);
@@ -189,10 +190,8 @@ const [bookmarkedQuizSets, setBookmarkedQuizSets] = useState<QuizSet[]>([]);
       setAnswerSubmitted(false);
       setChatMessages([]);
 
-      const token = localStorage.getItem("accessToken");
       const client = new Client({
-        brokerURL: "ws://localhost:8080/ws/game",
-        connectHeaders: { Authorization: `Bearer ${token}` },
+        brokerURL: process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8080/ws/game",
         reconnectDelay: 0,
         onConnect: () => {
           setStompConnected(true);
@@ -512,7 +511,7 @@ const [bookmarkedQuizSets, setBookmarkedQuizSets] = useState<QuizSet[]>([]);
                   <div className="flex flex-col gap-2 text-sm">
                     <div className="flex justify-between"><span className="text-gray-400">퀴즈셋</span><span className="font-bold">{roomInfo?.quizSetTitle}</span></div>
                     <div className="flex justify-between"><span className="text-gray-400">문제 수</span><span className="font-bold">{roomInfo?.maxQuizzes}문제</span></div>
-                    <div className="flex justify-between"><span className="text-gray-400">최대 인원</span><span className="font-bold">{roomInfo?.maxPlayer}명</span></div>
+                    <div className="flex justify-between"><span className="text-gray-400">최대 인원</span><span className="font-bold">{roomInfo?.maxPlayers}명</span></div>
                   </div>
                 </div>
                 <div className="bg-white border-[3px] border-dark rounded-2xl shadow-kitsch flex-1 flex flex-col overflow-hidden" style={{ maxHeight: "400px" }}>
@@ -755,9 +754,9 @@ const [bookmarkedQuizSets, setBookmarkedQuizSets] = useState<QuizSet[]>([]);
                   </div>
                   <div className="flex items-center gap-4">
                     <div className="text-right">
-                      <p className="font-title text-xl text-primary">{room.currentPlayerCount}/{room.maxPlayer}</p>
+                      <p className="font-title text-xl text-primary">{room.currentPlayerCount}/{room.maxPlayers}</p>
                       <div className="w-16 h-2 bg-gray-200 rounded-full mt-1">
-                        <div className="h-full bg-primary rounded-full" style={{ width: `${(room.currentPlayerCount / room.maxPlayer) * 100}%` }} />
+                        <div className="h-full bg-primary rounded-full" style={{ width: `${(room.currentPlayerCount / room.maxPlayers) * 100}%` }} />
                       </div>
                     </div>
                     {room.status === "WAIT" ? (
@@ -941,5 +940,17 @@ const [bookmarkedQuizSets, setBookmarkedQuizSets] = useState<QuizSet[]>([]);
         )}
       </div>
     </>
+  );
+}
+
+export default function RoomsPage() {
+  return (
+    <Suspense fallback={
+      <div className="max-w-7xl mx-auto px-4 py-10 text-center">
+        <p className="font-hand text-xl text-gray-400">로딩 중...</p>
+      </div>
+    }>
+      <RoomsContent />
+    </Suspense>
   );
 }

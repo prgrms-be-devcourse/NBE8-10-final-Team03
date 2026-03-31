@@ -14,7 +14,6 @@ import lombok.Builder;
  * @author MintyU
  * @since 2026-03-24
  */
-@Builder
 public record QuizSetResponse(
         Long id,
         String title,
@@ -23,6 +22,12 @@ public record QuizSetResponse(
         Integer totalQuizCount,
         List<QuizResponse> quizzes
 ) {
+    /**
+     * 빌더 패턴을 위한 콤팩트 생성자입니다.
+     */
+    @Builder
+    public QuizSetResponse {}
+
     /**
      * QuizSet 엔티티로부터 QuizSetResponse DTO를 생성합니다.
      *

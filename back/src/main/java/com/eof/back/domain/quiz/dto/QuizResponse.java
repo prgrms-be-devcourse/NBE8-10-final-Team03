@@ -9,7 +9,6 @@ import lombok.Builder;
  * @author MintyU
  * @since 2026-03-24
  */
-@Builder
 public record QuizResponse(
         Long id,
         String content,
@@ -19,6 +18,12 @@ public record QuizResponse(
         String choice3,
         String choice4
 ) {
+    /**
+     * 빌더 패턴을 위한 콤팩트 생성자입니다.
+     */
+    @Builder
+    public QuizResponse {}
+
     /**
      * Quiz 엔티티로부터 QuizResponse DTO를 생성합니다.
      *

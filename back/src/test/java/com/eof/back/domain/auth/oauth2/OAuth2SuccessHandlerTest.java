@@ -93,6 +93,7 @@ class OAuth2SuccessHandlerTest {
                     .queryParam("userId", USER_ID)
                     .queryParam("nickname", "홍길동")
                     .build()
+                    .encode()
                     .toUriString();
             assertThat(response.getRedirectedUrl()).isEqualTo(expectedUrl);
         }

@@ -80,6 +80,9 @@ const [bookmarkedQuizSetIds, setBookmarkedQuizSetIds] = useState<Set<number>>(ne
 const [selectedQuizSet, setSelectedQuizSet] = useState<QuizSet | null>(null);
 const [myQuizSets, setMyQuizSets] = useState<QuizSet[]>([]);
 const [bookmarkedQuizSets, setBookmarkedQuizSets] = useState<QuizSet[]>([]);
+const [showReportModal, setShowReportModal] = useState(false);
+const [reportReason, setReportReason] = useState("");
+const [reporting, setReporting] = useState(false);
 
   // 방 만들기 모달
   const [showModal, setShowModal] = useState(false);
@@ -404,6 +407,24 @@ const [bookmarkedQuizSets, setBookmarkedQuizSets] = useState<QuizSet[]>([]);
     }
   };
 
+  const handleReport = async () => {
+    if (!reportReason.trim()) return;
+    setReporting(true);
+    try {
+      await api.post("/reports", {
+        quizSetId: currentRoom?.quizSetId,
+        reason: reportReason,
+      });
+      alert("신고가 접수되었습니다.");
+      setShowReportModal(false);
+      setReportReason("");
+    } catch (err) {
+      alert("신고 접수에 실패했습니다.");
+    } finally {
+      setReporting(false);
+    }
+  };
+
   const filteredRooms = rooms.filter((room) => {
     if (room.status === "END") return false;
     if (filter === "waiting") return room.status === "WAIT";
@@ -652,10 +673,20 @@ const [bookmarkedQuizSets, setBookmarkedQuizSets] = useState<QuizSet[]>([]);
 
           {/* ========== 최종 결과 ========== */}
           {gameState === "result" && (
-            <div className="max-w-3xl mx-auto">
-              <div className="text-center mb-10">
-                <h1 className="font-title text-4xl mb-2">🎉 게임 종료!</h1>
-              </div>
+  <div className="max-w-3xl mx-auto">
+  {/* 우측 상단 신고 버튼 */}
+  <div className="flex justify-end mb-4">
+    <button
+      onClick={() => setShowReportModal(true)}
+      className="px-4 py-2 bg-white text-red-400 border-2 border-red-200 rounded-xl text-sm font-bold hover:border-red-400 hover:text-red-500 transition-all"
+    >
+      🚨 신고
+    </button>
+  </div>
+
+  <div className="text-center mb-10">
+    <h1 className="font-title text-4xl mb-2">🎉 게임 종료!</h1>
+  </div>
 
               {scoreboard.length > 0 && (
                 <>
@@ -704,10 +735,46 @@ const [bookmarkedQuizSets, setBookmarkedQuizSets] = useState<QuizSet[]>([]);
             </div>
           )}
         </div>
+        {/* 신고 모달 */}
+        {showReportModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white border-[3px] border-dark rounded-2xl shadow-kitsch-lg p-8 w-full max-w-md">
+              <h2 className="font-title text-2xl mb-2">퀴즈셋 신고</h2>
+              <p className="text-sm text-gray-400 mb-6">{currentRoom?.quizSetTitle}</p>
+              <div className="mb-6">
+                <label className="block text-sm font-bold mb-2">신고 사유</label>
+                <textarea
+                  value={reportReason}
+                  onChange={(e) => setReportReason(e.target.value)}
+                  placeholder="신고 사유를 입력해주세요. (최대 500자)"
+                  maxLength={500}
+                  rows={4}
+                  className="w-full px-4 py-3 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-red-400 outline-none transition-colors resize-none"
+                />
+                <p className="text-xs text-gray-400 text-right mt-1">{reportReason.length}/500</p>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={handleReport}
+                  disabled={reporting || !reportReason.trim()}
+                  className="flex-1 py-3 bg-red-500 text-white font-bold border-[3px] border-dark rounded-xl shadow-kitsch hover:shadow-kitsch-lg hover:-translate-y-0.5 transition-all disabled:opacity-50"
+                >
+                  {reporting ? "신고 중..." : "신고하기"}
+                </button>
+                <button
+                  onClick={() => { setShowReportModal(false); setReportReason(""); }}
+                  className="px-6 py-3 bg-white font-bold border-[3px] border-dark rounded-xl shadow-kitsch-sm hover:shadow-kitsch hover:-translate-y-0.5 transition-all"
+                >
+                  취소
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
     );
   }
-
   // ========== 로비 화면 ==========
   if (loading) {
     return (

@@ -173,6 +173,9 @@ export default function QuizSetDetailPage({ params }: { params: Promise<{ quizse
   const [editDescription, setEditDescription] = useState("");
   const [editError, setEditError] = useState("");
   const [updating, setUpdating] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+const [reportReason, setReportReason] = useState("");
+const [reporting, setReporting] = useState(false);
 
   useEffect(() => {
     setMyNickname(localStorage.getItem("nickname"));
@@ -191,6 +194,24 @@ export default function QuizSetDetailPage({ params }: { params: Promise<{ quizse
     };
     fetchQuizSet();
   }, [quizsetId]);
+
+  const handleReport = async () => {
+    if (!reportReason.trim()) return;
+    setReporting(true);
+    try {
+      await api.post("/reports", {
+        quizSetId: quizSet?.id,  // ← currentRoom 아니고 quizSet.id
+        reason: reportReason,
+      });
+      alert("신고가 접수되었습니다.");
+      setShowReportModal(false);
+      setReportReason("");
+    } catch (err) {
+      alert("신고 접수에 실패했습니다.");
+    } finally {
+      setReporting(false);
+    }
+  };
 
   const handleEditOpen = () => {
     if (!quizSet) return;
@@ -323,29 +344,29 @@ export default function QuizSetDetailPage({ params }: { params: Promise<{ quizse
           </>
         ) : (
           <>
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <h1 className="font-title text-3xl mb-2">{quizSet.title}</h1>
-                <p className="text-sm text-gray-400 mb-4">{quizSet.creatorNickname}</p>
-                <p className="text-sm text-gray-600">{quizSet.description}</p>
-              </div>
-              {isOwner && (
-                <div className="flex gap-2 shrink-0">
-                  <button
-                    onClick={handleEditOpen}
-                    className="px-4 py-2 bg-white border-[3px] border-dark rounded-xl text-sm font-bold shadow-kitsch-sm hover:shadow-kitsch hover:-translate-y-0.5 transition-all"
-                  >
-                    수정
-                  </button>
-                  <button
-                    onClick={handleDelete}
-                    className="px-4 py-2 bg-red-500 text-white border-[3px] border-dark rounded-xl text-sm font-bold shadow-kitsch-sm hover:shadow-kitsch hover:-translate-y-0.5 transition-all"
-                  >
-                    삭제
-                  </button>
-                </div>
-              )}
-            </div>
+<div className="flex items-start justify-between mb-4">
+  <div>
+    <h1 className="font-title text-3xl mb-2">{quizSet.title}</h1>
+    <p className="text-sm text-gray-400 mb-4">{quizSet.creatorNickname}</p>
+    <p className="text-sm text-gray-600">{quizSet.description}</p>
+  </div>
+  <div className="flex gap-2 shrink-0">
+    {isOwner ? (
+      <>
+        <button onClick={handleEditOpen} className="px-4 py-2 bg-white border-[3px] border-dark rounded-xl text-sm font-bold shadow-kitsch-sm hover:shadow-kitsch hover:-translate-y-0.5 transition-all">
+          수정
+        </button>
+        <button onClick={handleDelete} className="px-4 py-2 bg-red-500 text-white border-[3px] border-dark rounded-xl text-sm font-bold shadow-kitsch-sm hover:shadow-kitsch hover:-translate-y-0.5 transition-all">
+          삭제
+        </button>
+      </>
+    ) : (
+      <button onClick={() => setShowReportModal(true)} className="px-4 py-2 bg-white text-red-500 border-[3px] border-red-300 rounded-xl text-sm font-bold shadow-kitsch-sm hover:shadow-kitsch hover:-translate-y-0.5 transition-all">
+        🚨 신고
+      </button>
+    )}
+  </div>
+</div>
             <div className="flex gap-4 mt-6">
               <span className="px-4 py-2 bg-cream border-2 border-dark rounded-xl text-sm font-bold">
                 📝 {quizSet.totalQuizCount}문제
@@ -369,6 +390,44 @@ export default function QuizSetDetailPage({ params }: { params: Promise<{ quizse
           이 퀴즈셋으로 방 만들기
         </button>
       )}
+      {showReportModal && (
+  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div className="bg-white border-[3px] border-dark rounded-2xl shadow-kitsch-lg p-8 w-full max-w-md">
+      <h2 className="font-title text-2xl mb-2">퀴즈셋 신고</h2>
+      <p className="text-sm text-gray-400 mb-6">{quizSet.title}</p>
+
+      <div className="mb-6">
+        <label className="block text-sm font-bold mb-2">신고 사유</label>
+        <textarea
+          value={reportReason}
+          onChange={(e) => setReportReason(e.target.value)}
+          placeholder="신고 사유를 입력해주세요. (최대 500자)"
+          maxLength={500}
+          rows={4}
+          className="w-full px-4 py-3 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-red-400 outline-none transition-colors resize-none"
+        />
+        <p className="text-xs text-gray-400 text-right mt-1">{reportReason.length}/500</p>
+      </div>
+
+      <div className="flex gap-3">
+        <button
+          onClick={handleReport}
+          disabled={reporting || !reportReason.trim()}
+          className="flex-1 py-3 bg-red-500 text-white font-bold border-[3px] border-dark rounded-xl shadow-kitsch hover:shadow-kitsch-lg hover:-translate-y-0.5 transition-all disabled:opacity-50"
+        >
+          {reporting ? "신고 중..." : "신고하기"}
+        </button>
+        <button
+          onClick={() => { setShowReportModal(false); setReportReason(""); }}
+          className="px-6 py-3 bg-white font-bold border-[3px] border-dark rounded-xl shadow-kitsch-sm hover:shadow-kitsch hover:-translate-y-0.5 transition-all"
+        >
+          취소
+        </button>
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
+  
 }

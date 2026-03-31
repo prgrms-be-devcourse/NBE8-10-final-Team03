@@ -140,6 +140,7 @@ public class SecurityConfig {
                     SecurityUrlRegistry.PUBLIC_METHOD_URLS.forEach((method, urls) ->
                             auth.requestMatchers(method, urls).permitAll()
                     );
+                    auth.requestMatchers("/api/v1/admin/**").hasRole("ADMIN");
                     auth.anyRequest().authenticated();
                 })
                 .oauth2Login(oauth2 -> oauth2

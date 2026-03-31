@@ -149,10 +149,10 @@ class QuizSetServiceTest {
         QuizSetResponse response = quizSetService.getQuizSet(1L);
 
         // then
-        assertThat(response.getId()).isEqualTo(1L);
-        assertThat(response.getQuizzes()).hasSize(1);
-        assertThat(response.getQuizzes().get(0).content()).isEqualTo("문제 내용");
-        assertThat(response.getTotalQuizCount()).isEqualTo(1);
+        assertThat(response.id()).isEqualTo(1L);
+        assertThat(response.quizzes()).hasSize(1);
+        assertThat(response.quizzes().get(0).content()).isEqualTo("문제 내용");
+        assertThat(response.totalQuizCount()).isEqualTo(1);
         verify(quizSetRepository).findById(1L);
     }
 

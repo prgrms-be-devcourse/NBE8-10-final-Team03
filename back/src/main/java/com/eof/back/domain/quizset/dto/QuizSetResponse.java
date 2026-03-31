@@ -5,7 +5,6 @@ import com.eof.back.domain.quizset.entity.QuizSet;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.Builder;
-import lombok.Getter;
 
 /**
  * 퀴즈 세트 단건 조회 시 반환되는 데이터 전송 객체입니다.
@@ -15,17 +14,15 @@ import lombok.Getter;
  * @author MintyU
  * @since 2026-03-24
  */
-@Getter
 @Builder
-public class QuizSetResponse {
-
-    private Long id;
-    private String title;
-    private String description;
-    private String creatorNickname;
-    private Integer totalQuizCount;
-    private List<QuizResponse> quizzes;
-
+public record QuizSetResponse(
+        Long id,
+        String title,
+        String description,
+        String creatorNickname,
+        Integer totalQuizCount,
+        List<QuizResponse> quizzes
+) {
     /**
      * QuizSet 엔티티로부터 QuizSetResponse DTO를 생성합니다.
      *

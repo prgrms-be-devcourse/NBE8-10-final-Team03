@@ -13,6 +13,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.eof.back.domain.quiz.dto.QuizResponse;
 import com.eof.back.domain.quizset.dto.QuizSetCreateRequest;
 import com.eof.back.domain.quizset.dto.QuizSetListResponse;
 import com.eof.back.domain.quizset.dto.QuizSetResponse;
@@ -67,10 +68,12 @@ class QuizSetControllerTest {
     private CookieUtil cookieUtil;
 
     private UserPrincipal principal;
+    private UserPrincipal adminPrincipal;
 
     @BeforeEach
     void setUp() {
         principal = new UserPrincipal(1L, "testuser", "tester", "USER");
+        adminPrincipal = new UserPrincipal(2L, "admin", "admin", "ADMIN");
     }
 
     @Test
@@ -141,7 +144,7 @@ class QuizSetControllerTest {
 
     @Test
     @DisplayName("퀴즈 세트 단건 조회 API 호출 성공 - 작성자 본인")
-    void getQuizSet_ApiSuccess() throws Exception {
+    void getQuizSet_ApiSuccess_Author() throws Exception {
         // given
         QuizSetResponse response = QuizSetResponse.builder()
                 .id(1L)
@@ -155,6 +158,29 @@ class QuizSetControllerTest {
         mockMvc.perform(get("/api/v1/quizsets/1")
                         .with(SecurityMockMvcRequestPostProcessors.authentication(
                                 new UsernamePasswordAuthenticationToken(principal, null, List.of())
+                        )))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("success"))
+                .andExpect(jsonPath("$.data.id").value(1));
+    }
+
+    @Test
+    @DisplayName("퀴즈 세트 단건 조회 API 호출 성공 - 관리자")
+    void getQuizSet_ApiSuccess_Admin() throws Exception {
+        // given
+        QuizSetResponse response = QuizSetResponse.builder()
+                .id(1L)
+                .title("테스트 세트")
+                .quizzes(List.of())
+                .build();
+
+        given(quizSetService.getQuizSet(anyLong(), anyLong())).willReturn(response);
+
+        // when & then
+        mockMvc.perform(get("/api/v1/quizsets/1")
+                        .with(SecurityMockMvcRequestPostProcessors.authentication(
+                                new UsernamePasswordAuthenticationToken(adminPrincipal, null, List.of())
                         )))
                 .andDo(print())
                 .andExpect(status().isOk())

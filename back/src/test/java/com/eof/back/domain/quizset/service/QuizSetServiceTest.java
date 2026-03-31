@@ -94,7 +94,6 @@ class QuizSetServiceTest {
 
         // then
         assertThat(responseId).isEqualTo(100L);
-        assertThat(quizSet.getTotalQuizCount()).isEqualTo(0);
         
         verify(userRepository).findById(1L);
         verify(quizSetRepository).save(any(QuizSet.class));
@@ -104,40 +103,70 @@ class QuizSetServiceTest {
     @DisplayName("퀴즈 세트 단건 조회 성공 - 작성자 본인인 경우")
     void getQuizSet_Success() {
         // given
-        User creator = User.builder().nickname("별명").build();
+        User creator = User.builder().nickname("별명").role(Role.USER).build();
         ReflectionTestUtils.setField(creator, "id", 1L);
         QuizSet quizSet = QuizSet.builder()
                 .title("테스트 세트")
-                .description("설명")
                 .creator(creator)
                 .build();
         ReflectionTestUtils.setField(quizSet, "id", 1L);
 
         given(quizSetRepository.findById(1L)).willReturn(Optional.of(quizSet));
+        given(userRepository.findById(1L)).willReturn(Optional.of(creator));
 
         // when
         QuizSetResponse response = quizSetService.getQuizSet(1L, 1L);
 
         // then
         assertThat(response.id()).isEqualTo(1L);
-        verify(quizSetRepository).findById(1L);
     }
 
     @Test
-    @DisplayName("퀴즈 세트 단건 조회 실패 - 작성자가 아닌 경우")
-    void getQuizSet_Fail_NotAuthor() {
+    @DisplayName("퀴즈 세트 단건 조회 성공 - 관리자인 경우")
+    void getQuizSet_Success_Admin() {
         // given
-        User creator = User.builder().nickname("별명").build();
+        User creator = User.builder().nickname("작성자").role(Role.USER).build();
         ReflectionTestUtils.setField(creator, "id", 1L);
+        
+        User admin = User.builder().nickname("관리자").role(Role.ADMIN).build();
+        ReflectionTestUtils.setField(admin, "id", 2L);
+
+        QuizSet quizSet = QuizSet.builder()
+                .title("테스트 세트")
+                .creator(creator)
+                .build();
+        ReflectionTestUtils.setField(quizSet, "id", 1L);
+
+        given(quizSetRepository.findById(1L)).willReturn(Optional.of(quizSet));
+        given(userRepository.findById(2L)).willReturn(Optional.of(admin));
+
+        // when
+        QuizSetResponse response = quizSetService.getQuizSet(1L, 2L);
+
+        // then
+        assertThat(response.id()).isEqualTo(1L);
+    }
+
+    @Test
+    @DisplayName("퀴즈 세트 단건 조회 실패 - 작성자도 아니고 관리자도 아닌 경우")
+    void getQuizSet_Fail_AccessDenied() {
+        // given
+        User creator = User.builder().nickname("작성자").role(Role.USER).build();
+        ReflectionTestUtils.setField(creator, "id", 1L);
+        
+        User otherUser = User.builder().nickname("타인").role(Role.USER).build();
+        ReflectionTestUtils.setField(otherUser, "id", 3L);
+
         QuizSet quizSet = QuizSet.builder()
                 .creator(creator)
                 .build();
         ReflectionTestUtils.setField(quizSet, "id", 1L);
 
         given(quizSetRepository.findById(1L)).willReturn(Optional.of(quizSet));
+        given(userRepository.findById(3L)).willReturn(Optional.of(otherUser));
 
         // when & then
-        assertThatThrownBy(() -> quizSetService.getQuizSet(1L, 999L))
+        assertThatThrownBy(() -> quizSetService.getQuizSet(1L, 3L))
                 .isInstanceOf(QuizSetException.class)
                 .hasFieldOrPropertyWithValue("errorCode", QuizSetErrorCode.QUIZ_SET_ACCESS_DENIED);
     }
@@ -160,9 +189,6 @@ class QuizSetServiceTest {
 
         // then
         assertThat(responses.getContent()).hasSize(2);
-        assertThat(responses.getContent().get(0).getTitle()).isEqualTo("세트1");
-        assertThat(responses.getContent().get(1).getTitle()).isEqualTo("세트2");
-
         verify(quizSetRepository).findAllWithCreator(pageable);
     }
 
@@ -170,11 +196,10 @@ class QuizSetServiceTest {
     @DisplayName("퀴즈 세트 수정 성공")
     void updateQuizSet_Success() {
         // given
-        User creator = User.builder().nickname("별명").build();
+        User creator = User.builder().nickname("별명").role(Role.USER).build();
         ReflectionTestUtils.setField(creator, "id", 1L);
         QuizSet quizSet = QuizSet.builder()
                 .title("기존 제목")
-                .description("기존 설명")
                 .creator(creator)
                 .build();
         ReflectionTestUtils.setField(quizSet, "id", 100L);

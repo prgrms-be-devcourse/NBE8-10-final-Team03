@@ -10,6 +10,7 @@ import com.eof.back.domain.quizset.entity.QuizSet;
 import com.eof.back.domain.quizset.repository.QuizSetRepository;
 import com.eof.back.domain.user.gamerecord.repository.GameRecordRepository;
 import com.eof.back.domain.user.quizsetbookmark.repository.QuizSetBookmarkRepository;
+import com.eof.back.domain.user.user.entity.Role;
 import com.eof.back.domain.user.user.entity.User;
 import com.eof.back.domain.user.user.repository.UserRepository;
 import com.eof.back.global.exception.errorCode.AuthErrorCode;
@@ -49,8 +50,7 @@ public class QuizSetServiceImpl implements QuizSetService {
     @Override
     @Transactional
     public Long createQuizSet(QuizSetCreateRequest request, Long userId) {
-        User creator = userRepository.findById(userId)
-                .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND));
+        User creator = findUserById(userId);
 
         QuizSet quizSet = QuizSet.builder()
                 .title(request.getTitle())
@@ -66,12 +66,15 @@ public class QuizSetServiceImpl implements QuizSetService {
     /**
      * {@inheritDoc}
      * <p>
-     * 작성자 본인 여부를 검증한 후 정보를 반환합니다.
+     * 작성자 본인 또는 관리자(ADMIN) 여부를 검증한 후 정보를 반환합니다.
      */
     @Override
     public QuizSetResponse getQuizSet(Long id, Long userId) {
         QuizSet quizSet = findQuizSetById(id);
-        validateOwnership(quizSet, userId);
+        User requester = findUserById(userId);
+        
+        validateAccessPermission(quizSet, requester);
+        
         return QuizSetResponse.from(quizSet);
     }
 
@@ -91,7 +94,7 @@ public class QuizSetServiceImpl implements QuizSetService {
     @Transactional
     public Long updateQuizSet(Long id, QuizSetUpdateRequest request, Long userId) {
         QuizSet quizSet = findQuizSetById(id);
-        validateOwnership(quizSet, userId);
+        validateCreator(quizSet, userId);
 
         quizSet.update(request.title(), request.description());
         return quizSet.getId();
@@ -103,15 +106,11 @@ public class QuizSetServiceImpl implements QuizSetService {
     @Override
     @Transactional
     public void deleteQuizSet(Long id, Long userId) {
-        // 1. 참조 엔티티 정리
         quizSetBookmarkRepository.deleteByQuizSetId(id);
         gameRecordRepository.deleteByQuizSetId(id);
         gameSessionRepository.deleteByQuizSetId(id);
-        
-        // 2. 세트 내 개별 퀴즈 삭제
         quizRepository.deleteByQuizSetId(id);
 
-        // 3. 원자적 삭제 시도 (소유권 확인 포함)
         int deletedCount = quizSetRepository.deleteByIdAndCreatorId(id, userId);
 
         if (deletedCount == 0) {
@@ -127,7 +126,27 @@ public class QuizSetServiceImpl implements QuizSetService {
                 .orElseThrow(() -> new QuizSetException(QuizSetErrorCode.QUIZ_SET_NOT_FOUND));
     }
 
-    private void validateOwnership(QuizSet quizSet, Long userId) {
+    private User findUserById(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND));
+    }
+
+    /**
+     * 조회 권한을 검증합니다. (작성자 본인 또는 관리자 허용)
+     */
+    private void validateAccessPermission(QuizSet quizSet, User requester) {
+        if (requester.getRole() == Role.ADMIN) {
+            return;
+        }
+        if (!quizSet.getCreator().getId().equals(requester.getId())) {
+            throw new QuizSetException(QuizSetErrorCode.QUIZ_SET_ACCESS_DENIED);
+        }
+    }
+
+    /**
+     * 작성자 본인 여부만 검증합니다. (수정/삭제 시 사용)
+     */
+    private void validateCreator(QuizSet quizSet, Long userId) {
         if (!quizSet.getCreator().getId().equals(userId)) {
             throw new QuizSetException(QuizSetErrorCode.QUIZ_SET_ACCESS_DENIED);
         }

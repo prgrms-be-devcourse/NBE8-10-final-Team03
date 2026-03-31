@@ -15,7 +15,7 @@ interface Room {
   quizSetId: number;
   quizSetTitle: string;
   currentPlayerCount: number;
-  maxPlayers: number;
+  maxPlayer: number;
   status: string;
 }
 
@@ -754,9 +754,9 @@ const [bookmarkedQuizSets, setBookmarkedQuizSets] = useState<QuizSet[]>([]);
                   </div>
                   <div className="flex items-center gap-4">
                     <div className="text-right">
-                      <p className="font-title text-xl text-primary">{room.currentPlayerCount}/{room.maxPlayers}</p>
+                      <p className="font-title text-xl text-primary">{room.currentPlayerCount}/{room.maxPlayer}</p>
                       <div className="w-16 h-2 bg-gray-200 rounded-full mt-1">
-                        <div className="h-full bg-primary rounded-full" style={{ width: `${(room.currentPlayerCount / room.maxPlayers) * 100}%` }} />
+                        <div className="h-full bg-primary rounded-full" style={{ width: `${(room.currentPlayerCount / room.maxPlayer) * 100}%` }} />
                       </div>
                     </div>
                     {room.status === "WAIT" ? (

@@ -1,10 +1,7 @@
 package com.eof.back.domain.quiz.dto;
 
 import com.eof.back.domain.quiz.entity.Quiz;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
 
 /**
  * 퀴즈(Quiz) 정보를 반환하기 위한 데이터 전송 객체입니다.
@@ -12,19 +9,16 @@ import lombok.NoArgsConstructor;
  * @author MintyU
  * @since 2026-03-24
  */
-@Getter
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class QuizResponse {
-    private Long id;
-    private String content;
-    private String answer;
-    private String choice1;
-    private String choice2;
-    private String choice3;
-    private String choice4;
-
+public record QuizResponse(
+        Long id,
+        String content,
+        String answer,
+        String choice1,
+        String choice2,
+        String choice3,
+        String choice4
+) {
     /**
      * Quiz 엔티티로부터 QuizResponse DTO를 생성합니다.
      *

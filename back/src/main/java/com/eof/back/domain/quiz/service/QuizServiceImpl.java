@@ -1,6 +1,5 @@
 package com.eof.back.domain.quiz.service;
 
-
 import com.eof.back.domain.quiz.dto.QuizCreateRequest;
 import com.eof.back.domain.quiz.dto.QuizResponse;
 import com.eof.back.domain.quiz.dto.QuizUpdateRequest;
@@ -46,6 +45,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class QuizServiceImpl implements QuizService {
+
     private final QuizRepository quizRepository;
     private final QuizSetRepository quizSetRepository;
 
@@ -56,7 +56,7 @@ public class QuizServiceImpl implements QuizService {
      * <ol>
      *     <li>{@code quizSetId}를 기반으로 대상 퀴즈 세트를 조회합니다.</li>
      *     <li>현재 요청 사용자({@code userId})가 해당 세트의 소유자인지 검증합니다.</li>
-     *     <li>제공된 {@code request} 데이터를 기반으로 퀴즈 엔티티를 빌드합니다.</li>
+     *     <li>제공된 {@code request} 데이터를 기반으로 퀴즈 엔티티를 생성합니다.</li>
      *     <li>퀴즈를 저장소에 등록하고, 연관된 퀴즈 세트의 문제 수를 증가시킵니다.</li>
      * </ol>
      * </p>
@@ -72,7 +72,7 @@ public class QuizServiceImpl implements QuizService {
     @Transactional
     public Long createQuiz(Long quizSetId, QuizCreateRequest request, Long userId) {
         QuizSet quizSet = findQuizSetById(quizSetId);
-        
+
         // 권한 검증: 퀴즈 세트 제작자만 퀴즈를 추가할 수 있음
         validateOwnership(quizSet, userId);
 
@@ -108,10 +108,10 @@ public class QuizServiceImpl implements QuizService {
     @Override
     public QuizResponse getQuiz(Long quizSetId, Long quizId) {
         Quiz quiz = findQuizById(quizId);
-        
+
         // 일관성 검증: 해당 퀴즈가 요청된 퀴즈 세트에 속하는지 확인
         validatePathConsistency(quiz, quizSetId);
-        
+
         return QuizResponse.from(quiz);
     }
 
@@ -125,7 +125,7 @@ public class QuizServiceImpl implements QuizService {
     @Override
     public List<QuizResponse> getQuizzesByQuizSetId(Long quizSetId) {
         QuizSet quizSet = findQuizSetById(quizSetId);
-        
+
         return quizSet.getQuizzes().stream()
                 .map(QuizResponse::from)
                 .collect(Collectors.toList());
@@ -151,7 +151,7 @@ public class QuizServiceImpl implements QuizService {
     @Transactional
     public Long updateQuiz(Long quizSetId, Long quizId, QuizUpdateRequest request, Long userId) {
         Quiz quiz = findQuizById(quizId);
-        
+
         // 일관성 검증
         validatePathConsistency(quiz, quizSetId);
         // 권한 검증
@@ -172,7 +172,7 @@ public class QuizServiceImpl implements QuizService {
      * {@inheritDoc}
      * <p>
      * <b>데이터 후처리:</b>
-     * 퀴즈가 성공적으로 삭제되면, 해당 퀴즈가 속해 있던 퀴즈 세트의 {@code quizCount}를 
+     * 퀴즈가 성공적으로 삭제되면, 해당 퀴즈가 속해 있던 퀴즈 세트의 {@code quizCount}를
      * 원자적으로 감소시켜 통계 데이터의 무결성을 유지합니다.
      * </p>
      *
@@ -186,7 +186,7 @@ public class QuizServiceImpl implements QuizService {
     @Transactional
     public void deleteQuiz(Long quizSetId, Long quizId, Long userId) {
         Quiz quiz = findQuizById(quizId);
-        
+
         // 일관성 검증
         validatePathConsistency(quiz, quizSetId);
         // 권한 검증
@@ -243,7 +243,7 @@ public class QuizServiceImpl implements QuizService {
      */
     private void validatePathConsistency(Quiz quiz, Long quizSetId) {
         if (!quiz.getQuizSet().getId().equals(quizSetId)) {
-            throw new QuizException(QuizErrorCode.QUIZ_NOT_FOUND, 
+            throw new QuizException(QuizErrorCode.QUIZ_NOT_FOUND,
                     "The quiz does not belong to the specified quiz set.");
         }
     }

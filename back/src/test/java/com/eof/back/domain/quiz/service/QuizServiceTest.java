@@ -139,8 +139,8 @@ class QuizServiceTest {
             QuizResponse response = quizService.getQuiz(quizSetId, quizId);
 
             // then
-            assertThat(response.getId()).isEqualTo(quizId);
-            assertThat(response.getContent()).isEqualTo("문제");
+            assertThat(response.id()).isEqualTo(quizId);
+            assertThat(response.content()).isEqualTo("문제");
         }
 
         @Test
@@ -179,8 +179,8 @@ class QuizServiceTest {
 
             // then
             assertThat(responses).hasSize(2);
-            assertThat(responses.get(0).getContent()).isEqualTo("문제1");
-            assertThat(responses.get(1).getContent()).isEqualTo("문제2");
+            assertThat(responses.get(0).content()).isEqualTo("문제1");
+            assertThat(responses.get(1).content()).isEqualTo("문제2");
         }
     }
 

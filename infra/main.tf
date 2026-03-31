@@ -199,7 +199,7 @@ timedatectl set-timezone Asia/Seoul
 
 # 환경변수 세팅(/etc/environment)
 echo "PASSWORD_1=${var.password_1}" >> /etc/environment
-echo "APP_1_DOMAIN=${var.app_1_domain}" >> /etc/environment
+echo "TEAM03_DOMAIN=${var.team03_domain}" >> /etc/environment
 echo "APP_1_DB_NAME=${var.app_1_db_name}" >> /etc/environment
 echo "GITHUB_ACCESS_TOKEN_1_OWNER=${var.github_access_token_1_owner}" >> /etc/environment
 echo "GITHUB_ACCESS_TOKEN_1=${var.github_access_token_1}" >> /etc/environment
@@ -333,4 +333,13 @@ resource "aws_instance" "ec2_1" {
   user_data = <<-EOF
 ${local.ec2_user_data_base}
 EOF
+}
+
+resource "aws_eip" "eip_1" {
+  instance = aws_instance.ec2_1.id
+  domain   = "vpc"
+
+  tags = {
+    Name = "${var.prefix}-eip"
+  }
 }

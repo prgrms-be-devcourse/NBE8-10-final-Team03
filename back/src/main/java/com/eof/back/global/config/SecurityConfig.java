@@ -93,6 +93,7 @@ public class SecurityConfig {
 
         config.setExposedHeaders(List.of("Location"));
         config.setAllowedOriginPatterns(List.of(
+                "https://test-team03.vercel.app",
                 "http://localhost:3000",
                 "http://127.0.0.1:3000"
         ));

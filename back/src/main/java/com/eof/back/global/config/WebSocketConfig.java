@@ -1,6 +1,7 @@
 package com.eof.back.global.config;
 
 import com.eof.back.global.websocket.StompHandler;
+import com.eof.back.global.websocket.WebSocketHandshakeInterceptor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.ChannelRegistration;
@@ -19,11 +20,13 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final StompHandler stompHandler;
+    private final WebSocketHandshakeInterceptor handshakeInterceptor;
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws/game")
-                .setAllowedOriginPatterns("*"); // CORS 허용
+                .setAllowedOriginPatterns("*") // CORS 허용
+                .addInterceptors(handshakeInterceptor); // Handshake 인터셉터 등록
     }
 
     @Override

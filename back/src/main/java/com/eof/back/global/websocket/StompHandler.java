@@ -51,9 +51,6 @@ import java.util.List;
 public class StompHandler implements ChannelInterceptor {
 
     private final JwtTokenProvider jwtTokenProvider;
-
-    private static final String AUTHORIZATION_HEADER = "Authorization";
-    private static final String BEARER_PREFIX = "Bearer ";
     private static final String ROLE_PREFIX = "ROLE_";
 
     @Override
@@ -63,39 +60,40 @@ public class StompHandler implements ChannelInterceptor {
         // 1. 최초 연결(CONNECT) 시: 토큰 검사 후 신분증을 만들어서 세션 주머니에 넣습니다.
         if (StompCommand.CONNECT.equals(accessor.getCommand())) {
 
-            String bearerToken = accessor.getFirstNativeHeader(AUTHORIZATION_HEADER);
-            if (bearerToken == null) bearerToken = accessor.getFirstNativeHeader(AUTHORIZATION_HEADER.toLowerCase());
+            String token = (String) accessor.getSessionAttributes().get("accessToken");
 
-            String token = resolveToken(bearerToken);
-
-            if (token != null) {
-                try {
-                    Claims claims = jwtTokenProvider.validateToken(token);
-                    Long userId = jwtTokenProvider.getUserId(claims);
-                    String username = jwtTokenProvider.getUsername(claims);
-                    String role = jwtTokenProvider.getRole(claims);
-                    String nickname = jwtTokenProvider.getNickname(claims);
-
-                    UserPrincipal userPrincipal = new UserPrincipal(userId, username, nickname, role);
-                    String authority = role.startsWith(ROLE_PREFIX) ? role : ROLE_PREFIX + role;
-                    Authentication authentication = new UsernamePasswordAuthenticationToken(
-                            userPrincipal, null, List.of(new SimpleGrantedAuthority(authority))
-                    );
-
-                    //  세션에 신분증 영구 보관
-                    accessor.getSessionAttributes().put("USER_AUTH", authentication);
-                    accessor.setUser(authentication);
-
-                    log.info("웹소켓 연결 성공! 인증된 사용자: {}", username);
-
-                    accessor.setLeaveMutable(true);
-                    return MessageBuilder.createMessage(message.getPayload(), accessor.getMessageHeaders());
-
-                } catch (Exception e) {
-                    log.error(" 토큰 검증 오류: {}", e.getMessage());
-                    throw new AuthException(AuthErrorCode.TOKEN_INVALID, "유효하지 않은 JWT 토큰입니다.");
-                }
+            // 토큰 누락 시 예외 발생
+            if (token == null || token.isBlank()) {
+                log.error("웹소켓 연결 거부: 쿠키에서 인증 토큰을 찾을 수 없습니다.");
+                throw new AuthException(AuthErrorCode.TOKEN_INVALID, "인증 토큰이 존재하지 않습니다.");
             }
+            try {
+                Claims claims = jwtTokenProvider.validateToken(token);
+                Long userId = jwtTokenProvider.getUserId(claims);
+                String username = jwtTokenProvider.getUsername(claims);
+                String role = jwtTokenProvider.getRole(claims);
+                String nickname = jwtTokenProvider.getNickname(claims);
+
+                UserPrincipal userPrincipal = new UserPrincipal(userId, username, nickname, role);
+                String authority = role.startsWith(ROLE_PREFIX) ? role : ROLE_PREFIX + role;
+                Authentication authentication = new UsernamePasswordAuthenticationToken(
+                        userPrincipal, null, List.of(new SimpleGrantedAuthority(authority))
+                );
+
+                //  세션에 신분증 영구 보관
+                accessor.getSessionAttributes().put("USER_AUTH", authentication);
+                accessor.setUser(authentication);
+
+                log.info("웹소켓 연결 성공! 인증된 사용자: {}", username);
+
+                accessor.setLeaveMutable(true);
+                return MessageBuilder.createMessage(message.getPayload(), accessor.getMessageHeaders());
+
+            } catch (Exception e) {
+                log.error(" 토큰 검증 오류: {}", e.getMessage());
+                throw new AuthException(AuthErrorCode.TOKEN_INVALID, "유효하지 않은 JWT 토큰입니다.");
+            }
+
         } else if (accessor.getCommand() != null && !StompCommand.DISCONNECT.equals(accessor.getCommand())) {
 
             Authentication authentication = (Authentication) accessor.getSessionAttributes().get("USER_AUTH");
@@ -108,12 +106,5 @@ public class StompHandler implements ChannelInterceptor {
         }
 
         return message;
-    }
-
-    private String resolveToken(String bearer) {
-        if (bearer != null && bearer.startsWith(BEARER_PREFIX)) {
-            return bearer.substring(BEARER_PREFIX.length());
-        }
-        return null;
     }
 }

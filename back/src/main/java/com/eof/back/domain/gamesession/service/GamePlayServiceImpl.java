@@ -25,10 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.stream.Collectors;
@@ -105,8 +102,13 @@ public class GamePlayServiceImpl implements GamePlayService {
         // 2. 문제 캐싱 (Preload)
         try {
             redisTemplate.delete(questionsKey);
+
+            // 원본 퀴즈 리스트를 새로운 ArrayList로 복사 후 순서를 무작위로 섞음
+            List<Quiz> shuffledQuizzes = new ArrayList<>(gameSession.getQuizSet().getQuizzes());
+            Collections.shuffle(shuffledQuizzes);
+
             int count = 0;
-            for (Quiz quiz : gameSession.getQuizSet().getQuizzes()) {
+            for (Quiz quiz : shuffledQuizzes) {
                 if (count >= maxQuizzes) break;
 
                 QuizSetResponse.QuizResponse quizDto = QuizSetResponse.QuizResponse.from(quiz);

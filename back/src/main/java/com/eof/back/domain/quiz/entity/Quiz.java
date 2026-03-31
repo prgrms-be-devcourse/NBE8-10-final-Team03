@@ -13,9 +13,6 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
-
 /**
  * <p>퀴즈 세트 내에 속한 개별 퀴즈의 상세 데이터를 관리하는 엔티티입니다.</p>
  * 퀴즈의 발문(내용), 정답, 그리고 사지선다형 보기를 포함합니다.
@@ -78,7 +75,7 @@ public class Quiz extends BaseEntity {
      *
      * @param quizSet 소속 세트
      * @param content 발문
-     * @param answer 정답
+     * @param answer  정답
      * @param choice1 보기1
      * @param choice2 보기2
      * @param choice3 보기3
@@ -96,23 +93,11 @@ public class Quiz extends BaseEntity {
     }
 
     /**
-     * Quiz 엔티티 생성을 위한 정적 팩토리 메서드입니다.
-     *
-     * @param quizSet 소속 퀴즈 세트 (QuizSet 엔티티)
-     * @param content 퀴즈 발문 내용
-     * @param answer 정답 텍스트
-     * @param choice1 선택지 1
-     * @param choice2 선택지 2
-     * @param choice3 선택지 3
-     * @param choice4 선택지 4
-     * @return 생성된 Quiz 엔티티 객체
-     */
-    /**
      * 퀴즈의 정보를 수정합니다. (PATCH 목적)
      * null이 아닌 필드만 업데이트합니다.
      *
      * @param content 새로운 발문
-     * @param answer 새로운 정답
+     * @param answer  새로운 정답
      * @param choice1 새로운 보기1
      * @param choice2 새로운 보기2
      * @param choice3 새로운 보기3

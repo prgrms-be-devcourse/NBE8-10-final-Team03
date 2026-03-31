@@ -111,7 +111,7 @@ public class GamePlayServiceImpl implements GamePlayService {
             for (Quiz quiz : shuffledQuizzes) {
                 if (count >= maxQuizzes) break;
 
-                QuizSetResponse.QuizResponse quizDto = QuizSetResponse.QuizResponse.from(quiz);
+                QuizResponse quizDto = QuizResponse.from(quiz);
                 redisTemplate.opsForList().rightPush(questionsKey, objectMapper.writeValueAsString(quizDto));
                 count++;
             }
@@ -192,7 +192,7 @@ public class GamePlayServiceImpl implements GamePlayService {
             if (quizJson != null) {
                 QuizResponse quiz = objectMapper.readValue(quizJson, QuizResponse.class);
 
-                redisTemplate.opsForValue().set(getRedisKey(gameSessionId, "current_answer"), quiz.getAnswer(), Duration.ofSeconds(ROUND_INTERVAL_SEC));
+                redisTemplate.opsForValue().set(getRedisKey(gameSessionId, "current_answer"), quiz.answer(), Duration.ofSeconds(ROUND_INTERVAL_SEC));
 
                 QuizBroadcastResponse safeQuizData = QuizBroadcastResponse.from(quiz, QUIZ_TIME_LIMIT_SEC);
                 broadcastToRoom(gameSessionId, GameMessageResponse.quiz(safeQuizData));

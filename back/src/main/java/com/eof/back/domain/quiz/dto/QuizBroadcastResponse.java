@@ -18,15 +18,21 @@ public record QuizBroadcastResponse(
         String choice4,
         int timeLimit
 ) {
-    // 기존 QuizResponse를 받아서 정답을 빼고 방송용 DTO로 변환하는 메서드
+    /**
+     * 기존 QuizResponse를 받아서 정답을 빼고 방송용 DTO로 변환하는 메서드입니다.
+     *
+     * @param quiz      퀴즈 상세 응답 DTO
+     * @param timeLimit 문제 풀이 제한 시간
+     * @return 퀴즈 방송용 DTO
+     */
     public static QuizBroadcastResponse from(QuizResponse quiz, int timeLimit) {
         return new QuizBroadcastResponse(
-                quiz.getId(),
-                quiz.getContent(),
-                quiz.getChoice1(),
-                quiz.getChoice2(),
-                quiz.getChoice3(),
-                quiz.getChoice4(),
+                quiz.id(),
+                quiz.content(),
+                quiz.choice1(),
+                quiz.choice2(),
+                quiz.choice3(),
+                quiz.choice4(),
                 timeLimit
         );
     }

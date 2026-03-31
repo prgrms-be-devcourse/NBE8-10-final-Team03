@@ -14,6 +14,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.eof.back.domain.quiz.dto.QuizResponse;
 import com.eof.back.domain.quizset.dto.QuizSetCreateRequest;
 import com.eof.back.domain.quizset.dto.QuizSetListResponse;
 import com.eof.back.domain.quizset.dto.QuizSetResponse;
@@ -144,7 +145,7 @@ class QuizSetControllerTest {
     @DisplayName("퀴즈 세트 단건 조회 API 호출 성공")
     void getQuizSet_ApiSuccess() throws Exception {
         // given
-        QuizSetResponse.QuizResponse quizResponse = QuizSetResponse.QuizResponse.builder()
+        QuizResponse quizResponse = QuizResponse.builder()
                 .id(1L)
                 .content("문제 내용")
                 .answer("정답")

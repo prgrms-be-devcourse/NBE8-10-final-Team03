@@ -3,7 +3,6 @@ package com.eof.back.admin.service;
 import com.eof.back.domain.quiz.dto.QuizUpdateRequest;
 import com.eof.back.domain.quizreport.dto.QuizReportResponse;
 import com.eof.back.domain.quizset.dto.QuizSetUpdateRequest;
-import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -100,15 +99,15 @@ public interface AdminService {
     // --- 사용자 계정 상태 강제 제어 ---
 
     /**
-     * 비정상 활동 사용자를 지정된 기한까지 정지(SUSPENDED) 처리합니다.
-     * 정지 기간과 구체적인 사유를 {@link com.eof.back.admin.entity.UserSuspension}에 기록합니다.
+     * 비정상 활동 사용자를 지정된 기간(일 단위) 동안 정지(SUSPENDED) 처리합니다.
+     * 정지 종료 일시는 현재 시각으로부터 정지 일수를 더하여 계산됩니다.
      *
-     * @param targetUserId 정지 대상이 될 일반 사용자의 식별자
-     * @param reason       정지 처분의 사유
-     * @param until        정지 상태가 해제될 시각
-     * @param adminId      요청을 보낸 관리자의 식별자 (권한 검증용)
+     * @param targetUserId   정지 대상이 될 일반 사용자의 식별자
+     * @param reason         정지 처분의 사유
+     * @param suspensionDays 정지 기간 (일 단위)
+     * @param adminId        요청을 보낸 관리자의 식별자 (권한 검증용)
      */
-    void suspendUser(Long targetUserId, String reason, LocalDateTime until, Long adminId);
+    void suspendUser(Long targetUserId, String reason, int suspensionDays, Long adminId);
 
     /**
      * 특정 사용자를 시스템에서 강제로 탈퇴(DELETED) 처리합니다.

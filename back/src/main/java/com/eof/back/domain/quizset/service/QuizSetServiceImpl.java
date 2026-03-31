@@ -53,8 +53,8 @@ public class QuizSetServiceImpl implements QuizSetService {
         User creator = findUserById(userId);
 
         QuizSet quizSet = QuizSet.builder()
-                .title(request.getTitle())
-                .description(request.getDescription())
+                .title(request.title())
+                .description(request.description())
                 .creator(creator)
                 .build();
 

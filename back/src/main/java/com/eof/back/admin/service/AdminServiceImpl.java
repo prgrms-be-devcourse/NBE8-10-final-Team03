@@ -176,11 +176,13 @@ public class AdminServiceImpl implements AdminService {
      */
     @Override
     @Transactional
-    public void suspendUser(Long targetUserId, String reason, LocalDateTime until, Long adminId) {
+    public void suspendUser(Long targetUserId, String reason, int suspensionDays, Long adminId) {
         validateAdminRole(adminId);
         User user = findUserById(targetUserId);
         
         user.suspend();
+        
+        LocalDateTime until = LocalDateTime.now().plusDays(suspensionDays);
         
         userSuspensionRepository.findByUserId(targetUserId)
                 .ifPresentOrElse(

@@ -8,10 +8,9 @@ import com.eof.back.global.jwt.UserPrincipal;
 import com.eof.back.global.response.CommonResponse;
 import com.eof.back.global.response.Response;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Future;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -148,7 +147,7 @@ public class AdminController {
      * @param principal 인증된 관리자 정보
      * @return 성공 메시지 응답
      */
-    @PatchMapping("/reports/{id}")
+    @PatchMapping("/reports/{id}/process")
     public ResponseEntity<Response<Void>> processReport(
             @PathVariable Long id,
             @AuthenticationPrincipal UserPrincipal principal) {
@@ -174,10 +173,10 @@ public class AdminController {
     // --- 사용자 계정 및 상태 관리 ---
 
     /**
-     * 특정 사용자를 지정된 사유와 기한으로 서비스 이용 정지 처리합니다.
+     * 특정 사용자를 지정된 사유와 기간(일 단위)으로 서비스 이용 정지 처리합니다.
      *
      * @param userId    정지 대상 사용자 ID
-     * @param request   정지 사유 및 기한 정보
+     * @param request   정지 사유 및 일수 정보
      * @param principal 인증된 관리자 정보
      * @return 성공 메시지 응답
      */
@@ -186,7 +185,7 @@ public class AdminController {
             @PathVariable Long userId,
             @RequestBody @Valid UserSuspensionRequest request,
             @AuthenticationPrincipal UserPrincipal principal) {
-        adminService.suspendUser(userId, request.reason(), request.suspendedUntil(), principal.id());
+        adminService.suspendUser(userId, request.reason(), request.suspensionDays(), principal.id());
         return ResponseEntity.ok(CommonResponse.success(null, "사용자가 정지되었습니다."));
     }
 
@@ -209,14 +208,14 @@ public class AdminController {
      * 사용자 정지 처리를 위한 요청 데이터 전송 객체입니다.
      *
      * @param reason         정지 사유
-     * @param suspendedUntil 정지 종료 일시 (미래 시점이어야 함)
+     * @param suspensionDays 정지 기간 (일 단위, 최소 1일)
      */
     public record UserSuspensionRequest(
             @NotBlank(message = "정지 사유는 필수입니다.")
             String reason,
 
-            @NotNull(message = "정지 종료 일시는 필수입니다.")
-            @Future(message = "정지 종료 일시는 미래 시점이어야 합니다.")
-            LocalDateTime suspendedUntil
+            @NotNull(message = "정지 기간은 필수입니다.")
+            @Min(value = 1, message = "정지 기간은 최소 1일 이상이어야 합니다.")
+            Integer suspensionDays
     ) {}
 }

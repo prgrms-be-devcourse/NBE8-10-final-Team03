@@ -80,8 +80,8 @@ class QuizSetServiceTest {
         ReflectionTestUtils.setField(creator, "id", 1L);
 
         QuizSet quizSet = QuizSet.builder()
-                .title(request.getTitle())
-                .description(request.getDescription())
+                .title(request.title())
+                .description(request.description())
                 .creator(creator)
                 .build();
         ReflectionTestUtils.setField(quizSet, "id", 100L);

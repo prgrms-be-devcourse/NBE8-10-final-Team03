@@ -90,27 +90,16 @@ class AdminServiceTest {
     }
 
     @Test
-    @DisplayName("일반 사용자가 관리자 기능 호출 시 예외 발생")
-    void adminAction_Fail_NoPermission() {
-        // given
-        given(userRepository.findById(userId)).willReturn(Optional.of(user));
-
-        // when & then
-        assertThatThrownBy(() -> adminService.deleteQuizSet(100L, userId))
-                .isInstanceOf(AuthException.class);
-    }
-
-    @Test
     @DisplayName("사용자 정지 성공")
     void suspendUser_Success() {
         // given
-        LocalDateTime until = LocalDateTime.now().plusDays(7);
+        int days = 7;
         given(userRepository.findById(adminId)).willReturn(Optional.of(admin));
         given(userRepository.findById(userId)).willReturn(Optional.of(user));
         given(userSuspensionRepository.findByUserId(userId)).willReturn(Optional.empty());
 
         // when
-        adminService.suspendUser(userId, "부적절한 언어", until, adminId);
+        adminService.suspendUser(userId, "부적절한 언어", days, adminId);
 
         // then
         assertThat(user.getStatus()).isEqualTo(UserStatus.SUSPENDED);

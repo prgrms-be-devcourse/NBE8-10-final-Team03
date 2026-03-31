@@ -2,18 +2,7 @@ import axios from "axios";
 
 const api = axios.create({
   baseURL: "http://localhost:8080/api/v1",
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
-
-// 요청 인터셉터: 매 요청마다 토큰 자동 첨부
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("accessToken");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
+  withCredentials: true,
 });
 
 // 응답 인터셉터: 401이면 로그인 페이지로
@@ -21,10 +10,12 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // 로그인 요청은 리다이렉트 안 함
       const isLoginRequest = error.config?.url?.includes("/auth/login");
       if (!isLoginRequest) {
-        localStorage.removeItem("accessToken");
+        // accessToken localStorage에서 제거 → 이제 쿠키라 불필요하지만
+        // nickname, userId는 지워줘야 해
+        localStorage.removeItem("nickname");
+        localStorage.removeItem("userId");
         window.location.href = "/login";
       }
     }

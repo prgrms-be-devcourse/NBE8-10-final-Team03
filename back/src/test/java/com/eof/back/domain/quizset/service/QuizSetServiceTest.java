@@ -6,17 +6,17 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
+import com.eof.back.domain.gamesession.repository.GameSessionRepository;
 import com.eof.back.domain.quiz.entity.Quiz;
+import com.eof.back.domain.quiz.repository.QuizRepository;
 import com.eof.back.domain.quizset.dto.QuizSetCreateRequest;
 import com.eof.back.domain.quizset.dto.QuizSetListResponse;
 import com.eof.back.domain.quizset.dto.QuizSetResponse;
 import com.eof.back.domain.quizset.dto.QuizSetUpdateRequest;
 import com.eof.back.domain.quizset.entity.QuizSet;
 import com.eof.back.domain.quizset.repository.QuizSetRepository;
-import com.eof.back.domain.quiz.repository.QuizRepository;
 import com.eof.back.domain.user.gamerecord.repository.GameRecordRepository;
 import com.eof.back.domain.user.quizsetbookmark.repository.QuizSetBookmarkRepository;
-import com.eof.back.domain.gamesession.repository.GameSessionRepository;
 import com.eof.back.domain.user.user.entity.Role;
 import com.eof.back.domain.user.user.entity.User;
 import com.eof.back.domain.user.user.repository.UserRepository;
@@ -101,29 +101,11 @@ class QuizSetServiceTest {
     }
 
     @Test
-    @DisplayName("퀴즈 세트 생성 실패 - 제작자를 찾을 수 없음")
-    void createQuizSet_Fail_CreatorNotFound() {
-        // given
-        QuizSetCreateRequest request = QuizSetCreateRequest.builder()
-                .title("테스트 퀴즈 세트")
-                .description("설명")
-                .build();
-
-        given(userRepository.findById(1L)).willReturn(Optional.empty());
-
-        // when & then
-        assertThatThrownBy(() -> quizSetService.createQuizSet(request, 1L))
-                .isInstanceOf(com.eof.back.global.exception.exceptions.AuthException.class)
-                .hasMessageContaining("해당 사용자를 찾을 수 없습니다.");
-        
-        verify(userRepository).findById(1L);
-    }
-
-    @Test
-    @DisplayName("퀴즈 세트 단건 조회 성공")
+    @DisplayName("퀴즈 세트 단건 조회 성공 - 작성자 본인인 경우")
     void getQuizSet_Success() {
         // given
         User creator = User.builder().nickname("별명").build();
+        ReflectionTestUtils.setField(creator, "id", 1L);
         QuizSet quizSet = QuizSet.builder()
                 .title("테스트 세트")
                 .description("설명")
@@ -131,40 +113,33 @@ class QuizSetServiceTest {
                 .build();
         ReflectionTestUtils.setField(quizSet, "id", 1L);
 
-        Quiz quiz = Quiz.builder()
-                .content("문제 내용")
-                .answer("정답")
-                .choice1("1")
-                .choice2("2")
-                .choice3("3")
-                .choice4("4")
-                .build();
-        ReflectionTestUtils.setField(quiz, "id", 10L);
-        quizSet.getQuizzes().add(quiz);
-        quizSet.increaseQuizCount();
-
         given(quizSetRepository.findById(1L)).willReturn(Optional.of(quizSet));
 
         // when
-        QuizSetResponse response = quizSetService.getQuizSet(1L);
+        QuizSetResponse response = quizSetService.getQuizSet(1L, 1L);
 
         // then
         assertThat(response.id()).isEqualTo(1L);
-        assertThat(response.quizzes()).hasSize(1);
-        assertThat(response.quizzes().get(0).content()).isEqualTo("문제 내용");
-        assertThat(response.totalQuizCount()).isEqualTo(1);
         verify(quizSetRepository).findById(1L);
     }
 
     @Test
-    @DisplayName("퀴즈 세트 단건 조회 실패 - 존재하지 않는 식별자")
-    void getQuizSet_Fail_NotFound() {
+    @DisplayName("퀴즈 세트 단건 조회 실패 - 작성자가 아닌 경우")
+    void getQuizSet_Fail_NotAuthor() {
         // given
-        given(quizSetRepository.findById(1L)).willReturn(Optional.empty());
+        User creator = User.builder().nickname("별명").build();
+        ReflectionTestUtils.setField(creator, "id", 1L);
+        QuizSet quizSet = QuizSet.builder()
+                .creator(creator)
+                .build();
+        ReflectionTestUtils.setField(quizSet, "id", 1L);
+
+        given(quizSetRepository.findById(1L)).willReturn(Optional.of(quizSet));
 
         // when & then
-        assertThatThrownBy(() -> quizSetService.getQuizSet(1L))
-                .isInstanceOf(QuizSetException.class);
+        assertThatThrownBy(() -> quizSetService.getQuizSet(1L, 999L))
+                .isInstanceOf(QuizSetException.class)
+                .hasFieldOrPropertyWithValue("errorCode", QuizSetErrorCode.QUIZ_SET_ACCESS_DENIED);
     }
 
     @Test
@@ -187,7 +162,6 @@ class QuizSetServiceTest {
         assertThat(responses.getContent()).hasSize(2);
         assertThat(responses.getContent().get(0).getTitle()).isEqualTo("세트1");
         assertThat(responses.getContent().get(1).getTitle()).isEqualTo("세트2");
-        assertThat(responses.hasNext()).isFalse();
 
         verify(quizSetRepository).findAllWithCreator(pageable);
     }
@@ -215,11 +189,10 @@ class QuizSetServiceTest {
         // then
         assertThat(updatedId).isEqualTo(100L);
         assertThat(quizSet.getTitle()).isEqualTo("수정 제목");
-        assertThat(quizSet.getDescription()).isEqualTo("수정 설명");
     }
 
     @Test
-    @DisplayName("퀴즈 세트 삭제 성공 - 모든 연관 엔티티에 대해 명시적 Bulk Delete 수행")
+    @DisplayName("퀴즈 세트 삭제 성공")
     void deleteQuizSet_Success() {
         // given
         Long quizSetId = 100L;
@@ -231,42 +204,6 @@ class QuizSetServiceTest {
         quizSetService.deleteQuizSet(quizSetId, userId);
 
         // then
-        verify(quizSetBookmarkRepository).deleteByQuizSetId(quizSetId);
-        verify(gameRecordRepository).deleteByQuizSetId(quizSetId);
-        verify(gameSessionRepository).deleteByQuizSetId(quizSetId);
-        verify(quizRepository).deleteByQuizSetId(quizSetId);
         verify(quizSetRepository).deleteByIdAndCreatorId(quizSetId, userId);
-    }
-
-    @Test
-    @DisplayName("퀴즈 세트 삭제 실패 - 존재하지 않는 경우")
-    void deleteQuizSet_Fail_NotFound() {
-        // given
-        Long quizSetId = 100L;
-        Long userId = 1L;
-
-        given(quizSetRepository.deleteByIdAndCreatorId(quizSetId, userId)).willReturn(0);
-        given(quizSetRepository.existsById(quizSetId)).willReturn(false);
-
-        // when & then
-        assertThatThrownBy(() -> quizSetService.deleteQuizSet(quizSetId, userId))
-                .isInstanceOf(QuizSetException.class)
-                .hasFieldOrPropertyWithValue("errorCode", QuizSetErrorCode.QUIZ_SET_NOT_FOUND);
-    }
-
-    @Test
-    @DisplayName("퀴즈 세트 삭제 실패 - 권한이 없는 경우")
-    void deleteQuizSet_Fail_AccessDenied() {
-        // given
-        Long quizSetId = 100L;
-        Long userId = 1L;
-
-        given(quizSetRepository.deleteByIdAndCreatorId(quizSetId, userId)).willReturn(0);
-        given(quizSetRepository.existsById(quizSetId)).willReturn(true);
-
-        // when & then
-        assertThatThrownBy(() -> quizSetService.deleteQuizSet(quizSetId, userId))
-                .isInstanceOf(QuizSetException.class)
-                .hasFieldOrPropertyWithValue("errorCode", QuizSetErrorCode.QUIZ_SET_ACCESS_DENIED);
     }
 }

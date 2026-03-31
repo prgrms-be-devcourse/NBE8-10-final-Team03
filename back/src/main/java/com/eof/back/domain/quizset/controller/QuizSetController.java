@@ -9,7 +9,6 @@ import com.eof.back.global.jwt.UserPrincipal;
 import com.eof.back.global.response.CommonResponse;
 import com.eof.back.global.response.Response;
 import jakarta.validation.Valid;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -31,9 +30,6 @@ import org.springframework.web.bind.annotation.RestController;
  * <p>
  * 클라이언트로부터의 퀴즈 세트 생성, 조회, 수정 등의 REST API 요청을 받아 적절한 서비스 메서드를 호출하고 결과를 반환합니다.
  *
- * <p><b>빈 관리:</b><br>
- * {@link org.springframework.web.bind.annotation.RestController} 어노테이션을 통해 스프링 빈으로 관리됩니다. <br>
- *
  * @author MintyU
  * @since 2026-03-19
  */
@@ -47,9 +43,9 @@ public class QuizSetController {
     /**
      * 새로운 퀴즈 세트를 생성합니다.
      *
-     * @param request 퀴즈 세트 생성 요청 정보
+     * @param request   퀴즈 세트 생성 요청 정보
      * @param principal 로그인한 사용자 정보
-     * @return 생성 결과 응답 (201 Created with Location header)
+     * @return 생성 결과 응답 (201 Created)
      */
     @PostMapping
     public ResponseEntity<Void> createQuizSet(
@@ -62,20 +58,24 @@ public class QuizSetController {
     }
 
     /**
-     * 특정 퀴즈 세트의 상세 정보를 조회합니다.
+     * 특정 퀴즈 세트의 상세 정보를 조회합니다. (작성자 전용)
      *
-     * @param id 조회할 퀴즈 세트의 식별자
+     * @param id        조회할 퀴즈 세트의 식별자
+     * @param principal 로그인한 사용자 정보
      * @return 퀴즈 목록을 포함한 퀴즈 세트 상세 정보
      */
     @GetMapping("/{id}")
-    public ResponseEntity<Response<QuizSetResponse>> getQuizSet(@PathVariable Long id) {
-        QuizSetResponse response = quizSetService.getQuizSet(id);
+    public ResponseEntity<Response<QuizSetResponse>> getQuizSet(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        QuizSetResponse response = quizSetService.getQuizSet(id, principal.id());
         return ResponseEntity.ok(CommonResponse.success(response));
     }
 
     /**
      * 전체 퀴즈 세트 목록을 조회합니다.
      *
+     * @param pageable 페이징 정보
      * @return 퀴즈 세트 요약 정보 목록
      */
     @GetMapping

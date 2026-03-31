@@ -16,8 +16,6 @@ import com.eof.back.global.exception.errorCode.AuthErrorCode;
 import com.eof.back.global.exception.errorCode.QuizSetErrorCode;
 import com.eof.back.global.exception.exceptions.AuthException;
 import com.eof.back.global.exception.exceptions.QuizSetException;
-import java.util.List;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -47,9 +45,6 @@ public class QuizSetServiceImpl implements QuizSetService {
 
     /**
      * {@inheritDoc}
-     * <p>
-     * 제공된 사용자 ID를 기반으로 {@link QuizSet} 엔티티를 생성하고 저장합니다.
-     * 사용자가 존재하지 않으면 {@link AuthException}을 발생시킵니다.
      */
     @Override
     @Transactional
@@ -71,20 +66,17 @@ public class QuizSetServiceImpl implements QuizSetService {
     /**
      * {@inheritDoc}
      * <p>
-     * 지정된 ID로 {@link QuizSetRepository}에서 조회합니다.
-     * 해당 엔티티가 존재하지 않을 경우 {@link QuizSetException}을 발생시킵니다.
+     * 작성자 본인 여부를 검증한 후 정보를 반환합니다.
      */
     @Override
-    public QuizSetResponse getQuizSet(Long id) {
-        QuizSet quizSet = quizSetRepository.findById(id)
-                .orElseThrow(() -> new QuizSetException(QuizSetErrorCode.QUIZ_SET_NOT_FOUND));
+    public QuizSetResponse getQuizSet(Long id, Long userId) {
+        QuizSet quizSet = findQuizSetById(id);
+        validateOwnership(quizSet, userId);
         return QuizSetResponse.from(quizSet);
     }
 
     /**
      * {@inheritDoc}
-     * <p>
-     * 전체 {@link QuizSet} 엔티티를 조회한 후, 요약 정보만 포함된 {@link QuizSetListResponse} 목록으로 변환합니다.
      */
     @Override
     public Slice<QuizSetListResponse> getAllQuizSets(Pageable pageable) {
@@ -111,22 +103,17 @@ public class QuizSetServiceImpl implements QuizSetService {
     @Override
     @Transactional
     public void deleteQuizSet(Long id, Long userId) {
-        // 1. 참조 엔티티 정리 (명시적 Bulk Delete 수행)
-        // @Modifying(clearAutomatically = true) 설정을 통해 영속성 컨텍스트와의 동기화 문제를 해결합니다.
-        // FK 제약 조건을 고려하여 역순으로 삭제를 진행합니다.
-        
-        // 1-1. 북마크 및 기록/세션 삭제
+        // 1. 참조 엔티티 정리
         quizSetBookmarkRepository.deleteByQuizSetId(id);
         gameRecordRepository.deleteByQuizSetId(id);
         gameSessionRepository.deleteByQuizSetId(id);
         
-        // 1-2. 세트 내 개별 퀴즈 삭제
+        // 2. 세트 내 개별 퀴즈 삭제
         quizRepository.deleteByQuizSetId(id);
 
-        // 2. 원자적 삭제 시도 (소유권 확인 포함)
+        // 3. 원자적 삭제 시도 (소유권 확인 포함)
         int deletedCount = quizSetRepository.deleteByIdAndCreatorId(id, userId);
 
-        // 3. 삭제된 행이 없다면(0), 원인 분석을 위해 2차 확인 수행
         if (deletedCount == 0) {
             if (!quizSetRepository.existsById(id)) {
                 throw new QuizSetException(QuizSetErrorCode.QUIZ_SET_NOT_FOUND);
@@ -135,25 +122,11 @@ public class QuizSetServiceImpl implements QuizSetService {
         }
     }
 
-    /**
-     * 내부적으로 사용되는 퀴즈 세트 조회 도구입니다.
-     *
-     * @param id 조회할 ID
-     * @return 발견된 퀴즈 세트 엔티티
-     * @throws QuizSetException 엔티티가 존재하지 않을 경우
-     */
     private QuizSet findQuizSetById(Long id) {
         return quizSetRepository.findById(id)
                 .orElseThrow(() -> new QuizSetException(QuizSetErrorCode.QUIZ_SET_NOT_FOUND));
     }
 
-    /**
-     * 사용자 권한을 검증합니다. 퀴즈 세트의 제작자만 수정/삭제가 가능합니다.
-     *
-     * @param quizSet 대상 퀴즈 세트
-     * @param userId  요청 사용자 ID
-     * @throws QuizSetException 제작자가 아닐 경우 (ACCESS_DENIED)
-     */
     private void validateOwnership(QuizSet quizSet, Long userId) {
         if (!quizSet.getCreator().getId().equals(userId)) {
             throw new QuizSetException(QuizSetErrorCode.QUIZ_SET_ACCESS_DENIED);

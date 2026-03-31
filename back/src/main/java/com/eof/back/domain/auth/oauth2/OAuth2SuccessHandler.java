@@ -84,6 +84,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
                 .queryParam("userId", customUser.getUserId())
                 .queryParam("nickname", customUser.getNickname())
                 .build()
+                .encode()
                 .toUriString();
         getRedirectStrategy().sendRedirect(request, response, redirectUrl);
     }

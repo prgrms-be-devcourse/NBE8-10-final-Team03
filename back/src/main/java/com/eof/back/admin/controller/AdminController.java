@@ -148,7 +148,7 @@ public class AdminController {
      * @param principal 인증된 관리자 정보
      * @return 성공 메시지 응답
      */
-    @PatchMapping("/reports/{id}/process")
+    @PatchMapping("/reports/{id}")
     public ResponseEntity<Response<Void>> processReport(
             @PathVariable Long id,
             @AuthenticationPrincipal UserPrincipal principal) {

@@ -18,6 +18,7 @@ public record LoginResult(
         String accessToken,
         String refreshToken,
         Long userId,
-        String nickname
+        String nickname,
+        String role
 ) {
 }

@@ -101,6 +101,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional
     public LoginResult reissue(String refreshToken) {
 
         // 1. Refresh Token 검증 및 Claims 추출

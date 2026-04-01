@@ -166,7 +166,9 @@ public class JwtTokenProvider {
      * @return 사용자 아이디
      */
     public String getUsername(Claims claims) {
-        return claims.get("username", String.class);
+        String value = claims.get("username", String.class);
+        if (value == null) throw new AuthException(AuthErrorCode.TOKEN_INVALID);
+        return value;
     }
 
     /**
@@ -176,7 +178,9 @@ public class JwtTokenProvider {
      * @return 사용자 권한
      */
     public String getRole(Claims claims) {
-        return claims.get("role", String.class);
+        String value = claims.get("role", String.class);
+        if (value == null) throw new AuthException(AuthErrorCode.TOKEN_INVALID);
+        return value;
     }
 
     /**
@@ -186,6 +190,8 @@ public class JwtTokenProvider {
      * @return 사용자 닉네임
      */
     public String getNickname(Claims claims) {
-        return claims.get("nickname", String.class);
+        String value = claims.get("nickname", String.class);
+        if (value == null) throw new AuthException(AuthErrorCode.TOKEN_INVALID);
+        return value;
     }
 }

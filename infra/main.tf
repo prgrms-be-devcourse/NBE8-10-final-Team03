@@ -112,22 +112,39 @@ resource "aws_route_table_association" "association_4" {
 
 resource "aws_security_group" "sg_1" {
   name = "${var.prefix}-sg-1"
-
-  ingress {
-    from_port = 0
-    to_port   = 0
-    protocol  = "all"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  egress {
-    from_port = 0
-    to_port   = 0
-    protocol  = "all"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
   vpc_id = aws_vpc.vpc_1.id
+
+  # 1. HTTP 허용 (일반 웹 접속)
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # 2. HTTPS 허용 (보안 웹 접속)
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # 3. Nginx Proxy Manager 관리자 페이지 허용
+  ingress {
+    from_port   = 81
+    to_port     = 81
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # 아웃바운드
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 
   tags = {
     Name = "${var.prefix}-sg-1"

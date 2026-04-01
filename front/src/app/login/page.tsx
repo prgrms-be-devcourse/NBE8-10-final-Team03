@@ -18,7 +18,8 @@ export default function LoginPage() {
 
     try {
       const res = await api.post("/auth/login", { username, password });
-      const { nickname, userId } = res.data.data;
+      const { userId, nickname, role } = res.data.data;
+      localStorage.setItem("role", role);
 
       localStorage.setItem("nickname", nickname);
       localStorage.setItem("userId", String(userId));

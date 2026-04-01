@@ -7,18 +7,19 @@ import Link from "next/link";
 export default function Header() {
   const router = useRouter();
   const [nickname, setNickname] = useState<string | null>(null);
-  const [myUserId, setMyUserId] = useState<string | null>(null);  // ✅ 추가
+  const [myUserId, setMyUserId] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false); // ← 추가
 
   useEffect(() => {
     setNickname(localStorage.getItem("nickname"));
     setMyUserId(localStorage.getItem("userId"));
+    setIsAdmin(localStorage.getItem("role") === "ADMIN"); // ← 추가
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
     localStorage.removeItem("nickname");
     localStorage.removeItem("userId");
+    localStorage.removeItem("role"); // ← 추가
     router.push("/login");
   };
 
@@ -33,11 +34,13 @@ export default function Header() {
         <Link href="/rooms" className="hover:text-primary">로비</Link>
         <Link href="/quizsets" className="hover:text-primary">퀴즈셋</Link>
         <Link href="/rankings" className="hover:text-primary">랭킹</Link>
+        {isAdmin && ( // ← 추가
+          <Link href="/admin/reports" className="hover:text-red-500 text-red-400">관리자</Link>
+        )}
       </div>
       <div className="flex gap-3 items-center">
         {nickname ? (
           <div className="flex items-center gap-3">
-            {/* ✅ /me → /users/${myUserId} */}
             <Link
               href={`/users/${myUserId}`}
               className="flex items-center gap-2 px-5 py-2.5 border-[3px] border-dark rounded-xl font-bold text-sm bg-cream shadow-kitsch-sm hover:shadow-kitsch hover:-translate-y-0.5 transition-all"

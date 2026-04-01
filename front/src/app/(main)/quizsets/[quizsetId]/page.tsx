@@ -185,6 +185,7 @@ const [reporting, setReporting] = useState(false);
     const fetchQuizSet = async () => {
       try {
         const res = await api.get(`/quizsets/${quizsetId}`);
+        console.log("퀴즈셋 조회 시도:", quizsetId);
         setQuizSet(res.data.data);
       } catch (err) {
         console.error("퀴즈셋 조회 실패", err);

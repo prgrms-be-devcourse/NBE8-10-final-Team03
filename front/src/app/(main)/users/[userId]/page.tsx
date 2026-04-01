@@ -20,15 +20,17 @@ export default function MyPage() {
   const [stats, setStats] = useState<RecordsStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [myUserId, setMyUserId] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false); // ← 추가
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const userId = localStorage.getItem("userId");
         if (!userId) throw new Error("userId 없음");
-  
+
         setMyUserId(userId);
-        
+        setIsAdmin(localStorage.getItem("role") === "ADMIN"); // ← 추가
+
         const [userRes, recordsRes] = await Promise.all([
           api.get(`/users/${userId}`),
           api.get(`/users/${userId}/records?page=0&size=1`),
@@ -77,6 +79,11 @@ export default function MyPage() {
           <div>
             <h2 className="font-title text-2xl mb-1">{user.nickname}</h2>
             <p className="text-sm text-gray-400">@{user.username}</p>
+            {isAdmin && (
+              <span className="inline-block mt-1 px-2 py-0.5 bg-primary text-white text-xs font-bold rounded-full border border-dark">
+                ADMIN
+              </span>
+            )}
           </div>
         </div>
 
@@ -102,21 +109,29 @@ export default function MyPage() {
       </div>
 
       {/* 바로가기 */}
-      <div className="grid grid-cols-2 gap-4">
-        <Link href={`/users/${myUserId}/records`} className="bg-white border-[3px] border-dark rounded-2xl p-6 shadow-kitsch hover:shadow-kitsch-lg hover:-translate-y-0.5 transition-all text-center">
-          <div className="text-3xl mb-2">📊</div>
-          <h3 className="font-title text-lg mb-1">내 전적</h3>
-          <p className="text-xs text-gray-400">최근 게임 기록 확인</p>
-        </Link>
+      {isAdmin ? (
         <Link
-    href={`/users/${myUserId}/bookmarks`}
-    className="bg-white border-[3px] border-dark rounded-2xl p-6 shadow-kitsch hover:shadow-kitsch-lg hover:-translate-y-0.5 transition-all text-center"
-  >
-    <div className="text-3xl mb-2">⭐</div>
-    <h3 className="font-title text-lg mb-1">즐겨찾기</h3>
-    <p className="text-xs text-gray-400">저장한 퀴즈셋 보기</p>
-  </Link>
-</div>
+          href="/admin/reports"
+          className="block bg-primary text-white border-[3px] border-dark rounded-2xl p-6 shadow-kitsch hover:shadow-kitsch-lg hover:-translate-y-0.5 transition-all text-center"
+        >
+          <div className="text-3xl mb-2">⚙️</div>
+          <h3 className="font-title text-lg mb-1">관리자 페이지</h3>
+          <p className="text-xs text-white/70">신고 관리, 퀴즈셋 관리</p>
+        </Link>
+      ) : (
+        <div className="grid grid-cols-2 gap-4">
+          <Link href={`/users/${myUserId}/records`} className="bg-white border-[3px] border-dark rounded-2xl p-6 shadow-kitsch hover:shadow-kitsch-lg hover:-translate-y-0.5 transition-all text-center">
+            <div className="text-3xl mb-2">📊</div>
+            <h3 className="font-title text-lg mb-1">내 전적</h3>
+            <p className="text-xs text-gray-400">최근 게임 기록 확인</p>
+          </Link>
+          <Link href={`/users/${myUserId}/bookmarks`} className="bg-white border-[3px] border-dark rounded-2xl p-6 shadow-kitsch hover:shadow-kitsch-lg hover:-translate-y-0.5 transition-all text-center">
+            <div className="text-3xl mb-2">⭐</div>
+            <h3 className="font-title text-lg mb-1">즐겨찾기</h3>
+            <p className="text-xs text-gray-400">저장한 퀴즈셋 보기</p>
+          </Link>
+        </div>
+      )}
     </div>
   );
 }

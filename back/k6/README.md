@@ -62,9 +62,7 @@ http://localhost:3001
 ### 기본 실행 형식
 
 ```bash
-docker compose --profile loadtest run --rm k6 run \
-  --out influxdb=http://influxdb:8086/k6 \
-  파일명.js
+docker compose --profile loadtest run --rm k6 run --out influxdb=http://influxdb:8086/k6 파일명.js
 ```
 
 > k6 컨테이너의 working_dir이 `/scripts`로 설정되어 있어 파일명만 입력하면 됩니다.
@@ -84,14 +82,10 @@ docker compose --profile loadtest run --rm k6 run \
 
 ```bash
 # Refresh Token 부하테스트
-docker compose --profile loadtest run --rm k6 run \
-  --out influxdb=http://influxdb:8086/k6 \
-  refresh-token-test.js
+docker compose --profile loadtest run --rm k6 run --out influxdb=http://influxdb:8086/k6 refresh-token-test.js
 
 # 랭킹 조회 부하테스트
-docker compose --profile loadtest run --rm k6 run \
-  --out influxdb=http://influxdb:8086/k6 \
-  ranking-test.js
+docker compose --profile loadtest run --rm k6 run --out influxdb=http://influxdb:8086/k6 ranking-test.js
 ```
 
 ---

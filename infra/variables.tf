@@ -10,5 +10,5 @@ variable "prefix" {
 //도메인은 바꿔야함
 variable "team03_domain" {
   description = "team03_domain"
-  default     = "api.p-14044-1.oa.gg"
+  default     = "api.dabjeongneo.site"
 }

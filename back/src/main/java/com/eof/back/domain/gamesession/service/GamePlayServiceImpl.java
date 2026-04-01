@@ -124,6 +124,8 @@ public class GamePlayServiceImpl implements GamePlayService {
         // 3. 시작 알림
         broadcastToRoom(gameSessionId, GameMessageResponse.enter("SYSTEM", "게임이 시작되었습니다! 잠시 후 첫 번째 문제가 출제됩니다.", null));
 
+        // 게임 세션 상태 시작으로 변경
+        gameSession.startGame();
         //  기존 타이머가 있다면 스케줄러 취소 처리
         ScheduledFuture<?> existingTimer = roomTimers.get(gameSessionId);
         if (existingTimer != null) {

@@ -6,8 +6,10 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
@@ -49,17 +51,21 @@ public class RedisRefreshTokenStore implements RefreshTokenStore {
     @Override
     public Optional<RefreshToken> findByUserId(Long userId) {
         String key = KEY_PREFIX + userId;
-        String token = redisTemplate.opsForValue().get(key);
+        byte[] keyBytes = key.getBytes(StandardCharsets.UTF_8);
 
-        // 키가 없으면 만료됐거나 존재하지 않는 토큰
-        // Redis가 TTL 기반으로 자동 삭제하므로 키가 존재하면 유효한 토큰임이 보장됨
+        // GET + TTL을 파이프라인으로 묶어 Redis 왕복을 1회로 줄임
+        List<Object> results = redisTemplate.executePipelined((org.springframework.data.redis.core.RedisCallback<Object>) connection -> {
+            connection.stringCommands().get(keyBytes);
+            connection.keyCommands().ttl(keyBytes);
+            return null;
+        });
+
+        String token = (String) results.get(0);
         if (token == null) {
             return Optional.empty();
         }
 
-        // Redis에 남은 TTL을 초 단위로 조회해 실제 만료 시각을 계산
-        // → 서비스 계층의 isExpired() 검증이 정확한 시각 기반으로 동작
-        Long remainingSeconds = redisTemplate.getExpire(key, TimeUnit.SECONDS);
+        Long remainingSeconds = (Long) results.get(1);
         LocalDateTime expiredAt = (remainingSeconds != null && remainingSeconds > 0)
                 ? LocalDateTime.now().plusSeconds(remainingSeconds)
                 : LocalDateTime.now().minusSeconds(1);

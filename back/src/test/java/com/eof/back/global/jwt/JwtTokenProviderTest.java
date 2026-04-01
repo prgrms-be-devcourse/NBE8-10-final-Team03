@@ -37,12 +37,15 @@ class JwtTokenProviderTest {
     }
 
     @Test
-    @DisplayName("RefreshToken 생성 후 userId 추출 성공")
-    void createRefreshToken_extractUserId_success() {
-        String token = jwtTokenProvider.createRefreshToken(2L);
+    @DisplayName("RefreshToken 생성 후 userId, username, role, nickname 추출 성공")
+    void createRefreshToken_extractClaims_success() {
+        String token = jwtTokenProvider.createRefreshToken(2L, "testUser", "USER", "tester");
         Claims claims = jwtTokenProvider.validateToken(token);
 
         assertThat(jwtTokenProvider.getUserId(claims)).isEqualTo(2L);
+        assertThat(jwtTokenProvider.getUsername(claims)).isEqualTo("testUser");
+        assertThat(jwtTokenProvider.getRole(claims)).isEqualTo("USER");
+        assertThat(jwtTokenProvider.getNickname(claims)).isEqualTo("tester");
     }
 
     @Test

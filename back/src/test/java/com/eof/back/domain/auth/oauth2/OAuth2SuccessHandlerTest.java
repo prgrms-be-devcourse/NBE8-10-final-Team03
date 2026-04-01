@@ -79,7 +79,7 @@ class OAuth2SuccessHandlerTest {
         void success() throws Exception {
             given(jwtTokenProvider.createAccessToken(eq(USER_ID), any(), any(), any()))
                     .willReturn(ACCESS_TOKEN);
-            given(jwtTokenProvider.createRefreshToken(USER_ID)).willReturn(REFRESH_TOKEN);
+            given(jwtTokenProvider.createRefreshToken(eq(USER_ID), any(), any(), any())).willReturn(REFRESH_TOKEN);
 
             MockHttpServletRequest request = new MockHttpServletRequest();
             MockHttpServletResponse response = new MockHttpServletResponse();

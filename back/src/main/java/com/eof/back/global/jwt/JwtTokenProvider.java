@@ -97,17 +97,20 @@ public class JwtTokenProvider {
      * @param userId 사용자 ID
      * @return JWT RefreshToken 문자열
      */
-    public String createRefreshToken(Long userId) {
+    public String createRefreshToken(Long userId, String username, String role, String nickname) {
 
         Date now = new Date();
         Date expiry = new Date(now.getTime() + refreshTokenExpiration);
 
         return Jwts.builder()
-                .subject(String.valueOf(userId))  // subject에 사용자 ID 저장
-                .issuedAt(now)                    // 발급 시간
-                .expiration(expiry)               // 만료 시간
-                .signWith(secretKey)              // 서명
-                .compact();                       // JWT 문자열 생성
+                .subject(String.valueOf(userId))
+                .claim("username", username)
+                .claim("role", role)
+                .claim("nickname", nickname)
+                .issuedAt(now)
+                .expiration(expiry)
+                .signWith(secretKey)
+                .compact();
     }
 
     /**

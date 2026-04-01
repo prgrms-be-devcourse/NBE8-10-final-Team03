@@ -5,6 +5,7 @@ import com.eof.back.domain.auth.repository.RefreshTokenRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -43,6 +44,7 @@ public class DbRefreshTokenStore implements RefreshTokenStore{
     private final RefreshTokenRepository refreshTokenRepository;
 
     @Override
+    @Transactional
     public void save(Long userId, String token, LocalDateTime expiredAt) {
         refreshTokenRepository.findById(userId)
                 .ifPresentOrElse(

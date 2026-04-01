@@ -77,8 +77,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         refreshTokenStore.save(customUser.getUserId(), refreshToken, refreshTokenExpiredAt);
 
         // 3. 토큰을 HttpOnly 쿠키로 설정
-        cookieUtil.addAccessTokenCookie(response, accessToken);
-        cookieUtil.addRefreshTokenCookie(response, refreshToken);
+        cookieUtil.addAllTokenCookies(response, accessToken, refreshToken);
 
         // 4. 프론트엔드로 redirect
         String redirectUrl = UriComponentsBuilder.fromUriString(redirectUri)

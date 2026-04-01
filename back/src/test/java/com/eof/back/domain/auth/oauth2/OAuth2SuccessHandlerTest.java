@@ -86,8 +86,7 @@ class OAuth2SuccessHandlerTest {
 
             successHandler.onAuthenticationSuccess(request, response, buildAuthToken(true));
 
-            verify(cookieUtil).addAccessTokenCookie(response, ACCESS_TOKEN);
-            verify(cookieUtil).addRefreshTokenCookie(response, REFRESH_TOKEN);
+            verify(cookieUtil).addAllTokenCookies(response, ACCESS_TOKEN, REFRESH_TOKEN);
             verify(refreshTokenStore).save(eq(USER_ID), eq(REFRESH_TOKEN), any());
             String expectedUrl = UriComponentsBuilder.fromUriString(REDIRECT_URI)
                     .queryParam("userId", USER_ID)

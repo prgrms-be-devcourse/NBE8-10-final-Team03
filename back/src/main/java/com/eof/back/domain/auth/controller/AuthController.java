@@ -82,8 +82,7 @@ public class AuthController {
         LoginResult result = authService.login(request);
 
         // 토큰을 HttpOnly 쿠키로 설정
-        cookieUtil.addAccessTokenCookie(response, result.accessToken());
-        cookieUtil.addRefreshTokenCookie(response, result.refreshToken());
+        cookieUtil.addAllTokenCookies(response, result.accessToken(), result.refreshToken());
 
         return ResponseEntity.ok(
                 CommonResponse.success(
@@ -112,8 +111,7 @@ public class AuthController {
         LoginResult result = authService.reissue(refreshToken);
 
         // 새 토큰을 쿠키로 설정
-        cookieUtil.addAccessTokenCookie(response, result.accessToken());
-        cookieUtil.addRefreshTokenCookie(response, result.refreshToken());
+        cookieUtil.addAllTokenCookies(response, result.accessToken(), result.refreshToken());
 
         return ResponseEntity.ok(
                 CommonResponse.success(null, "토큰이 재발급되었습니다.")
@@ -139,8 +137,7 @@ public class AuthController {
         authService.logout(refreshToken);
 
         // 쿠키 삭제
-        cookieUtil.deleteAccessTokenCookie(response);
-        cookieUtil.deleteRefreshTokenCookie(response);
+        cookieUtil.deleteAllTokenCookies(response);
 
         return ResponseEntity.ok(
                 CommonResponse.success(null, "로그아웃이 완료되었습니다.")
@@ -162,8 +159,7 @@ public class AuthController {
         authService.withdraw(principal.id());
 
         // 탈퇴 시 쿠키도 삭제
-        cookieUtil.deleteAccessTokenCookie(response);
-        cookieUtil.deleteRefreshTokenCookie(response);
+        cookieUtil.deleteAllTokenCookies(response);
 
         return ResponseEntity.noContent().build();
     }

@@ -137,7 +137,7 @@ jobs:
           docker pull $IMAGE
           docker stop devcos-team3 2>/dev/null || true
           docker rm devcos-team3 2>/dev/null || true
-          docker run -d --restart unless-stopped -e TZ=Asia/Seoul --name devcos-team3 -p 8080:8080 --env-file /tmp/.env $IMAGE
+          docker run -d --restart unless-stopped -e TZ=Asia/Seoul --network common --name devcos-team3 -p 8080:8080 --env-file /tmp/.env $IMAGE
           docker rmi \$(docker images -f dangling=true -q) 2>/dev/null || true
           DEPLOY
           )

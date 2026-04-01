@@ -73,7 +73,7 @@ public class QuizSetServiceImpl implements QuizSetService {
         QuizSet quizSet = findQuizSetById(id);
         User requester = findUserById(userId);
         
-        validateAccessPermission(quizSet, requester);
+        // validateAccessPermission(quizSet, requester);
         
         return QuizSetResponse.from(quizSet);
     }

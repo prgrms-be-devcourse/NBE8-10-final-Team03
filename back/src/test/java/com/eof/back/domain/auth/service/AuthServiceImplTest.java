@@ -62,6 +62,9 @@ public class AuthServiceImplTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
+    @Mock
+    private LoginAttemptService loginAttemptService;
+
     @InjectMocks
     private AuthServiceImpl authService;
 
@@ -165,6 +168,7 @@ public class AuthServiceImplTest {
             LoginRequest req = new LoginRequest("testUser", "password123");
             User user = mock(User.class);
 
+            given(loginAttemptService.isLocked("testUser")).willReturn(false);
             given(userRepository.findByUsername("testUser")).willReturn(Optional.of(user));
             given(user.getPassword()).willReturn("encodedPassword");
             given(passwordEncoder.matches("password123", "encodedPassword")).willReturn(true);
@@ -187,10 +191,27 @@ public class AuthServiceImplTest {
         }
 
         @Test
+        @DisplayName("실패 - 로그인 시도 횟수 초과 시 LOGIN_ATTEMPTS_EXCEEDED 예외가 발생한다")
+        void fail_loginAttemptsExceeded() {
+            // given
+            LoginRequest req = new LoginRequest("testUser", "password123");
+            given(loginAttemptService.isLocked("testUser")).willReturn(true);
+
+            // when & then
+            assertThatThrownBy(() -> authService.login(req))
+                    .isInstanceOf(AuthException.class)
+                    .satisfies(e -> assertThat(((AuthException) e).getErrorCode())
+                            .isEqualTo(AuthErrorCode.LOGIN_ATTEMPTS_EXCEEDED));
+
+            verify(userRepository, never()).findByUsername(any());
+        }
+
+        @Test
         @DisplayName("실패 - 존재하지 않는 아이디면 INVALID_CREDENTIALS 예외가 발생한다")
         void fail_userNotFound() {
             // given
             LoginRequest req = new LoginRequest("testUser", "password123");
+            given(loginAttemptService.isLocked("testUser")).willReturn(false);
             given(userRepository.findByUsername("testUser")).willReturn(Optional.empty());
 
             // when & then
@@ -209,6 +230,7 @@ public class AuthServiceImplTest {
             LoginRequest req = new LoginRequest("testUser", "wrongPassword");
             User user = mock(User.class);
 
+            given(loginAttemptService.isLocked("testUser")).willReturn(false);
             given(userRepository.findByUsername("testUser")).willReturn(Optional.of(user));
             given(user.getPassword()).willReturn("encodedPassword");
             given(passwordEncoder.matches("wrongPassword", "encodedPassword")).willReturn(false);
@@ -229,6 +251,7 @@ public class AuthServiceImplTest {
             LoginRequest req = new LoginRequest("testUser", "password123");
             User user = mock(User.class);
 
+            given(loginAttemptService.isLocked("testUser")).willReturn(false);
             given(userRepository.findByUsername("testUser")).willReturn(Optional.of(user));
             given(user.getPassword()).willReturn("encodedPassword");
             given(passwordEncoder.matches("password123", "encodedPassword")).willReturn(true);
@@ -250,6 +273,7 @@ public class AuthServiceImplTest {
             LoginRequest req = new LoginRequest("testUser", "password123");
             User user = mock(User.class);
 
+            given(loginAttemptService.isLocked("testUser")).willReturn(false);
             given(userRepository.findByUsername("testUser")).willReturn(Optional.of(user));
             given(user.getPassword()).willReturn("encodedPassword");
             given(passwordEncoder.matches("password123", "encodedPassword")).willReturn(true);

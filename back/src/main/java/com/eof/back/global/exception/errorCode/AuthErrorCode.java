@@ -31,6 +31,7 @@ public enum AuthErrorCode implements ErrorCode {
     // 회원가입 및 로그인
     SIGNUP_FAIL(HttpStatus.BAD_REQUEST, "회원가입에 실패하였습니다."),
     LOGIN_FAIL(HttpStatus.UNAUTHORIZED, "로그인에 실패하였습니다."),
+    LOGIN_ATTEMPTS_EXCEEDED(HttpStatus.TOO_MANY_REQUESTS, "로그인 시도 횟수를 초과하였습니다. 잠시 후 다시 시도해주세요."),
     USER_ALREADY_EXIST(HttpStatus.CONFLICT, "이미 존재하는 아이디입니다."),
     NICKNAME_ALREADY_EXIST(HttpStatus.CONFLICT, "이미 존재하는 닉네임입니다."),
     INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "아이디 또는 비밀번호가 일치하지 않습니다."),

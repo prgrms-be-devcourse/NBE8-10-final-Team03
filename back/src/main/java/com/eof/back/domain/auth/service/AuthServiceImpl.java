@@ -51,6 +51,7 @@ public class AuthServiceImpl implements AuthService {
     private final RefreshTokenStore refreshTokenStore;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final LoginAttemptService loginAttemptService;
 
     @Value("${custom.jwt.refreshTokenExpirationSeconds}")
     private long refreshTokenExpireSeconds;
@@ -83,19 +84,31 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public LoginResult login(LoginRequest req) {
 
-        // 1. username으로 사용자 조회
-        User user = userRepository.findByUsername(req.username())
-                .orElseThrow(() -> new AuthException(AuthErrorCode.INVALID_CREDENTIALS));
+        // 1. 잠금 여부 확인
+        if (loginAttemptService.isLocked(req.username())) {
+            throw new AuthException(AuthErrorCode.LOGIN_ATTEMPTS_EXCEEDED);
+        }
 
-        // 2. 비밀번호 검증
+        // 2. username으로 사용자 조회
+        User user = userRepository.findByUsername(req.username())
+                .orElseThrow(() -> {
+                    loginAttemptService.recordFailure(req.username());
+                    return new AuthException(AuthErrorCode.INVALID_CREDENTIALS);
+                });
+
+        // 3. 비밀번호 검증
         if (!passwordEncoder.matches(req.password(), user.getPassword())) {
+            loginAttemptService.recordFailure(req.username());
             throw new AuthException(AuthErrorCode.INVALID_CREDENTIALS);
         }
 
-        // 3. 탈퇴/정지 여부 확인 (구체적인 상태를 노출하지 않아 계정 열거 공격 방지)
+        // 4. 탈퇴/정지 여부 확인 (구체적인 상태를 노출하지 않아 계정 열거 공격 방지)
         if (!user.isActive()) {
             throw new AuthException(AuthErrorCode.LOGIN_FAIL);
         }
+
+        // 5. 로그인 성공 시 실패 카운터 초기화
+        loginAttemptService.resetAttempts(req.username());
 
         return issueTokens(user);
     }

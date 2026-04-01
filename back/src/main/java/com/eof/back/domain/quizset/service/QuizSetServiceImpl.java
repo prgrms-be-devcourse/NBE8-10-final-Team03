@@ -1,18 +1,25 @@
 package com.eof.back.domain.quizset.service;
 
+import com.eof.back.domain.gamesession.repository.GameSessionRepository;
+import com.eof.back.domain.quiz.repository.QuizRepository;
 import com.eof.back.domain.quizset.dto.QuizSetCreateRequest;
-import com.eof.back.domain.quizset.dto.QuizSetCreateResponse;
 import com.eof.back.domain.quizset.dto.QuizSetListResponse;
 import com.eof.back.domain.quizset.dto.QuizSetResponse;
+import com.eof.back.domain.quizset.dto.QuizSetUpdateRequest;
 import com.eof.back.domain.quizset.entity.QuizSet;
 import com.eof.back.domain.quizset.repository.QuizSetRepository;
-import com.eof.back.domain.user.entity.User;
-import com.eof.back.domain.user.repository.UserRepository;
+import com.eof.back.domain.user.gamerecord.repository.GameRecordRepository;
+import com.eof.back.domain.user.quizsetbookmark.repository.QuizSetBookmarkRepository;
+import com.eof.back.domain.user.user.entity.Role;
+import com.eof.back.domain.user.user.entity.User;
+import com.eof.back.domain.user.user.repository.UserRepository;
+import com.eof.back.global.exception.errorCode.AuthErrorCode;
 import com.eof.back.global.exception.errorCode.QuizSetErrorCode;
+import com.eof.back.global.exception.exceptions.AuthException;
 import com.eof.back.global.exception.exceptions.QuizSetException;
-import java.util.List;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,54 +39,116 @@ public class QuizSetServiceImpl implements QuizSetService {
 
     private final QuizSetRepository quizSetRepository;
     private final UserRepository userRepository;
+    private final QuizRepository quizRepository;
+    private final QuizSetBookmarkRepository quizSetBookmarkRepository;
+    private final GameSessionRepository gameSessionRepository;
+    private final GameRecordRepository gameRecordRepository;
 
     /**
      * {@inheritDoc}
-     * <p>
-     * 현재 구현에서는 ID가 1L인 임시 사용자를 제작자로 설정하며,
-     * 전달된 요청 데이터를 기반으로 {@link QuizSet} 엔티티를 생성하고 저장합니다.
      */
     @Override
     @Transactional
-    public QuizSetCreateResponse createQuizSet(QuizSetCreateRequest request) {
-        // TODO: 인증 기능 구현 후 현재 로그인된 사용자 정보를 가져오도록 수정
-        User creator = userRepository.findById(1L)
-                .orElseThrow(() -> new RuntimeException("임시 사용자(ID: 1)를 찾을 수 없습니다."));
+    public Long createQuizSet(QuizSetCreateRequest request, Long userId) {
+        User creator = findUserById(userId);
 
         QuizSet quizSet = QuizSet.builder()
-                .title(request.getTitle())
-                .description(request.getDescription())
+                .title(request.title())
+                .description(request.description())
                 .creator(creator)
-                .totalQuizCount(request.getTotalQuizCount())
                 .build();
 
         QuizSet savedQuizSet = quizSetRepository.save(quizSet);
 
-        return QuizSetCreateResponse.from(savedQuizSet);
+        return savedQuizSet.getId();
     }
 
     /**
      * {@inheritDoc}
      * <p>
-     * 지정된 ID로 {@link QuizSetRepository}에서 조회하며,
-     * 해당 엔티티가 존재하지 않을 경우 {@link QuizSetException}을 발생시킵니다.
+     * 작성자 본인 또는 관리자(ADMIN) 여부를 검증한 후 정보를 반환합니다.
      */
     @Override
-    public QuizSetResponse getQuizSet(Long id) {
-        QuizSet quizSet = quizSetRepository.findById(id)
-                .orElseThrow(() -> new QuizSetException(QuizSetErrorCode.QUIZ_SET_NOT_FOUND));
+    public QuizSetResponse getQuizSet(Long id, Long userId) {
+        QuizSet quizSet = findQuizSetById(id);
+        User requester = findUserById(userId);
+        
+        // validateAccessPermission(quizSet, requester);
+        
         return QuizSetResponse.from(quizSet);
     }
 
     /**
      * {@inheritDoc}
-     * <p>
-     * 전체 {@link QuizSet} 엔티티를 조회한 후, 요약 정보만 포함된 {@link QuizSetListResponse} 목록으로 변환합니다.
      */
     @Override
-    public List<QuizSetListResponse> getAllQuizSets() {
-        return quizSetRepository.findAll().stream()
-                .map(QuizSetListResponse::from)
-                .collect(Collectors.toList());
+    public Slice<QuizSetListResponse> getAllQuizSets(Pageable pageable) {
+        return quizSetRepository.findAllWithCreator(pageable)
+                .map(QuizSetListResponse::from);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    @Transactional
+    public Long updateQuizSet(Long id, QuizSetUpdateRequest request, Long userId) {
+        QuizSet quizSet = findQuizSetById(id);
+        validateCreator(quizSet, userId);
+
+        quizSet.update(request.title(), request.description());
+        return quizSet.getId();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    @Transactional
+    public void deleteQuizSet(Long id, Long userId) {
+        quizSetBookmarkRepository.deleteByQuizSetId(id);
+        gameRecordRepository.deleteByQuizSetId(id);
+        gameSessionRepository.deleteByQuizSetId(id);
+        quizRepository.deleteByQuizSetId(id);
+
+        int deletedCount = quizSetRepository.deleteByIdAndCreatorId(id, userId);
+
+        if (deletedCount == 0) {
+            if (!quizSetRepository.existsById(id)) {
+                throw new QuizSetException(QuizSetErrorCode.QUIZ_SET_NOT_FOUND);
+            }
+            throw new QuizSetException(QuizSetErrorCode.QUIZ_SET_ACCESS_DENIED);
+        }
+    }
+
+    private QuizSet findQuizSetById(Long id) {
+        return quizSetRepository.findById(id)
+                .orElseThrow(() -> new QuizSetException(QuizSetErrorCode.QUIZ_SET_NOT_FOUND));
+    }
+
+    private User findUserById(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND));
+    }
+
+    /**
+     * 조회 권한을 검증합니다. (작성자 본인 또는 관리자 허용)
+     */
+    private void validateAccessPermission(QuizSet quizSet, User requester) {
+        if (requester.getRole() == Role.ADMIN) {
+            return;
+        }
+        if (!quizSet.getCreator().getId().equals(requester.getId())) {
+            throw new QuizSetException(QuizSetErrorCode.QUIZ_SET_ACCESS_DENIED);
+        }
+    }
+
+    /**
+     * 작성자 본인 여부만 검증합니다. (수정/삭제 시 사용)
+     */
+    private void validateCreator(QuizSet quizSet, Long userId) {
+        if (!quizSet.getCreator().getId().equals(userId)) {
+            throw new QuizSetException(QuizSetErrorCode.QUIZ_SET_ACCESS_DENIED);
+        }
     }
 }

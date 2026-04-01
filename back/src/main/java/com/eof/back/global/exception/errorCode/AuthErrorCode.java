@@ -25,6 +25,8 @@ public enum AuthErrorCode implements ErrorCode {
     USER_CREATE_FAIL(HttpStatus.BAD_REQUEST, "사용자 생성에 실패하였습니다."),
     USER_UPDATE_FAIL(HttpStatus.BAD_REQUEST, "사용자 정보 수정에 실패하였습니다."),
     USER_DELETE_FAIL(HttpStatus.BAD_REQUEST, "사용자 삭제에 실패하였습니다."),
+    USER_ALREADY_DELETED(HttpStatus.GONE, "이미 탈퇴한 사용자입니다."),
+    USER_SUSPENDED(HttpStatus.FORBIDDEN, "정지된 계정입니다."),
 
     // 회원가입 및 로그인
     SIGNUP_FAIL(HttpStatus.BAD_REQUEST, "회원가입에 실패하였습니다."),
@@ -37,7 +39,11 @@ public enum AuthErrorCode implements ErrorCode {
     USER_AUTH_FAIL(HttpStatus.FORBIDDEN, "사용자 권한 인증에 실패하였습니다."),
     TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "토큰이 만료되었습니다."),
     TOKEN_INVALID(HttpStatus.UNAUTHORIZED, "유효하지 않은 토큰입니다."),
-    LOGIN_REQUIRED(HttpStatus.UNAUTHORIZED, "로그인이 필요한 서비스입니다.");
+    LOGIN_REQUIRED(HttpStatus.UNAUTHORIZED, "로그인이 필요한 서비스입니다."),
+
+    // 내 정보 수정 관련
+    INVALID_NICKNAME(HttpStatus.BAD_REQUEST, "닉네임은 비어 있을 수 없습니다."),
+    INVALID_PASSWORD(HttpStatus.BAD_REQUEST, "비밀번호는 비어 있을 수 없습니다.");
 
     private final HttpStatus status;
     private final String message;

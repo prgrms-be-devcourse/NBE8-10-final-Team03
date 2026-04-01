@@ -8,6 +8,9 @@ import lombok.Getter;
  * 퀴즈 세트 목록 조회 시 반환되는 데이터 전송 객체입니다.
  * <p>
  * 목록의 각 항목으로서 퀴즈 세트의 기본 정보를 제공하며, 상세 퀴즈 목록은 포함하지 않습니다.
+ *
+ * @author MintyU
+ * @since 2026-03-24
  */
 @Getter
 @Builder

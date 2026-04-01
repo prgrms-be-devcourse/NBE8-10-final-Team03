@@ -1,7 +1,7 @@
 package com.eof.back.domain.quizset.entity;
 
 import com.eof.back.domain.quiz.entity.Quiz;
-import com.eof.back.domain.user.entity.User;
+import com.eof.back.domain.user.user.entity.User;
 import com.eof.back.global.jpa.entity.BaseEntity;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -42,13 +42,13 @@ public class QuizSet extends BaseEntity {
     /**
      * 사용자가 식별하기 위한 퀴즈 세트의 제목
      */
-    @Column(nullable = false)
+    @Column(nullable = false, length = 30)
     private String title;
 
     /**
      * 퀴즈 세트의 상세 설명. 퀴즈의 주제나 대상 수준 등을 기재합니다.
      */
-    @Column(length = 1000)
+    @Column(length = 255)
     private String description;
 
     /**
@@ -63,7 +63,7 @@ public class QuizSet extends BaseEntity {
      * 이 세트에 포함된 총 퀴즈 개수. 퀴즈 세트 조회 시의 요약 정보로 사용됩니다.
      */
     @Column(nullable = false)
-    private Integer totalQuizCount;
+    private Integer totalQuizCount = 0;
 
     /**
      * 이 퀴즈 세트에 포함된 개별 퀴즈 목록입니다.
@@ -85,7 +85,7 @@ public class QuizSet extends BaseEntity {
         this.title = title;
         this.description = description;
         this.creator = creator;
-        this.totalQuizCount = totalQuizCount;
+        this.totalQuizCount = (totalQuizCount != null) ? totalQuizCount : 0;
         if (quizzes != null) {
             this.quizzes = quizzes;
         }
@@ -97,15 +97,47 @@ public class QuizSet extends BaseEntity {
      * @param title 퀴즈 세트 제목
      * @param description 퀴즈 세트 설명
      * @param creator 제작자 (User 엔티티)
-     * @param totalQuizCount 세트 내 총 퀴즈 수
      * @return 생성된 QuizSet 엔티티 객체
      */
-    public static QuizSet of(String title, String description, User creator, Integer totalQuizCount) {
+    public static QuizSet of(String title, String description, User creator) {
         return QuizSet.builder()
                 .title(title)
                 .description(description)
                 .creator(creator)
-                .totalQuizCount(totalQuizCount)
+                .totalQuizCount(0)
                 .build();
+    }
+
+    /**
+     * 퀴즈 세트의 정보를 수정합니다. (PATCH 목적)
+     * null이 아닌 필드만 업데이트합니다.
+     *
+     * @param title 새로운 제목
+     * @param description 새로운 설명
+     */
+    public void update(String title, String description) {
+        if (title != null && !title.isBlank()) {
+            this.title = title;
+        }
+        if (description != null) {
+            this.description = description;
+        }
+    }
+
+    /**
+     * 퀴즈가 추가될 때 총 퀴즈 수를 1 증가시킵니다.
+     */
+    public void increaseQuizCount() {
+        this.totalQuizCount++;
+    }
+
+    /**
+     * 퀴즈가 삭제될 때 총 퀴즈 수를 1 감소시킵니다.
+     * 최소값은 0을 유지합니다.
+     */
+    public void decreaseQuizCount() {
+        if (this.totalQuizCount > 0) {
+            this.totalQuizCount--;
+        }
     }
 }

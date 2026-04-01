@@ -1,0 +1,183 @@
+name: Gemini Command-based Review
+
+on:
+  issue_comment:
+    types: [created]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.issue.number }}
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: read
+
+jobs:
+  gemini-review:
+    if: github.event.issue.pull_request && contains(github.event.comment.body, '/gemini')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🔍 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🐍 Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 📦 Install Modern SDKs
+        run: |
+          pip install google-genai PyGithub
+
+      - name: 🤖 Run Gemini Review
+        shell: python
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO_NAME: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          import os
+          import time
+          import json
+          import re
+          import sys
+          from google import genai
+          from github import Github, Auth
+
+          def get_diff_and_pr():
+              auth = Auth.Token(os.environ['GITHUB_TOKEN'])
+              g = Github(auth=auth)
+              repo = g.get_repo(os.environ['REPO_NAME'])
+              pr = repo.get_pull(int(os.environ['PR_NUMBER']))
+              
+              diffs = {f.filename: f.patch for f in pr.get_files() 
+                       if f.filename.endswith(('.java', '.kt', '.scala')) and f.patch}
+              return diffs, pr
+
+          def parse_numbered_patch(file_path, patch):
+              lines = patch.split('\n')
+              numbered_lines = [f"--- FILE: {file_path} ---"]
+              current_line = 0
+              valid_ranges = []
+
+              for line in lines:
+                  if line.startswith('@@'):
+                      match = re.search(r'\+(\d+),(\d+)', line)
+                      if match:
+                          start, length = int(match.group(1)), int(match.group(2))
+                          current_line = start
+                          valid_ranges.append((start, start + length - 1))
+                      numbered_lines.append(line)
+                  elif line.startswith('+'):
+                      numbered_lines.append(f"{current_line}: {line}")
+                      current_line += 1
+                  elif line.startswith('-'):
+                      numbered_lines.append(line)
+                  else:
+                      numbered_lines.append(f"{current_line}: {line}")
+                      current_line += 1
+                      
+              return "\n".join(numbered_lines), valid_ranges
+
+          def main():
+              try:
+                  print("📡 GitHub에서 PR 정보를 가져오는 중...")
+                  diffs, pr = get_diff_and_pr()
+                  
+                  print(f"📁 감지된 리뷰 대상 파일: {list(diffs.keys())}")
+                  
+                  if not diffs:
+                      print("ℹ️ 리뷰할 대상 파일이나 변경 사항이 없습니다. 종료합니다.")
+                      return
+
+                  client = genai.Client(api_key=os.environ['GEMINI_API_KEY'])
+                  
+                  full_context_patch = ""
+                  all_valid_ranges = {}
+
+                  for file_path, patch in diffs.items():
+                      if not patch:
+                          print(f"⚠️ {file_path} 의 patch 데이터가 없습니다. 스킵합니다.")
+                          continue
+                      numbered_patch, ranges = parse_numbered_patch(file_path, patch)
+                      full_context_patch += numbered_patch + "\n\n"
+                      all_valid_ranges[file_path] = ranges
+
+                  if not full_context_patch.strip():
+                      print("ℹ️ 분석할 통합 패치 내용이 비어있습니다. 종료합니다.")
+                      return
+
+                  print(f"🚀 Gemini 3.1 Flash Lite에게 분석 요청 중... (패치 크기: {len(full_context_patch)} 자)")
+                  
+                  response = client.models.generate_content(
+                      model="gemini-3.1-flash-lite-preview", 
+                      contents=f"""
+                      당신은 시니어 백엔드 개발자입니다. 아래는 이번 PR에 포함된 모든 파일의 변경사항입니다.
+                      파일 간의 연관 관계를 고려하여 심층 리뷰를 진행하세요.
+
+                      [지침]
+                      1. 반드시 한국어로 응답하세요.
+                      2. 각 줄 앞의 숫자를 line 번호로 사용하고, path는 해당 파일의 경로를 정확히 기입하세요.
+                      3. 보안, 성능(N+1 쿼리 등), 파일 간 정합성 오류를 우선적으로 지적하세요.
+                      4. 수정이 필요한 경우, suggestion 필드에 교체할 완성된 코드만 적어주세요.
+                      5. 수정 제안이 없으면 suggestion 필드를 비워두세요.
+                      6. 결과는 반드시 아래 JSON 배열 형식으로만 출력하세요.
+
+                      형식: [{{"path": "파일경로", "line": 숫자, "message": "내용", "severity": "HIGH", "suggestion": "수정코드"}}]
+
+                      [전체 변경사항]
+                      {full_context_patch}
+                      """
+                  )
+
+                  print("📥 Gemini 응답 수신 완료.")
+                  all_comments = []
+                  emoji_map = {"HIGH": "🚨", "MEDIUM": "⚠️", "LOW": "💡"}
+                  
+                  json_match = re.search(r'\[.*\]', response.text, re.DOTALL)
+                  if json_match:
+                      raw_reviews = json.loads(json_match.group())
+                      print(f"📊 파싱된 리뷰 개수: {len(raw_reviews)}개")
+                      
+                      for rev in raw_reviews:
+                          path = rev.get('path')
+                          line = int(rev.get('line', 0))
+                          ranges = all_valid_ranges.get(path, [])
+                          
+                          if any(s <= line <= e for s, e in ranges):
+                              sev = rev.get('severity', 'LOW').upper()
+                              icon = emoji_map.get(sev, "✨")
+                              body = f"{icon} **[{sev}]** {rev['message']}"
+                              if rev.get('suggestion'):
+                                  body += f"\n\n```suggestion\n{rev['suggestion']}\n```"
+                              
+                              all_comments.append({"path": path, "line": line, "body": body, "side": "RIGHT"})
+                  else:
+                      print("❌ Gemini 응답에서 유효한 JSON을 찾지 못했습니다.")
+
+                  if all_comments:
+                      commit = pr.get_commits().reversed[0]
+                      pr.create_review(
+                          commit=commit, 
+                          body="⚡ **Gemini 3.1 Flash Lite Review**\n리뷰가 완료되었습니다. 제안된 수정 사항을 검토해 보세요.", 
+                          event="COMMENT", 
+                          comments=all_comments[:15]
+                      )
+                      print(f"✅ {len(all_comments)}개의 리뷰 댓글 작성 완료!")
+                  else:
+                      print("ℹ️ 작성할 수 있는 유효한 리뷰 댓글이 없습니다.")
+
+              except Exception as e:
+                  print(f"💥 실행 중 치명적 에러 발생: {e}")
+                  raise e
+
+          if __name__ == "__main__":
+              try:
+                  main()
+              except KeyboardInterrupt:
+                  print("\n⚡ 작업이 중단되었습니다.")
+                  sys.exit(0)

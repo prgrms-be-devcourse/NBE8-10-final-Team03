@@ -1,6 +1,7 @@
 package com.eof.back.domain.gamesession.dto;
 
 import com.eof.back.domain.gamesession.entity.GameSession;
+import com.eof.back.domain.gamesession.entity.GameSessionStatus;
 import lombok.Builder;
 
 import java.time.LocalDateTime;
@@ -36,7 +37,7 @@ public record GameSessionCreateResponse(
         Long hostUserId,
         Long quizSetId,
         Integer maxPlayers,
-        String status,
+        GameSessionStatus status,
         LocalDateTime createdAt,
         Integer maxQuizzes
 ) {
@@ -51,7 +52,7 @@ public record GameSessionCreateResponse(
                 .hostUserId(gameSession.getHost().getId())
                 .quizSetId(gameSession.getQuizSet().getId())
                 .maxPlayers(gameSession.getMaxPlayers())
-                .status(gameSession.getStatus().name())
+                .status(gameSession.getStatus())
                 .createdAt(gameSession.getCreatedAt())
                 .maxQuizzes(gameSession.getMaxQuizzes())
                 .build();

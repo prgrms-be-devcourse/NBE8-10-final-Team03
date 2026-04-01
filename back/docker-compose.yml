@@ -26,6 +26,40 @@ services:
     volumes:
       - redis-data:/data
 
+  influxdb:
+    image: influxdb:1.8
+    container_name: dabjeongneo-influxdb
+    restart: always
+    ports:
+      - "8086:8086"
+    volumes:
+      - influxdb-data:/var/lib/influxdb
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: dabjeongneo-grafana
+    restart: always
+    ports:
+      - "3001:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+    depends_on:
+      - influxdb
+
+  k6:
+    image: grafana/k6:latest
+    container_name: dabjeongneo-k6
+    profiles: [ "loadtest" ]
+    volumes:
+      - ./k6/scripts:/scripts
+    working_dir: /scripts
+    entrypoint: [ "k6" ]
+
+
 volumes:
   mysql-data:
   redis-data:
+  influxdb-data:
+  grafana-data:

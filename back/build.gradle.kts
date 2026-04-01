@@ -1,10 +1,11 @@
 import org.gradle.kotlin.dsl.implementation
 import org.gradle.kotlin.dsl.runtimeOnly
+import org.gradle.kotlin.dsl.testImplementation
 
 plugins {
-	java
-	id("org.springframework.boot") version "4.0.3"
-	id("io.spring.dependency-management") version "1.1.7"
+    java
+    id("org.springframework.boot") version "4.0.3"
+    id("io.spring.dependency-management") version "1.1.7"
 }
 
 group = "com.eof"
@@ -12,19 +13,19 @@ version = "0.0.1-SNAPSHOT"
 description = "quiz game"
 
 java {
-	toolchain {
-		languageVersion = JavaLanguageVersion.of(21)
-	}
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
 }
 
 configurations {
-	compileOnly {
-		extendsFrom(configurations.annotationProcessor.get())
-	}
+    compileOnly {
+        extendsFrom(configurations.annotationProcessor.get())
+    }
 }
 
 repositories {
-	mavenCentral()
+    mavenCentral()
 }
 
 dependencies {
@@ -40,6 +41,7 @@ dependencies {
 
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-security")
+    implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
 
     runtimeOnly("com.mysql:mysql-connector-j")
 
@@ -57,8 +59,13 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testRuntimeOnly("com.h2database:h2")
 
+    //Security 관련 테스트 도구
+    testImplementation("org.springframework.security:spring-security-test")
+
+    //STOMP
+    implementation("org.springframework.boot:spring-boot-starter-websocket")
 }
 
 tasks.withType<Test> {
-	useJUnitPlatform()
+    useJUnitPlatform()
 }

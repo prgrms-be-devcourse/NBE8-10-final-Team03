@@ -1,0 +1,176 @@
+name: deploy
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - ".github/workflows/**"
+      - "src/**"
+      - "build.gradle.kts"
+      - "settings.gradle.kts"
+      - "Dockerfile"
+
+permissions:
+  contents: write
+  packages: write
+
+env:
+  IMAGE_NAME: devcos-team3-backend
+  REGISTRY: ghcr.io
+  EC2_INSTANCE_TAG_NAME: devcos-team3-ec2-1
+
+concurrency:
+  group: deploy
+  cancel-in-progress: true
+
+jobs:
+
+  release:
+    name: Create Tag & Release
+    runs-on: ubuntu-latest
+
+    outputs:
+      tag: ${{ steps.tag.outputs.new_tag }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Generate Tag
+        id: tag
+        uses: mathieudutour/github-tag-action@v6.2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.new_tag }}
+          name: Release ${{ steps.tag.outputs.new_tag }}
+          body: ${{ steps.tag.outputs.changelog }}
+
+  docker:
+    name: Build & Push Docker Image
+    needs: release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set lowercase owner
+        run: echo "OWNER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: .env 생성
+        run: printf '%s' "${{ secrets.DOT_ENV }}" > .env
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker Metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.OWNER }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=${{ needs.release.outputs.tag }}
+            type=raw,value=latest
+
+      - name: Build and Push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64
+          provenance: false
+          sbom: false
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+          cache-from: type=gha
+          cache-to: type=gha,mode=max,compression=zstd
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [ docker ]
+    steps:
+      - name: Set lowercase owner
+        run: echo "OWNER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: EC2 인스턴스 ID 조회
+        id: ec2
+        run: |
+          INSTANCE_ID=$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=${{ env.EC2_INSTANCE_TAG_NAME }}" "Name=instance-state-name,Values=running" \
+            --query "Reservations[].Instances[].InstanceId" --output text)
+          [[ -n "${INSTANCE_ID}" && "${INSTANCE_ID}" != "None" ]] || { echo "No running instance found"; exit 1; }
+          echo "INSTANCE_ID=${INSTANCE_ID}" >> "$GITHUB_ENV"
+
+      - name: .env base64 인코딩
+        env:
+          DOT_ENV: ${{ secrets.DOT_ENV }}
+        run: echo "DOT_ENV_B64=$(printf '%s' "${DOT_ENV}" | base64 -w0)" >> "$GITHUB_ENV"
+
+      - name: Deploy via SSM
+        env:
+          IMAGE: ${{ env.REGISTRY }}/${{ env.OWNER }}/${{ env.IMAGE_NAME }}:latest
+        run: |
+          SCRIPT=$(cat <<DEPLOY
+          printf '%s' "${{ env.DOT_ENV_B64 }}" | base64 -d > /tmp/.env
+          cp /tmp/.env "/tmp/.env.$(date +%Y_%m_%d__%H%M%S)"
+          chmod 600 /tmp/.env
+          docker pull $IMAGE
+          docker stop devcos-team3 2>/dev/null || true
+          docker rm devcos-team3 2>/dev/null || true
+          docker run -d --restart unless-stopped -e TZ=Asia/Seoul --name devcos-team3 -p 8080:8080 --env-file /tmp/.env $IMAGE
+          docker rmi \$(docker images -f dangling=true -q) 2>/dev/null || true
+          DEPLOY
+          )
+
+          PARAMS=$(jq -n --arg cmd "$SCRIPT" '{"commands":[$cmd]}')
+
+          COMMAND_ID=$(aws ssm send-command \
+            --instance-ids "${{ env.INSTANCE_ID }}" \
+            --document-name "AWS-RunShellScript" \
+            --comment "Deploy" \
+            --parameters "$PARAMS" \
+            --query "Command.CommandId" \
+            --output text)
+
+          echo "Command ID: $COMMAND_ID"
+
+          # 명령 완료 대기
+          aws ssm wait command-executed \
+            --command-id "$COMMAND_ID" \
+            --instance-id "${{ env.INSTANCE_ID }}" || true
+
+          # 결과 출력
+          OUTPUT=$(aws ssm get-command-invocation \
+            --command-id "$COMMAND_ID" \
+            --instance-id "${{ env.INSTANCE_ID }}")
+
+          STATUS=$(echo "$OUTPUT" | jq -r '.Status')
+          echo "Status: $STATUS"
+          echo "--- stdout ---"
+          echo "$OUTPUT" | jq -r '.StandardOutputContent'
+          echo "--- stderr ---"
+          echo "$OUTPUT" | jq -r '.StandardErrorContent'
+
+          if [ "$STATUS" != "Success" ]; then
+            exit 1
+          fi

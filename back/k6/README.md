@@ -62,9 +62,7 @@ http://localhost:3001
 ### 기본 실행 형식
 
 ```bash
-docker compose --profile loadtest run --rm k6 run \
-  --out influxdb=http://influxdb:8086/k6 \
-  파일명.js
+docker compose --profile loadtest run --rm k6 run --out influxdb=http://influxdb:8086/k6 파일명.js
 ```
 
 > k6 컨테이너의 working_dir이 `/scripts`로 설정되어 있어 파일명만 입력하면 됩니다.
@@ -75,7 +73,8 @@ docker compose --profile loadtest run --rm k6 run \
 
 | 파일명 | 설명 | 테스트 후 정리 필요 |
 |--------|------|:---:|
-| `refresh-token-test.js` | 로그인 → reissue 3회 → 로그아웃 | ✅ |
+| `setup-users.js` | 부하테스트용 유저 50명 사전 생성 (1회 실행) | ✅ |
+| `refresh-token-test.js` | 로그인 → reissue 3회 → 로그아웃 | ❌ |
 | `ranking-test.js` | 랭킹 조회 (all / weekly / monthly 분산) | ❌ |
 
 ---
@@ -83,22 +82,21 @@ docker compose --profile loadtest run --rm k6 run \
 ### 실행 예시
 
 ```bash
-# Refresh Token 부하테스트
-docker compose --profile loadtest run --rm k6 run \
-  --out influxdb=http://influxdb:8086/k6 \
-  refresh-token-test.js
+# 1. 테스트 유저 생성 (최초 1회만 실행)
+docker compose --profile loadtest run --rm k6 run setup-users.js
 
-# 랭킹 조회 부하테스트
-docker compose --profile loadtest run --rm k6 run \
-  --out influxdb=http://influxdb:8086/k6 \
-  ranking-test.js
+# 2. Refresh Token 부하테스트
+docker compose --profile loadtest run --rm k6 run --out influxdb=http://influxdb:8086/k6 refresh-token-test.js
+
+# 3. 랭킹 조회 부하테스트
+docker compose --profile loadtest run --rm k6 run --out influxdb=http://influxdb:8086/k6 ranking-test.js
 ```
 
 ---
 
 ## 🧹 테스트 데이터 정리
 
-`refresh-token-test.js`는 테스트 유저 50명을 생성합니다.
+`setup-users.js`로 생성한 테스트 유저 50명을 삭제합니다.
 테스트 완료 후 아래 명령어로 삭제해 주세요.
 
 ```bash

@@ -97,17 +97,20 @@ public class JwtTokenProvider {
      * @param userId 사용자 ID
      * @return JWT RefreshToken 문자열
      */
-    public String createRefreshToken(Long userId) {
+    public String createRefreshToken(Long userId, String username, String role, String nickname) {
 
         Date now = new Date();
         Date expiry = new Date(now.getTime() + refreshTokenExpiration);
 
         return Jwts.builder()
-                .subject(String.valueOf(userId))  // subject에 사용자 ID 저장
-                .issuedAt(now)                    // 발급 시간
-                .expiration(expiry)               // 만료 시간
-                .signWith(secretKey)              // 서명
-                .compact();                       // JWT 문자열 생성
+                .subject(String.valueOf(userId))
+                .claim("username", username)
+                .claim("role", role)
+                .claim("nickname", nickname)
+                .issuedAt(now)
+                .expiration(expiry)
+                .signWith(secretKey)
+                .compact();
     }
 
     /**
@@ -163,7 +166,9 @@ public class JwtTokenProvider {
      * @return 사용자 아이디
      */
     public String getUsername(Claims claims) {
-        return claims.get("username", String.class);
+        String value = claims.get("username", String.class);
+        if (value == null) throw new AuthException(AuthErrorCode.TOKEN_INVALID);
+        return value;
     }
 
     /**
@@ -173,7 +178,9 @@ public class JwtTokenProvider {
      * @return 사용자 권한
      */
     public String getRole(Claims claims) {
-        return claims.get("role", String.class);
+        String value = claims.get("role", String.class);
+        if (value == null) throw new AuthException(AuthErrorCode.TOKEN_INVALID);
+        return value;
     }
 
     /**
@@ -183,6 +190,8 @@ public class JwtTokenProvider {
      * @return 사용자 닉네임
      */
     public String getNickname(Claims claims) {
-        return claims.get("nickname", String.class);
+        String value = claims.get("nickname", String.class);
+        if (value == null) throw new AuthException(AuthErrorCode.TOKEN_INVALID);
+        return value;
     }
 }

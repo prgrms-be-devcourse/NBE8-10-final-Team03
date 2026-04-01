@@ -16,45 +16,12 @@ export const options = {
     },
 };
 
-export function setup() {
-    const users = [];
-
-    for (let i = 0; i < TOTAL_USERS; i++) {
-        const user = {
-            username: `loadtest${String(i).padStart(4, '0')}`,
-            password: `Test1234a`,
-            nickname: `loadtester${i}`,
-        };
-
-        const res = http.post(
-            `${BASE_URL}/api/v1/auth/signup`,
-            JSON.stringify(user),
-            { headers: { 'Content-Type': 'application/json' } }
-        );
-
-        if (res.status === 200 || res.status === 201) {
-            users.push(user);
-        } else {
-            // 이미 존재하는 유저면 그대로 사용
-            const loginRes = http.post(
-                `${BASE_URL}/api/v1/auth/login`,
-                JSON.stringify({ username: user.username, password: user.password }),
-                { headers: { 'Content-Type': 'application/json' } }
-            );
-            if (loginRes.status === 200) {
-                users.push(user);
-            } else {
-                console.warn(`signup/login 모두 실패 [${i}]: ${res.status}`);
-            }
-        }
-    }
-
-    console.log(`생성된 유저 수: ${users.length}`);
-    return users;
-}
-
-export default function (users) {
-    const user = users[(__VU - 1) % users.length];
+// 테스트 유저 사전 생성 필요: setup-users.js 먼저 실행
+export default function () {
+    const user = {
+        username: `loadtest${String((__VU - 1) % TOTAL_USERS).padStart(4, '0')}`,
+        password: `Test1234a`,
+    };
     const jar = http.cookieJar();
     const jsonHeaders = { headers: { 'Content-Type': 'application/json' } };
 

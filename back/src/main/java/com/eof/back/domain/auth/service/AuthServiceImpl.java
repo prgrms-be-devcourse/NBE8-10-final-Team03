@@ -104,20 +104,33 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public LoginResult reissue(String refreshToken) {
 
-        // 1. Refresh Token 검증 및 저장된 토큰 조회
-        RefreshToken savedRefreshToken = validateAndGetRefreshToken(refreshToken);
+        // 1. Refresh Token 검증 및 Claims 추출
+        Claims claims = jwtTokenProvider.validateToken(refreshToken);
+        Long userId = jwtTokenProvider.getUserId(claims);
+        String username = jwtTokenProvider.getUsername(claims);
+        String role = jwtTokenProvider.getRole(claims);
+        String nickname = jwtTokenProvider.getNickname(claims);
 
-        // 2. 사용자 존재 여부 확인
-        User user = userRepository.findById(savedRefreshToken.getUserId())
-                .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND));
+        // 2. 저장소에서 토큰 조회 및 유효성 검증
+        RefreshToken savedRefreshToken = refreshTokenStore.findByUserId(userId)
+                .orElseThrow(() -> new AuthException(AuthErrorCode.TOKEN_INVALID));
 
-        // 3. 탈퇴/정지 여부 확인 (비활성 계정이면 저장된 Refresh Token도 삭제)
-        if (!user.isActive()) {
-            refreshTokenStore.delete(user.getId());
-            throw new AuthException(AuthErrorCode.LOGIN_FAIL);
+        if (savedRefreshToken.isExpired()) {
+            throw new AuthException(AuthErrorCode.TOKEN_EXPIRED);
         }
 
-        return issueTokens(user);
+        if (!savedRefreshToken.getToken().equals(refreshToken)) {
+            throw new AuthException(AuthErrorCode.TOKEN_INVALID);
+        }
+
+        // 3. 새 토큰 발급 및 저장
+        String newAccessToken = jwtTokenProvider.createAccessToken(userId, username, role, nickname);
+        String newRefreshToken = jwtTokenProvider.createRefreshToken(userId, username, role, nickname);
+
+        LocalDateTime refreshTokenExpiredAt = LocalDateTime.now().plusSeconds(refreshTokenExpireSeconds);
+        refreshTokenStore.save(userId, newRefreshToken, refreshTokenExpiredAt);
+
+        return new LoginResult(newAccessToken, newRefreshToken, userId, nickname, role);
     }
 
     @Override
@@ -158,12 +171,13 @@ public class AuthServiceImpl implements AuthService {
     private LoginResult issueTokens(User user) {
         String accessToken = jwtTokenProvider.createAccessToken(
                 user.getId(), user.getUsername(), user.getRole().name(), user.getNickname());
-        String refreshToken = jwtTokenProvider.createRefreshToken(user.getId());
+        String refreshToken = jwtTokenProvider.createRefreshToken(
+                user.getId(), user.getUsername(), user.getRole().name(), user.getNickname());
 
         LocalDateTime refreshTokenExpiredAt = LocalDateTime.now().plusSeconds(refreshTokenExpireSeconds);
         refreshTokenStore.save(user.getId(), refreshToken, refreshTokenExpiredAt);
 
-        return new LoginResult(accessToken, refreshToken, user.getId(), user.getNickname());
+        return new LoginResult(accessToken, refreshToken, user.getId(), user.getNickname(), user.getRole().name());
     }
 
     private RefreshToken validateAndGetRefreshToken(String refreshToken) {

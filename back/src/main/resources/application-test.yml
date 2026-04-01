@@ -39,5 +39,7 @@ spring:
       ddl-auto: create-drop
 
 custom:
+  refresh-token:
+    store: db
   jwt:
     secretKey: testsecretkeytestsecretkeytestsecretkeytestsecretkeytestsecretkeytestsecretkey

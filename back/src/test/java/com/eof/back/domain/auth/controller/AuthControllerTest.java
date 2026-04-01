@@ -116,7 +116,7 @@ class AuthControllerTest {
         @DisplayName("성공 - 로그인 후 userId, nickname을 반환하고 토큰은 쿠키로 설정된다")
         void success() throws Exception {
             given(authService.login(any()))
-                    .willReturn(new LoginResult("access.token", "refresh.token", 1L, "테스트닉네임"));
+                    .willReturn(new LoginResult("access.token", "refresh.token", 1L, "테스트닉네임", "USER"));
 
             mockMvc.perform(post("/api/v1/auth/login")
                             .contentType(MediaType.APPLICATION_JSON)
@@ -164,7 +164,7 @@ class AuthControllerTest {
             given(cookieUtil.resolveToken(any(), any()))
                     .willReturn(Optional.of("valid.refresh.token"));
             given(authService.reissue(any()))
-                    .willReturn(new LoginResult("new.access.token", "new.refresh.token", 1L, "테스트닉네임"));
+                    .willReturn(new LoginResult("new.access.token", "new.refresh.token", 1L, "테스트닉네임", "USER"));
 
             mockMvc.perform(post("/api/v1/auth/reissue")
                             .cookie(new Cookie(CookieUtil.REFRESH_TOKEN_COOKIE, "valid.refresh.token")))

@@ -79,15 +79,14 @@ class OAuth2SuccessHandlerTest {
         void success() throws Exception {
             given(jwtTokenProvider.createAccessToken(eq(USER_ID), any(), any(), any()))
                     .willReturn(ACCESS_TOKEN);
-            given(jwtTokenProvider.createRefreshToken(USER_ID)).willReturn(REFRESH_TOKEN);
+            given(jwtTokenProvider.createRefreshToken(eq(USER_ID), any(), any(), any())).willReturn(REFRESH_TOKEN);
 
             MockHttpServletRequest request = new MockHttpServletRequest();
             MockHttpServletResponse response = new MockHttpServletResponse();
 
             successHandler.onAuthenticationSuccess(request, response, buildAuthToken(true));
 
-            verify(cookieUtil).addAccessTokenCookie(response, ACCESS_TOKEN);
-            verify(cookieUtil).addRefreshTokenCookie(response, REFRESH_TOKEN);
+            verify(cookieUtil).addAllTokenCookies(response, ACCESS_TOKEN, REFRESH_TOKEN);
             verify(refreshTokenStore).save(eq(USER_ID), eq(REFRESH_TOKEN), any());
             String expectedUrl = UriComponentsBuilder.fromUriString(REDIRECT_URI)
                     .queryParam("userId", USER_ID)

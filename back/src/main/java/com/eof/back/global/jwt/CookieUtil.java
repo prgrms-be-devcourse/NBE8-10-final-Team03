@@ -59,6 +59,15 @@ public class CookieUtil {
     }
 
     /**
+     * accessToken, refreshToken 쿠키를 한 번에 추가합니다.
+     * 로그인, 토큰 재발급 시 호출됩니다.
+     */
+    public void addAllTokenCookies(HttpServletResponse response, String accessToken, String refreshToken) {
+        addAccessTokenCookie(response, accessToken);
+        addRefreshTokenCookie(response, refreshToken);
+    }
+
+    /**
      * accessToken 쿠키를 삭제합니다.
      * 로그아웃 시 호출됩니다. maxAge를 0으로 설정하면 브라우저가 즉시 쿠키를 삭제합니다.
      */
@@ -72,6 +81,15 @@ public class CookieUtil {
      */
     public void deleteRefreshTokenCookie(HttpServletResponse response) {
         deleteCookie(response, REFRESH_TOKEN_COOKIE);
+    }
+
+    /**
+     * accessToken, refreshToken 쿠키를 한 번에 삭제합니다.
+     * 로그아웃, 회원탈퇴 시 호출됩니다.
+     */
+    public void deleteAllTokenCookies(HttpServletResponse response) {
+        deleteAccessTokenCookie(response);
+        deleteRefreshTokenCookie(response);
     }
 
     /**

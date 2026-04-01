@@ -69,15 +69,15 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         // 1. AccessToken, RefreshToken 발급
         String accessToken = jwtTokenProvider.createAccessToken(
                 customUser.getUserId(), customUser.getUsername(), customUser.getRole().name(), customUser.getNickname());
-        String refreshToken = jwtTokenProvider.createRefreshToken(customUser.getUserId());
+        String refreshToken = jwtTokenProvider.createRefreshToken(
+                customUser.getUserId(), customUser.getUsername(), customUser.getRole().name(), customUser.getNickname());
 
         // 2. RefreshToken 저장소에 저장
         LocalDateTime refreshTokenExpiredAt = LocalDateTime.now().plusSeconds(refreshTokenExpireSeconds);
         refreshTokenStore.save(customUser.getUserId(), refreshToken, refreshTokenExpiredAt);
 
         // 3. 토큰을 HttpOnly 쿠키로 설정
-        cookieUtil.addAccessTokenCookie(response, accessToken);
-        cookieUtil.addRefreshTokenCookie(response, refreshToken);
+        cookieUtil.addAllTokenCookies(response, accessToken, refreshToken);
 
         // 4. 프론트엔드로 redirect
         String redirectUrl = UriComponentsBuilder.fromUriString(redirectUri)

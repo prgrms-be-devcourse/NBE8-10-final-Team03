@@ -11,6 +11,7 @@ import com.eof.back.domain.user.user.repository.UserRepository;
 import com.eof.back.global.exception.errorCode.AuthErrorCode;
 import com.eof.back.global.exception.exceptions.AuthException;
 import com.eof.back.global.jwt.JwtTokenProvider;
+import com.eof.back.global.token.TokenVersionStore;
 import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -49,6 +50,7 @@ public class AuthServiceImpl implements AuthService {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenStore refreshTokenStore;
+    private final TokenVersionStore tokenVersionStore;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final LoginAttemptService loginAttemptService;
@@ -149,8 +151,12 @@ public class AuthServiceImpl implements AuthService {
             throw new AuthException(AuthErrorCode.TOKEN_INVALID);
         }
 
-        // 3. 새 토큰 발급 및 저장
-        String newAccessToken = jwtTokenProvider.createAccessToken(userId, username, role, nickname);
+        // 3. 새 access token 발급
+        // 재발급은 동일 세션 내 연장이므로 version을 증가시키지 않고 현재 값을 그대로 사용합니다.
+        // Redis에 version 키가 없으면 로그아웃·정지·삭제된 상태이므로 재발급을 거부합니다.
+        long tokenVersion = tokenVersionStore.findByUserId(userId)
+                .orElseThrow(() -> new AuthException(AuthErrorCode.TOKEN_INVALID));
+        String newAccessToken = jwtTokenProvider.createAccessToken(userId, username, role, nickname, tokenVersion);
         String newRefreshToken = jwtTokenProvider.createRefreshToken(userId, username, role, nickname);
 
         LocalDateTime refreshTokenExpiredAt = LocalDateTime.now().plusSeconds(refreshTokenExpireSeconds);
@@ -166,8 +172,9 @@ public class AuthServiceImpl implements AuthService {
         // 1. Refresh Token 검증 및 저장된 토큰 조회
         RefreshToken savedRefreshToken = validateAndGetRefreshToken(refreshToken);
 
-        // 2. 저장소에서 Refresh Token 삭제
+        // 2. 저장소에서 Refresh Token 삭제 + tokenVersion 삭제
         refreshTokenStore.delete(savedRefreshToken.getUserId());
+        tokenVersionStore.delete(savedRefreshToken.getUserId());
     }
 
     @Override
@@ -186,8 +193,9 @@ public class AuthServiceImpl implements AuthService {
         // 3. soft delete 처리
         user.delete();
 
-        // 4. Refresh Token 삭제
+        // 4. Refresh Token + tokenVersion 삭제
         refreshTokenStore.delete(userId);
+        tokenVersionStore.delete(userId);
     }
 
     /**
@@ -195,8 +203,10 @@ public class AuthServiceImpl implements AuthService {
      * login과 reissue에서 공통으로 사용됩니다.
      */
     private LoginResult issueTokens(User user) {
+        // 로그인 시 version 증가 → 이전 세션의 access token 즉시 무효화 (1계정 1세션)
+        long tokenVersion = tokenVersionStore.increment(user.getId());
         String accessToken = jwtTokenProvider.createAccessToken(
-                user.getId(), user.getUsername(), user.getRole().name(), user.getNickname());
+                user.getId(), user.getUsername(), user.getRole().name(), user.getNickname(), tokenVersion);
         String refreshToken = jwtTokenProvider.createRefreshToken(
                 user.getId(), user.getUsername(), user.getRole().name(), user.getNickname());
 

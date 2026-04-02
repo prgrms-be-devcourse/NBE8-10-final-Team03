@@ -70,9 +70,10 @@ public class RankingCacheService {
         List<Object[]> results = gameRecordRepository.findRankingByPeriod(since, PageRequest.of(0, 10));
         List<RankingResponse.RankingItem> rankings = new ArrayList<>();
         for (int i = 0; i < results.size(); i++) {
-            User user = (User) results.get(i)[0];
-            Long score = (Long) results.get(i)[1];
-            rankings.add(new RankingResponse.RankingItem(i + 1, user.getNickname(), score));
+            Object[] row = results.get(i);
+            String nickname = ((User) row[0]).getNickname();
+            Long score = (Long) row[1];
+            rankings.add(new RankingResponse.RankingItem(i + 1, nickname, score));
         }
         return rankings;
     }

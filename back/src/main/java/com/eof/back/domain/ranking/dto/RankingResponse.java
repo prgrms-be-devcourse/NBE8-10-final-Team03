@@ -16,6 +16,7 @@ public record RankingResponse(
         Long myRank,
         List<RankingItem> rankings
 ) implements Serializable {
+    private static final long serialVersionUID = 1L;
     /**
      * 랭킹 항목을 나타내는 레코드입니다.
      *
@@ -27,5 +28,6 @@ public record RankingResponse(
             int rank,
             String nickname,
             long score
-    ) implements Serializable {}
+    ) implements Serializable {
+        private static final long serialVersionUID = 1L;}
 }

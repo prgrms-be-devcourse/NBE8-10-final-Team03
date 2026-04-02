@@ -85,16 +85,7 @@ public class RankingServiceImpl implements RankingService {
         return new RankingResponse(null, rankingCacheService.getMonthlyRankingItems());
     }
 
-    private List<RankingResponse.RankingItem> getPeriodRankingItems(LocalDateTime since) {
-        List<Object[]> results = gameRecordRepository.findRankingByPeriod(since, PageRequest.of(0, 10));
-        List<RankingResponse.RankingItem> rankings = new ArrayList<>();
-        for (int i = 0; i < results.size(); i++) {
-            User user = (User) results.get(i)[0];
-            Long score = (Long) results.get(i)[1];
-            rankings.add(new RankingResponse.RankingItem(i + 1, user.getNickname(), score));
-        }
-        return rankings;
-    }
+
     private Long getMyRank(Long userId) {
         if (userId == null) return null;
         return userRepository.findMyRankByUserId(userId);

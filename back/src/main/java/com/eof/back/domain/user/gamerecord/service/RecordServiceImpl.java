@@ -14,6 +14,7 @@ import com.eof.back.global.exception.errorCode.GameSessionErrorCode;
 import com.eof.back.global.exception.exceptions.AuthException;
 import com.eof.back.global.exception.exceptions.GameSessionException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -83,6 +84,7 @@ public class RecordServiceImpl implements RecordService {
 
     @Override
     @Transactional
+    @CacheEvict(value = {"ranking:all", "ranking:weekly", "ranking:monthly"}, allEntries = true)
     public void saveGameResult(GameResultRequest request) {
         // 1. 게임 세션 조회
         GameSession session = gameSessionRepository.findById(request.sessionId())

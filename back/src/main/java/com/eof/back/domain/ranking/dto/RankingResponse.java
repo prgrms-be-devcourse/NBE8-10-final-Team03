@@ -1,5 +1,6 @@
 package com.eof.back.domain.ranking.dto;
 
+import java.io.Serializable;
 import java.util.List;
 
 /**
@@ -14,7 +15,8 @@ import java.util.List;
 public record RankingResponse(
         Long myRank,
         List<RankingItem> rankings
-) {
+) implements Serializable {
+    private static final long serialVersionUID = 1L;
     /**
      * 랭킹 항목을 나타내는 레코드입니다.
      *
@@ -26,5 +28,6 @@ public record RankingResponse(
             int rank,
             String nickname,
             long score
-    ) {}
+    ) implements Serializable {
+        private static final long serialVersionUID = 1L;}
 }

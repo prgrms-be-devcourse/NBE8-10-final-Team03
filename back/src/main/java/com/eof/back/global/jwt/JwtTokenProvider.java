@@ -101,10 +101,17 @@ public class JwtTokenProvider {
      * <p>AccessToken이 만료되었을 때 재발급을 위한 토큰입니다.
      * 보통 AccessToken보다 만료 시간이 길게 설정됩니다.
      *
-     * @param userId 사용자 ID
+     * <p>{@code tokenVersion}을 claim에 포함하여, reissue 시 Redis 저장 값과 비교합니다.
+     * 다른 기기에서 재로그인하여 version이 증가한 경우 이 refresh token으로는 재발급이 거부됩니다.
+     *
+     * @param userId       사용자 ID
+     * @param username     사용자 아이디
+     * @param role         사용자 권한
+     * @param nickname     사용자 닉네임
+     * @param tokenVersion 발급 시점의 tokenVersion
      * @return JWT RefreshToken 문자열
      */
-    public String createRefreshToken(Long userId, String username, String role, String nickname) {
+    public String createRefreshToken(Long userId, String username, String role, String nickname, long tokenVersion) {
 
         Date now = new Date();
         Date expiry = new Date(now.getTime() + refreshTokenExpiration);
@@ -114,6 +121,7 @@ public class JwtTokenProvider {
                 .claim("username", username)
                 .claim("role", role)
                 .claim("nickname", nickname)
+                .claim("tokenVersion", tokenVersion)
                 .issuedAt(now)
                 .expiration(expiry)
                 .signWith(secretKey)

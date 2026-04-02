@@ -151,13 +151,18 @@ public class AuthServiceImpl implements AuthService {
             throw new AuthException(AuthErrorCode.TOKEN_INVALID);
         }
 
-        // 3. 새 access token 발급
+        // 3. tokenVersion 검증 및 새 토큰 발급
         // 재발급은 동일 세션 내 연장이므로 version을 증가시키지 않고 현재 값을 그대로 사용합니다.
-        // Redis에 version 키가 없으면 로그아웃·정지·삭제된 상태이므로 재발급을 거부합니다.
-        long tokenVersion = tokenVersionStore.findByUserId(userId)
+        // refresh token의 version claim과 Redis 저장 version을 비교하여
+        // 다른 기기에서 재로그인한 경우(version 불일치)에는 재발급을 거부합니다.
+        long refreshTokenVersion = jwtTokenProvider.getTokenVersion(claims);
+        long storedVersion = tokenVersionStore.findByUserId(userId)
                 .orElseThrow(() -> new AuthException(AuthErrorCode.TOKEN_INVALID));
-        String newAccessToken = jwtTokenProvider.createAccessToken(userId, username, role, nickname, tokenVersion);
-        String newRefreshToken = jwtTokenProvider.createRefreshToken(userId, username, role, nickname);
+        if (refreshTokenVersion != storedVersion) {
+            throw new AuthException(AuthErrorCode.TOKEN_INVALID);
+        }
+        String newAccessToken = jwtTokenProvider.createAccessToken(userId, username, role, nickname, storedVersion);
+        String newRefreshToken = jwtTokenProvider.createRefreshToken(userId, username, role, nickname, storedVersion);
 
         LocalDateTime refreshTokenExpiredAt = LocalDateTime.now().plusSeconds(refreshTokenExpireSeconds);
         refreshTokenStore.save(userId, newRefreshToken, refreshTokenExpiredAt);
@@ -208,7 +213,7 @@ public class AuthServiceImpl implements AuthService {
         String accessToken = jwtTokenProvider.createAccessToken(
                 user.getId(), user.getUsername(), user.getRole().name(), user.getNickname(), tokenVersion);
         String refreshToken = jwtTokenProvider.createRefreshToken(
-                user.getId(), user.getUsername(), user.getRole().name(), user.getNickname());
+                user.getId(), user.getUsername(), user.getRole().name(), user.getNickname(), tokenVersion);
 
         LocalDateTime refreshTokenExpiredAt = LocalDateTime.now().plusSeconds(refreshTokenExpireSeconds);
         refreshTokenStore.save(user.getId(), refreshToken, refreshTokenExpiredAt);

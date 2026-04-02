@@ -73,7 +73,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         String accessToken = jwtTokenProvider.createAccessToken(
                 customUser.getUserId(), customUser.getUsername(), customUser.getRole().name(), customUser.getNickname(), tokenVersion);
         String refreshToken = jwtTokenProvider.createRefreshToken(
-                customUser.getUserId(), customUser.getUsername(), customUser.getRole().name(), customUser.getNickname());
+                customUser.getUserId(), customUser.getUsername(), customUser.getRole().name(), customUser.getNickname(), tokenVersion);
 
         // 2. RefreshToken 저장소에 저장
         LocalDateTime refreshTokenExpiredAt = LocalDateTime.now().plusSeconds(refreshTokenExpireSeconds);

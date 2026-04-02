@@ -100,10 +100,7 @@ public class AuthServiceImpl implements AuthService {
 
         // 3. username으로 사용자 조회
         User user = userRepository.findByUsername(req.username())
-                .orElseThrow(() -> {
-                    loginAttemptService.recordFailure(req.username());
-                    return new AuthException(AuthErrorCode.INVALID_CREDENTIALS);
-                });
+                .orElseThrow(() -> new AuthException(AuthErrorCode.INVALID_CREDENTIALS));
 
         // 4. 비밀번호 검증
         if (!passwordEncoder.matches(req.password(), user.getPassword())) {

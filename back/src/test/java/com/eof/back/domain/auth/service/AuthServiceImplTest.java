@@ -211,7 +211,7 @@ public class AuthServiceImplTest {
         }
 
         @Test
-        @DisplayName("실패 - 존재하지 않는 아이디면 INVALID_CREDENTIALS 예외가 발생한다")
+        @DisplayName("실패 - 존재하지 않는 아이디면 INVALID_CREDENTIALS 예외가 발생하고 실패 카운트를 기록하지 않는다")
         void fail_userNotFound() {
             // given
             LoginRequest req = new LoginRequest("testUser", "password123", null);
@@ -225,6 +225,7 @@ public class AuthServiceImplTest {
                             .isEqualTo(AuthErrorCode.INVALID_CREDENTIALS));
 
             verify(passwordEncoder, never()).matches(any(), any());
+            verify(loginAttemptService, never()).recordFailure(any());
         }
 
         @Test

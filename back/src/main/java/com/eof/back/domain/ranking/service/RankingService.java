@@ -2,15 +2,18 @@ package com.eof.back.domain.ranking.service;
 
 import com.eof.back.domain.ranking.dto.RankingResponse;
 
+import java.util.List;
+
 /**
  * 랭킹 조회 기능을 정의하는 서비스 인터페이스입니다.
  * <p>
- * 현재 MySQL 기반으로 구현되어 있으며,
- * 추후 Redis 등으로 구현체를 교체할 수 있습니다.
+ * 전체/주간/월간 랭킹 TOP10 조회 및 캐시 조회 메서드를 제공합니다.
+ * {@link RankingCacheService}와 협력하여 Redis 캐싱을 통해 DB 부하를 최소화합니다.
  *
  * @author Jaewon Ryu
  * @see RankingServiceImpl
- * @since 2026-03-23
+ * @see RankingCacheService
+ * @since 2026-04-02
  */
 public interface RankingService {
 
@@ -19,4 +22,10 @@ public interface RankingService {
     RankingResponse getWeeklyRankings(Long userId);
 
     RankingResponse getMonthlyRankings(Long userId);
+
+    List<RankingResponse.RankingItem> getCachedTopRankings();
+
+    List<RankingResponse.RankingItem> getCachedWeeklyRankings();
+
+    List<RankingResponse.RankingItem> getCachedMonthlyRankings();
 }

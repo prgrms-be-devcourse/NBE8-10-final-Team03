@@ -34,6 +34,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -64,6 +65,9 @@ public class AuthServiceImplTest {
 
     @Mock
     private LoginAttemptService loginAttemptService;
+
+    @Mock
+    private CaptchaService captchaService;
 
     @InjectMocks
     private AuthServiceImpl authService;
@@ -165,7 +169,7 @@ public class AuthServiceImplTest {
         @DisplayName("성공 - AccessToken과 RefreshToken을 반환한다")
         void success() {
             // given
-            LoginRequest req = new LoginRequest("testUser", "password123");
+            LoginRequest req = new LoginRequest("testUser", "password123", null);
             User user = mock(User.class);
 
             given(loginAttemptService.isLocked("testUser")).willReturn(false);
@@ -194,7 +198,7 @@ public class AuthServiceImplTest {
         @DisplayName("실패 - 로그인 시도 횟수 초과 시 LOGIN_ATTEMPTS_EXCEEDED 예외가 발생한다")
         void fail_loginAttemptsExceeded() {
             // given
-            LoginRequest req = new LoginRequest("testUser", "password123");
+            LoginRequest req = new LoginRequest("testUser", "password123", null);
             given(loginAttemptService.isLocked("testUser")).willReturn(true);
 
             // when & then
@@ -210,7 +214,7 @@ public class AuthServiceImplTest {
         @DisplayName("실패 - 존재하지 않는 아이디면 INVALID_CREDENTIALS 예외가 발생한다")
         void fail_userNotFound() {
             // given
-            LoginRequest req = new LoginRequest("testUser", "password123");
+            LoginRequest req = new LoginRequest("testUser", "password123", null);
             given(loginAttemptService.isLocked("testUser")).willReturn(false);
             given(userRepository.findByUsername("testUser")).willReturn(Optional.empty());
 
@@ -227,7 +231,7 @@ public class AuthServiceImplTest {
         @DisplayName("실패 - 비밀번호가 일치하지 않으면 INVALID_CREDENTIALS 예외가 발생한다")
         void fail_invalidPassword() {
             // given
-            LoginRequest req = new LoginRequest("testUser", "wrongPassword");
+            LoginRequest req = new LoginRequest("testUser", "wrongPassword", null);
             User user = mock(User.class);
 
             given(loginAttemptService.isLocked("testUser")).willReturn(false);
@@ -248,7 +252,7 @@ public class AuthServiceImplTest {
         @DisplayName("실패 - 탈퇴한 사용자면 LOGIN_FAIL 예외가 발생한다")
         void fail_deletedUser() {
             // given
-            LoginRequest req = new LoginRequest("testUser", "password123");
+            LoginRequest req = new LoginRequest("testUser", "password123", null);
             User user = mock(User.class);
 
             given(loginAttemptService.isLocked("testUser")).willReturn(false);
@@ -270,7 +274,7 @@ public class AuthServiceImplTest {
         @DisplayName("실패 - 정지된 사용자면 LOGIN_FAIL 예외가 발생한다")
         void fail_suspendedUser() {
             // given
-            LoginRequest req = new LoginRequest("testUser", "password123");
+            LoginRequest req = new LoginRequest("testUser", "password123", null);
             User user = mock(User.class);
 
             given(loginAttemptService.isLocked("testUser")).willReturn(false);
@@ -286,6 +290,43 @@ public class AuthServiceImplTest {
                             .isEqualTo(AuthErrorCode.LOGIN_FAIL));
 
             verify(jwtTokenProvider, never()).createAccessToken(any(), any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("실패 - 실패 횟수가 임계값 이상이고 captchaToken이 없으면 CAPTCHA_REQUIRED 예외가 발생한다")
+        void fail_captchaRequired() {
+            // given
+            LoginRequest req = new LoginRequest("testUser", "password123", null);
+
+            given(loginAttemptService.isLocked("testUser")).willReturn(false);
+            given(loginAttemptService.getAttemptCount("testUser")).willReturn(CaptchaService.CAPTCHA_THRESHOLD);
+
+            // when & then
+            assertThatThrownBy(() -> authService.login(req))
+                    .isInstanceOf(AuthException.class)
+                    .satisfies(e -> assertThat(((AuthException) e).getErrorCode())
+                            .isEqualTo(AuthErrorCode.CAPTCHA_REQUIRED));
+
+            verify(userRepository, never()).findByUsername(any());
+        }
+
+        @Test
+        @DisplayName("실패 - captchaToken이 있어도 검증 실패 시 CAPTCHA_INVALID 예외가 발생한다")
+        void fail_captchaInvalid() {
+            // given
+            LoginRequest req = new LoginRequest("testUser", "password123", "invalid-token");
+
+            given(loginAttemptService.isLocked("testUser")).willReturn(false);
+            given(loginAttemptService.getAttemptCount("testUser")).willReturn(CaptchaService.CAPTCHA_THRESHOLD);
+            willThrow(new AuthException(AuthErrorCode.CAPTCHA_INVALID)).given(captchaService).verify("invalid-token");
+
+            // when & then
+            assertThatThrownBy(() -> authService.login(req))
+                    .isInstanceOf(AuthException.class)
+                    .satisfies(e -> assertThat(((AuthException) e).getErrorCode())
+                            .isEqualTo(AuthErrorCode.CAPTCHA_INVALID));
+
+            verify(userRepository, never()).findByUsername(any());
         }
     }
 

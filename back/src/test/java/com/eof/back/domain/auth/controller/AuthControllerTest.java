@@ -152,6 +152,45 @@ class AuthControllerTest {
                     .andExpect(status().isGone())
                     .andExpect(jsonPath("$.message").value("이미 탈퇴한 사용자입니다."));
         }
+
+        @Test
+        @DisplayName("실패 - 로그인 시도 횟수 초과 시 429를 반환한다")
+        void fail_loginAttemptsExceeded() throws Exception {
+            given(authService.login(any()))
+                    .willThrow(new AuthException(AuthErrorCode.LOGIN_ATTEMPTS_EXCEEDED));
+
+            mockMvc.perform(post("/api/v1/auth/login")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"username\":\"testuser\",\"password\":\"password1\"}"))
+                    .andExpect(status().isTooManyRequests())
+                    .andExpect(jsonPath("$.message").value("로그인 시도 횟수를 초과하였습니다. 잠시 후 다시 시도해주세요."));
+        }
+
+        @Test
+        @DisplayName("실패 - CAPTCHA 인증이 필요한 경우 403을 반환한다")
+        void fail_captchaRequired() throws Exception {
+            given(authService.login(any()))
+                    .willThrow(new AuthException(AuthErrorCode.CAPTCHA_REQUIRED));
+
+            mockMvc.perform(post("/api/v1/auth/login")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"username\":\"testuser\",\"password\":\"password1\"}"))
+                    .andExpect(status().isForbidden())
+                    .andExpect(jsonPath("$.message").value("보안 문자 인증이 필요합니다."));
+        }
+
+        @Test
+        @DisplayName("실패 - CAPTCHA 검증 실패 시 400을 반환한다")
+        void fail_captchaInvalid() throws Exception {
+            given(authService.login(any()))
+                    .willThrow(new AuthException(AuthErrorCode.CAPTCHA_INVALID));
+
+            mockMvc.perform(post("/api/v1/auth/login")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"username\":\"testuser\",\"password\":\"password1\",\"captchaToken\":\"bad-token\"}"))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.message").value("보안 문자 인증에 실패하였습니다."));
+        }
     }
 
     @Nested

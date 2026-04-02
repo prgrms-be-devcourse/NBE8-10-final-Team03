@@ -36,7 +36,6 @@ public abstract class SecurityUrlRegistry {
             "/api/v1/auth/signup",
             "/api/v1/auth/login",
             "/api/v1/auth/reissue",
-            "/api/v1/auth/logout",
 
             // 소셜 로그인 관련 (OAuth2 인증 흐름)
             "/oauth2/**",

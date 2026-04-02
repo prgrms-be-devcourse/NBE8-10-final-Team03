@@ -26,7 +26,7 @@ export default function BookmarksPage() {
           (b: { quizSetId: number }) => b.quizSetId
         );
         const quizSetRes = await Promise.all(
-          bookmarkIds.map((id) => api.get(`/quizsets/${id}`))
+          bookmarkIds.map((id) => api.get(`/quizsets/${id}/info`))
         );
         setQuizSets(quizSetRes.map((res) => res.data.data));
       } catch (err) {

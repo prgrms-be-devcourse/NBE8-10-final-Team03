@@ -15,6 +15,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.eof.back.domain.quiz.dto.QuizResponse;
 import com.eof.back.domain.quizset.dto.QuizSetCreateRequest;
+import com.eof.back.domain.quizset.dto.QuizSetInfoResponse;
 import com.eof.back.domain.quizset.dto.QuizSetListResponse;
 import com.eof.back.domain.quizset.dto.QuizSetResponse;
 import com.eof.back.domain.quizset.dto.QuizSetUpdateRequest;
@@ -202,6 +203,28 @@ class QuizSetControllerTest {
                         )))
                 .andDo(print())
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("퀴즈 세트 기본 정보 조회 API 호출 성공")
+    void getQuizSetInfo_ApiSuccess() throws Exception {
+        // given
+        QuizSetInfoResponse response = QuizSetInfoResponse.builder()
+                .id(1L)
+                .title("테스트 세트 정보")
+                .creatorNickname("tester")
+                .totalQuizCount(5)
+                .build();
+
+        given(quizSetService.getQuizSetInfo(anyLong())).willReturn(response);
+
+        // when & then
+        mockMvc.perform(get("/api/v1/quizsets/1/info"))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("success"))
+                .andExpect(jsonPath("$.data.id").value(1))
+                .andExpect(jsonPath("$.data.title").value("테스트 세트 정보"));
     }
 
     @Test

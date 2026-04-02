@@ -10,6 +10,7 @@ import com.eof.back.domain.gamesession.repository.GameSessionRepository;
 import com.eof.back.domain.quiz.entity.Quiz;
 import com.eof.back.domain.quiz.repository.QuizRepository;
 import com.eof.back.domain.quizset.dto.QuizSetCreateRequest;
+import com.eof.back.domain.quizset.dto.QuizSetInfoResponse;
 import com.eof.back.domain.quizset.dto.QuizSetListResponse;
 import com.eof.back.domain.quizset.dto.QuizSetResponse;
 import com.eof.back.domain.quizset.dto.QuizSetUpdateRequest;
@@ -145,6 +146,28 @@ class QuizSetServiceTest {
 
         // then
         assertThat(response.id()).isEqualTo(1L);
+    }
+
+    @Test
+    @DisplayName("퀴즈 세트 기본 정보 조회 성공")
+    void getQuizSetInfo_Success() {
+        // given
+        User creator = User.builder().nickname("별명").role(Role.USER).build();
+        QuizSet quizSet = QuizSet.builder()
+                .title("테스트 세트")
+                .creator(creator)
+                .build();
+        ReflectionTestUtils.setField(quizSet, "id", 1L);
+
+        given(quizSetRepository.findById(1L)).willReturn(Optional.of(quizSet));
+
+        // when
+        QuizSetInfoResponse response = quizSetService.getQuizSetInfo(1L);
+
+        // then
+        assertThat(response.id()).isEqualTo(1L);
+        assertThat(response.title()).isEqualTo("테스트 세트");
+        verify(quizSetRepository).findById(1L);
     }
 
     @Test

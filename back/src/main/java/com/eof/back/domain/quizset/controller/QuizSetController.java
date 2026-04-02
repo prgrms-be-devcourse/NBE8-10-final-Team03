@@ -1,6 +1,7 @@
 package com.eof.back.domain.quizset.controller;
 
 import com.eof.back.domain.quizset.dto.QuizSetCreateRequest;
+import com.eof.back.domain.quizset.dto.QuizSetInfoResponse;
 import com.eof.back.domain.quizset.dto.QuizSetListResponse;
 import com.eof.back.domain.quizset.dto.QuizSetResponse;
 import com.eof.back.domain.quizset.dto.QuizSetUpdateRequest;
@@ -69,6 +70,19 @@ public class QuizSetController {
             @PathVariable Long id,
             @AuthenticationPrincipal UserPrincipal principal) {
         QuizSetResponse response = quizSetService.getQuizSet(id, principal.id());
+        return ResponseEntity.ok(CommonResponse.success(response));
+    }
+
+    /**
+     * 특정 퀴즈 세트의 기본 정보를 조회합니다. (퀴즈 목록 제외)
+     *
+     * @param id 조회할 퀴즈 세트의 식별자
+     * @return 퀴즈 목록을 제외한 퀴즈 세트 기본 정보
+     */
+    @GetMapping("/{id}/info")
+    public ResponseEntity<Response<QuizSetInfoResponse>> getQuizSetInfo(
+            @PathVariable Long id) {
+        QuizSetInfoResponse response = quizSetService.getQuizSetInfo(id);
         return ResponseEntity.ok(CommonResponse.success(response));
     }
 

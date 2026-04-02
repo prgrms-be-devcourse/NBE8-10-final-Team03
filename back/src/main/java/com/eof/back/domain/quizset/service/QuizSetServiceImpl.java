@@ -3,6 +3,7 @@ package com.eof.back.domain.quizset.service;
 import com.eof.back.domain.gamesession.repository.GameSessionRepository;
 import com.eof.back.domain.quiz.repository.QuizRepository;
 import com.eof.back.domain.quizset.dto.QuizSetCreateRequest;
+import com.eof.back.domain.quizset.dto.QuizSetInfoResponse;
 import com.eof.back.domain.quizset.dto.QuizSetListResponse;
 import com.eof.back.domain.quizset.dto.QuizSetResponse;
 import com.eof.back.domain.quizset.dto.QuizSetUpdateRequest;
@@ -73,9 +74,18 @@ public class QuizSetServiceImpl implements QuizSetService {
         QuizSet quizSet = findQuizSetById(id);
         User requester = findUserById(userId);
         
-        // validateAccessPermission(quizSet, requester);
+        validateAccessPermission(quizSet, requester);
         
         return QuizSetResponse.from(quizSet);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public QuizSetInfoResponse getQuizSetInfo(Long id) {
+        QuizSet quizSet = findQuizSetById(id);
+        return QuizSetInfoResponse.from(quizSet);
     }
 
     /**

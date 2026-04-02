@@ -20,6 +20,7 @@ public record LoginRequest(
         @NotBlank(message = "비밀번호는 필수입니다.")
         String password,
 
+        @Size(max = 2048, message = "잘못된 보안 문자 토큰입니다.")
         String captchaToken
 ) {
 }

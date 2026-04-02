@@ -85,17 +85,24 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public LoginResult login(LoginRequest req) {
 
-        // 1. 잠금 여부 확인
-        if (loginAttemptService.isLocked(req.username())) {
+        // 1. 실패 횟수 조회 (잠금 여부 + CAPTCHA 임계값 체크에 공통 사용)
+        int failCount = loginAttemptService.getAttemptCount(req.username());
+
+        if (failCount >= LoginAttemptService.MAX_ATTEMPTS) {
             throw new AuthException(AuthErrorCode.LOGIN_ATTEMPTS_EXCEEDED);
         }
 
         // 2. 실패 횟수가 임계값 이상이면 CAPTCHA 검증
-        if (loginAttemptService.getAttemptCount(req.username()) >= CaptchaService.CAPTCHA_THRESHOLD) {
+        if (failCount >= CaptchaService.CAPTCHA_THRESHOLD) {
             if (req.captchaToken() == null) {
                 throw new AuthException(AuthErrorCode.CAPTCHA_REQUIRED);
             }
-            captchaService.verify(req.captchaToken());
+            try {
+                captchaService.verify(req.captchaToken());
+            } catch (AuthException e) {
+                loginAttemptService.recordFailure(req.username());
+                throw e;
+            }
         }
 
         // 3. username으로 사용자 조회

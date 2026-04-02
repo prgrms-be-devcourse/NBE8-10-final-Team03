@@ -172,7 +172,7 @@ public class AuthServiceImplTest {
             LoginRequest req = new LoginRequest("testUser", "password123", null);
             User user = mock(User.class);
 
-            given(loginAttemptService.isLocked("testUser")).willReturn(false);
+
             given(userRepository.findByUsername("testUser")).willReturn(Optional.of(user));
             given(user.getPassword()).willReturn("encodedPassword");
             given(passwordEncoder.matches("password123", "encodedPassword")).willReturn(true);
@@ -199,7 +199,7 @@ public class AuthServiceImplTest {
         void fail_loginAttemptsExceeded() {
             // given
             LoginRequest req = new LoginRequest("testUser", "password123", null);
-            given(loginAttemptService.isLocked("testUser")).willReturn(true);
+            given(loginAttemptService.getAttemptCount("testUser")).willReturn(LoginAttemptService.MAX_ATTEMPTS);
 
             // when & then
             assertThatThrownBy(() -> authService.login(req))
@@ -215,7 +215,7 @@ public class AuthServiceImplTest {
         void fail_userNotFound() {
             // given
             LoginRequest req = new LoginRequest("testUser", "password123", null);
-            given(loginAttemptService.isLocked("testUser")).willReturn(false);
+
             given(userRepository.findByUsername("testUser")).willReturn(Optional.empty());
 
             // when & then
@@ -235,7 +235,7 @@ public class AuthServiceImplTest {
             LoginRequest req = new LoginRequest("testUser", "wrongPassword", null);
             User user = mock(User.class);
 
-            given(loginAttemptService.isLocked("testUser")).willReturn(false);
+
             given(userRepository.findByUsername("testUser")).willReturn(Optional.of(user));
             given(user.getPassword()).willReturn("encodedPassword");
             given(passwordEncoder.matches("wrongPassword", "encodedPassword")).willReturn(false);
@@ -256,7 +256,7 @@ public class AuthServiceImplTest {
             LoginRequest req = new LoginRequest("testUser", "password123", null);
             User user = mock(User.class);
 
-            given(loginAttemptService.isLocked("testUser")).willReturn(false);
+
             given(userRepository.findByUsername("testUser")).willReturn(Optional.of(user));
             given(user.getPassword()).willReturn("encodedPassword");
             given(passwordEncoder.matches("password123", "encodedPassword")).willReturn(true);
@@ -278,7 +278,7 @@ public class AuthServiceImplTest {
             LoginRequest req = new LoginRequest("testUser", "password123", null);
             User user = mock(User.class);
 
-            given(loginAttemptService.isLocked("testUser")).willReturn(false);
+
             given(userRepository.findByUsername("testUser")).willReturn(Optional.of(user));
             given(user.getPassword()).willReturn("encodedPassword");
             given(passwordEncoder.matches("password123", "encodedPassword")).willReturn(true);
@@ -299,7 +299,7 @@ public class AuthServiceImplTest {
             // given
             LoginRequest req = new LoginRequest("testUser", "password123", null);
 
-            given(loginAttemptService.isLocked("testUser")).willReturn(false);
+
             given(loginAttemptService.getAttemptCount("testUser")).willReturn(CaptchaService.CAPTCHA_THRESHOLD);
 
             // when & then
@@ -317,7 +317,7 @@ public class AuthServiceImplTest {
             // given
             LoginRequest req = new LoginRequest("testUser", "password123", "invalid-token");
 
-            given(loginAttemptService.isLocked("testUser")).willReturn(false);
+
             given(loginAttemptService.getAttemptCount("testUser")).willReturn(CaptchaService.CAPTCHA_THRESHOLD);
             willThrow(new AuthException(AuthErrorCode.CAPTCHA_INVALID)).given(captchaService).verify("invalid-token");
 
@@ -328,6 +328,7 @@ public class AuthServiceImplTest {
                             .isEqualTo(AuthErrorCode.CAPTCHA_INVALID));
 
             verify(userRepository, never()).findByUsername(any());
+            verify(loginAttemptService).recordFailure("testUser");
         }
     }
 

@@ -27,7 +27,7 @@ import java.util.concurrent.TimeUnit;
 public class LoginAttemptService {
 
     private static final String KEY_PREFIX = "login:fail:";
-    private static final int MAX_ATTEMPTS = 5;
+    public static final int MAX_ATTEMPTS = 5;
     private static final long LOCK_DURATION_MINUTES = 15;
 
     private final StringRedisTemplate redisTemplate;

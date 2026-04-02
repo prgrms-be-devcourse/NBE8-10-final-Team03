@@ -34,15 +34,18 @@ class RankingServiceImplTest {
     @Mock
     private GameRecordRepository gameRecordRepository;
 
+    @Mock
+    private RankingCacheService rankingCacheService; // 추가
+
     @Test
     @DisplayName("상위 랭킹 조회 - 정상")
     void getTopRankings_success() {
-        List<User> users = List.of(
-                createUser(1L, "유저1", 5000L),
-                createUser(2L, "유저2", 3000L),
-                createUser(3L, "유저3", 1000L)
+        List<RankingResponse.RankingItem> items = List.of(
+                new RankingResponse.RankingItem(1, "유저1", 5000L),
+                new RankingResponse.RankingItem(2, "유저2", 3000L),
+                new RankingResponse.RankingItem(3, "유저3", 1000L)
         );
-        given(userRepository.findTop10ActiveUsers(any(Pageable.class))).willReturn(users);
+        given(rankingCacheService.getTopRankingItems()).willReturn(items);
         given(userRepository.findMyRankByUserId(any(Long.class))).willReturn(1L);
 
         RankingResponse response = rankingService.getTopRankings(1L);
@@ -58,7 +61,7 @@ class RankingServiceImplTest {
     @Test
     @DisplayName("상위 랭킹 조회 - 유저 없음")
     void getTopRankings_empty() {
-        given(userRepository.findTop10ActiveUsers(any(Pageable.class))).willReturn(List.of());
+        given(rankingCacheService.getTopRankingItems()).willReturn(List.of());
         given(userRepository.findMyRankByUserId(any(Long.class))).willReturn(1L);
 
         RankingResponse response = rankingService.getTopRankings(1L);
@@ -69,32 +72,11 @@ class RankingServiceImplTest {
     @Test
     @DisplayName("상위 랭킹 조회 - 비로그인")
     void getTopRankings_notLoggedIn() {
-        given(userRepository.findTop10ActiveUsers(any(Pageable.class))).willReturn(List.of());
+        given(rankingCacheService.getTopRankingItems()).willReturn(List.of());
 
         RankingResponse response = rankingService.getTopRankings(null);
 
         assertThat(response.myRank()).isNull();
         assertThat(response.rankings()).isEmpty();
-    }
-
-    private User createUser(Long id, String nickname, Long score) {
-        User user = User.builder()
-                .username(nickname)
-                .password("test")
-                .nickname(nickname)
-                .role(Role.USER)
-                .build();
-        try {
-            var idField = user.getClass().getSuperclass().getDeclaredField("id");
-            idField.setAccessible(true);
-            idField.set(user, id);
-
-            var scoreField = User.class.getDeclaredField("totalRankingScore");
-            scoreField.setAccessible(true);
-            scoreField.set(user, score);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-        return user;
     }
 }

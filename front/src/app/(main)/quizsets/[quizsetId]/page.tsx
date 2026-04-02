@@ -23,7 +23,7 @@ function QuizEditItem({
 
   const handleSave = async () => {
     const choices = [form.choice1, form.choice2, form.choice3, form.choice4];
-  
+
     if (!form.content || !form.answer || choices.some((c) => !c)) {
       alert("모든 항목을 입력하세요.");
       return;
@@ -76,11 +76,10 @@ function QuizEditItem({
           {[quiz.choice1, quiz.choice2, quiz.choice3, quiz.choice4].map((choice, j) => (
             <div
               key={j}
-              className={`px-3 py-2 rounded-lg border-2 ${
-                choice === quiz.answer
+              className={`px-3 py-2 rounded-lg border-2 ${choice === quiz.answer
                   ? "border-accent bg-accent/10 font-bold"
                   : "border-gray-200 bg-white"
-              }`}
+                }`}
             >
               {j + 1}. {choice}
             </div>
@@ -174,8 +173,8 @@ export default function QuizSetDetailPage({ params }: { params: Promise<{ quizse
   const [editError, setEditError] = useState("");
   const [updating, setUpdating] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
-const [reportReason, setReportReason] = useState("");
-const [reporting, setReporting] = useState(false);
+  const [reportReason, setReportReason] = useState("");
+  const [reporting, setReporting] = useState(false);
 
   useEffect(() => {
     setMyNickname(localStorage.getItem("nickname"));
@@ -184,7 +183,7 @@ const [reporting, setReporting] = useState(false);
   useEffect(() => {
     const fetchQuizSet = async () => {
       try {
-        const res = await api.get(`/quizsets/${quizsetId}`);
+        const res = await api.get(`/quizsets/${quizsetId}/info`);
         console.log("퀴즈셋 조회 시도:", quizsetId);
         setQuizSet(res.data.data);
       } catch (err) {
@@ -306,26 +305,26 @@ const [reporting, setReporting] = useState(false);
               />
             </div>
 
-{/* 수정 모드에서만 퀴즈 목록 표시 */}
-<div className="mb-6">
-  <h3 className="font-title text-lg mb-4">문제 목록 ({quizSet.quizzes?.length ?? 0}개)</h3>
-  <div className="flex flex-col gap-4">
-    {quizSet.quizzes?.map((quiz, i) => (
-      <QuizEditItem
-        key={quiz.id}
-        quiz={quiz}
-        index={i}
-        quizSetId={quizSet.id}
-        onUpdated={(updated) => {
-          setQuizSet((prev) => prev ? {
-            ...prev,
-            quizzes: prev.quizzes.map((q) => q.id === updated.id ? updated : q)
-          } : prev);
-        }}
-      />
-    ))}
-  </div>
-</div>
+            {/* 수정 모드에서만 퀴즈 목록 표시 */}
+            <div className="mb-6">
+              <h3 className="font-title text-lg mb-4">문제 목록 ({quizSet.quizzes?.length ?? 0}개)</h3>
+              <div className="flex flex-col gap-4">
+                {quizSet.quizzes?.map((quiz, i) => (
+                  <QuizEditItem
+                    key={quiz.id}
+                    quiz={quiz}
+                    index={i}
+                    quizSetId={quizSet.id}
+                    onUpdated={(updated) => {
+                      setQuizSet((prev) => prev ? {
+                        ...prev,
+                        quizzes: prev.quizzes.map((q) => q.id === updated.id ? updated : q)
+                      } : prev);
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
 
             <div className="flex gap-3">
               <button
@@ -345,29 +344,29 @@ const [reporting, setReporting] = useState(false);
           </>
         ) : (
           <>
-<div className="flex items-start justify-between mb-4">
-  <div>
-    <h1 className="font-title text-3xl mb-2">{quizSet.title}</h1>
-    <p className="text-sm text-gray-400 mb-4">{quizSet.creatorNickname}</p>
-    <p className="text-sm text-gray-600">{quizSet.description}</p>
-  </div>
-  <div className="flex gap-2 shrink-0">
-    {isOwner ? (
-      <>
-        <button onClick={handleEditOpen} className="px-4 py-2 bg-white border-[3px] border-dark rounded-xl text-sm font-bold shadow-kitsch-sm hover:shadow-kitsch hover:-translate-y-0.5 transition-all">
-          수정
-        </button>
-        <button onClick={handleDelete} className="px-4 py-2 bg-red-500 text-white border-[3px] border-dark rounded-xl text-sm font-bold shadow-kitsch-sm hover:shadow-kitsch hover:-translate-y-0.5 transition-all">
-          삭제
-        </button>
-      </>
-    ) : (
-      <button onClick={() => setShowReportModal(true)} className="px-4 py-2 bg-white text-red-500 border-[3px] border-red-300 rounded-xl text-sm font-bold shadow-kitsch-sm hover:shadow-kitsch hover:-translate-y-0.5 transition-all">
-        🚨 신고
-      </button>
-    )}
-  </div>
-</div>
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h1 className="font-title text-3xl mb-2">{quizSet.title}</h1>
+                <p className="text-sm text-gray-400 mb-4">{quizSet.creatorNickname}</p>
+                <p className="text-sm text-gray-600">{quizSet.description}</p>
+              </div>
+              <div className="flex gap-2 shrink-0">
+                {isOwner ? (
+                  <>
+                    <button onClick={handleEditOpen} className="px-4 py-2 bg-white border-[3px] border-dark rounded-xl text-sm font-bold shadow-kitsch-sm hover:shadow-kitsch hover:-translate-y-0.5 transition-all">
+                      수정
+                    </button>
+                    <button onClick={handleDelete} className="px-4 py-2 bg-red-500 text-white border-[3px] border-dark rounded-xl text-sm font-bold shadow-kitsch-sm hover:shadow-kitsch hover:-translate-y-0.5 transition-all">
+                      삭제
+                    </button>
+                  </>
+                ) : (
+                  <button onClick={() => setShowReportModal(true)} className="px-4 py-2 bg-white text-red-500 border-[3px] border-red-300 rounded-xl text-sm font-bold shadow-kitsch-sm hover:shadow-kitsch hover:-translate-y-0.5 transition-all">
+                    🚨 신고
+                  </button>
+                )}
+              </div>
+            </div>
             <div className="flex gap-4 mt-6">
               <span className="px-4 py-2 bg-cream border-2 border-dark rounded-xl text-sm font-bold">
                 📝 {quizSet.totalQuizCount}문제
@@ -392,43 +391,43 @@ const [reporting, setReporting] = useState(false);
         </button>
       )}
       {showReportModal && (
-  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-    <div className="bg-white border-[3px] border-dark rounded-2xl shadow-kitsch-lg p-8 w-full max-w-md">
-      <h2 className="font-title text-2xl mb-2">퀴즈셋 신고</h2>
-      <p className="text-sm text-gray-400 mb-6">{quizSet.title}</p>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white border-[3px] border-dark rounded-2xl shadow-kitsch-lg p-8 w-full max-w-md">
+            <h2 className="font-title text-2xl mb-2">퀴즈셋 신고</h2>
+            <p className="text-sm text-gray-400 mb-6">{quizSet.title}</p>
 
-      <div className="mb-6">
-        <label className="block text-sm font-bold mb-2">신고 사유</label>
-        <textarea
-          value={reportReason}
-          onChange={(e) => setReportReason(e.target.value)}
-          placeholder="신고 사유를 입력해주세요. (최대 500자)"
-          maxLength={500}
-          rows={4}
-          className="w-full px-4 py-3 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-red-400 outline-none transition-colors resize-none"
-        />
-        <p className="text-xs text-gray-400 text-right mt-1">{reportReason.length}/500</p>
-      </div>
+            <div className="mb-6">
+              <label className="block text-sm font-bold mb-2">신고 사유</label>
+              <textarea
+                value={reportReason}
+                onChange={(e) => setReportReason(e.target.value)}
+                placeholder="신고 사유를 입력해주세요. (최대 500자)"
+                maxLength={500}
+                rows={4}
+                className="w-full px-4 py-3 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-red-400 outline-none transition-colors resize-none"
+              />
+              <p className="text-xs text-gray-400 text-right mt-1">{reportReason.length}/500</p>
+            </div>
 
-      <div className="flex gap-3">
-        <button
-          onClick={handleReport}
-          disabled={reporting || !reportReason.trim()}
-          className="flex-1 py-3 bg-red-500 text-white font-bold border-[3px] border-dark rounded-xl shadow-kitsch hover:shadow-kitsch-lg hover:-translate-y-0.5 transition-all disabled:opacity-50"
-        >
-          {reporting ? "신고 중..." : "신고하기"}
-        </button>
-        <button
-          onClick={() => { setShowReportModal(false); setReportReason(""); }}
-          className="px-6 py-3 bg-white font-bold border-[3px] border-dark rounded-xl shadow-kitsch-sm hover:shadow-kitsch hover:-translate-y-0.5 transition-all"
-        >
-          취소
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+            <div className="flex gap-3">
+              <button
+                onClick={handleReport}
+                disabled={reporting || !reportReason.trim()}
+                className="flex-1 py-3 bg-red-500 text-white font-bold border-[3px] border-dark rounded-xl shadow-kitsch hover:shadow-kitsch-lg hover:-translate-y-0.5 transition-all disabled:opacity-50"
+              >
+                {reporting ? "신고 중..." : "신고하기"}
+              </button>
+              <button
+                onClick={() => { setShowReportModal(false); setReportReason(""); }}
+                className="px-6 py-3 bg-white font-bold border-[3px] border-dark rounded-xl shadow-kitsch-sm hover:shadow-kitsch hover:-translate-y-0.5 transition-all"
+              >
+                취소
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
-  
+
 }

@@ -23,9 +23,4 @@ public interface RankingService {
 
     RankingResponse getMonthlyRankings(Long userId);
 
-    List<RankingResponse.RankingItem> getCachedTopRankings();
-
-    List<RankingResponse.RankingItem> getCachedWeeklyRankings();
-
-    List<RankingResponse.RankingItem> getCachedMonthlyRankings();
 }

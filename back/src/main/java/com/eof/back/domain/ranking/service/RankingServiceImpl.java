@@ -85,35 +85,6 @@ public class RankingServiceImpl implements RankingService {
         return new RankingResponse(null, rankingCacheService.getMonthlyRankingItems());
     }
 
-
-
-
-    @Cacheable(value = "ranking:all", key = "'top10'")
-    @Transactional(readOnly = true)
-    public List<RankingResponse.RankingItem> getCachedTopRankings() {
-        List<User> topUsers = userRepository.findTop10ActiveUsers(PageRequest.of(0, 10));
-        List<RankingResponse.RankingItem> rankings = new ArrayList<>();
-        for (int i = 0; i < topUsers.size(); i++) {
-            User user = topUsers.get(i);
-            rankings.add(new RankingResponse.RankingItem(i + 1, user.getNickname(), user.getTotalRankingScore()));
-        }
-        return rankings;
-    }
-
-    @Cacheable(value = "ranking:weekly", key = "'top10'")
-    @Transactional(readOnly = true)
-    public List<RankingResponse.RankingItem> getCachedWeeklyRankings() {
-        LocalDateTime since = LocalDateTime.now().minusWeeks(1);
-        return getPeriodRankingItems(since);
-    }
-
-    @Cacheable(value = "ranking:monthly", key = "'top10'")
-    @Transactional(readOnly = true)
-    public List<RankingResponse.RankingItem> getCachedMonthlyRankings() {
-        LocalDateTime since = LocalDateTime.now().minusMonths(1);
-        return getPeriodRankingItems(since);
-    }
-
     private List<RankingResponse.RankingItem> getPeriodRankingItems(LocalDateTime since) {
         List<Object[]> results = gameRecordRepository.findRankingByPeriod(since, PageRequest.of(0, 10));
         List<RankingResponse.RankingItem> rankings = new ArrayList<>();

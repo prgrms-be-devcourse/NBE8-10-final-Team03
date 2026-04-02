@@ -51,3 +51,5 @@ custom:
     secretKey: ${JWT_SECRET}
     accessTokenExpirationSeconds: 1200   # 20분
     refreshTokenExpirationSeconds: 1209600  # 14일
+  turnstile:
+    secret-key: ${TURNSTILE_SECRET_KEY}

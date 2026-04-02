@@ -52,6 +52,7 @@ public class AuthServiceImpl implements AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final LoginAttemptService loginAttemptService;
+    private final CaptchaService captchaService;
 
     @Value("${custom.jwt.refreshTokenExpirationSeconds}")
     private long refreshTokenExpireSeconds;
@@ -89,25 +90,33 @@ public class AuthServiceImpl implements AuthService {
             throw new AuthException(AuthErrorCode.LOGIN_ATTEMPTS_EXCEEDED);
         }
 
-        // 2. username으로 사용자 조회
+        // 2. 실패 횟수가 임계값 이상이면 CAPTCHA 검증
+        if (loginAttemptService.getAttemptCount(req.username()) >= CaptchaService.CAPTCHA_THRESHOLD) {
+            if (req.captchaToken() == null) {
+                throw new AuthException(AuthErrorCode.CAPTCHA_REQUIRED);
+            }
+            captchaService.verify(req.captchaToken());
+        }
+
+        // 3. username으로 사용자 조회
         User user = userRepository.findByUsername(req.username())
                 .orElseThrow(() -> {
                     loginAttemptService.recordFailure(req.username());
                     return new AuthException(AuthErrorCode.INVALID_CREDENTIALS);
                 });
 
-        // 3. 비밀번호 검증
+        // 4. 비밀번호 검증
         if (!passwordEncoder.matches(req.password(), user.getPassword())) {
             loginAttemptService.recordFailure(req.username());
             throw new AuthException(AuthErrorCode.INVALID_CREDENTIALS);
         }
 
-        // 4. 탈퇴/정지 여부 확인 (구체적인 상태를 노출하지 않아 계정 열거 공격 방지)
+        // 5. 탈퇴/정지 여부 확인 (구체적인 상태를 노출하지 않아 계정 열거 공격 방지)
         if (!user.isActive()) {
             throw new AuthException(AuthErrorCode.LOGIN_FAIL);
         }
 
-        // 5. 로그인 성공 시 실패 카운터 초기화
+        // 6. 로그인 성공 시 실패 카운터 초기화
         loginAttemptService.resetAttempts(req.username());
 
         return issueTokens(user);

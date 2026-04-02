@@ -56,6 +56,17 @@ public class LoginAttemptService {
     }
 
     /**
+     * 현재 로그인 실패 횟수를 반환합니다.
+     *
+     * @param username 사용자 아이디
+     * @return 실패 횟수 (없으면 0)
+     */
+    public int getAttemptCount(String username) {
+        String value = redisTemplate.opsForValue().get(KEY_PREFIX + username);
+        return value == null ? 0 : Integer.parseInt(value);
+    }
+
+    /**
      * 로그인 성공 시 실패 카운터를 초기화합니다.
      *
      * @param username 사용자 아이디

@@ -51,6 +51,8 @@ public class AuthServiceImpl implements AuthService {
     private final RefreshTokenStore refreshTokenStore;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final LoginAttemptService loginAttemptService;
+    private final CaptchaService captchaService;
 
     @Value("${custom.jwt.refreshTokenExpirationSeconds}")
     private long refreshTokenExpireSeconds;
@@ -83,19 +85,43 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public LoginResult login(LoginRequest req) {
 
-        // 1. username으로 사용자 조회
+        // 1. 실패 횟수 조회 (잠금 여부 + CAPTCHA 임계값 체크에 공통 사용)
+        int failCount = loginAttemptService.getAttemptCount(req.username());
+
+        if (failCount >= LoginAttemptService.MAX_ATTEMPTS) {
+            throw new AuthException(AuthErrorCode.LOGIN_ATTEMPTS_EXCEEDED);
+        }
+
+        // 2. 실패 횟수가 임계값 이상이면 CAPTCHA 검증
+        if (failCount >= CaptchaService.CAPTCHA_THRESHOLD) {
+            if (req.captchaToken() == null) {
+                throw new AuthException(AuthErrorCode.CAPTCHA_REQUIRED);
+            }
+            try {
+                captchaService.verify(req.captchaToken());
+            } catch (AuthException e) {
+                loginAttemptService.recordFailure(req.username());
+                throw e;
+            }
+        }
+
+        // 3. username으로 사용자 조회
         User user = userRepository.findByUsername(req.username())
                 .orElseThrow(() -> new AuthException(AuthErrorCode.INVALID_CREDENTIALS));
 
-        // 2. 비밀번호 검증
+        // 4. 비밀번호 검증
         if (!passwordEncoder.matches(req.password(), user.getPassword())) {
+            loginAttemptService.recordFailure(req.username());
             throw new AuthException(AuthErrorCode.INVALID_CREDENTIALS);
         }
 
-        // 3. 탈퇴/정지 여부 확인 (구체적인 상태를 노출하지 않아 계정 열거 공격 방지)
+        // 5. 탈퇴/정지 여부 확인 (구체적인 상태를 노출하지 않아 계정 열거 공격 방지)
         if (!user.isActive()) {
             throw new AuthException(AuthErrorCode.LOGIN_FAIL);
         }
+
+        // 6. 로그인 성공 시 실패 카운터 초기화
+        loginAttemptService.resetAttempts(req.username());
 
         return issueTokens(user);
     }

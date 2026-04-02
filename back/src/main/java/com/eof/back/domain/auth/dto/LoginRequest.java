@@ -1,6 +1,7 @@
 package com.eof.back.domain.auth.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 /**
  * 로그인 요청 데이터를 전달하는 DTO입니다.
@@ -13,9 +14,13 @@ import jakarta.validation.constraints.NotBlank;
  */
 public record LoginRequest(
         @NotBlank(message = "아이디는 필수입니다.")
+        @Size(max = 50, message = "아이디는 50자를 초과할 수 없습니다.")
         String username,
 
         @NotBlank(message = "비밀번호는 필수입니다.")
-        String password
+        String password,
+
+        @Size(max = 2048, message = "잘못된 보안 문자 토큰입니다.")
+        String captchaToken
 ) {
 }

@@ -7,7 +7,9 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @ActiveProfiles("test")
-@SpringBootTest
+@SpringBootTest(properties = {
+		"custom.turnstile.secret-key=test-secret"
+})
 class BackApplicationTests {
 
 	@MockitoBean

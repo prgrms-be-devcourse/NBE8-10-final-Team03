@@ -8,8 +8,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @ActiveProfiles("test")
 @SpringBootTest(properties = {
-		"custom.turnstile.secret-key=test-secret",
-		"JWT_SECRET=test-jwt-secret-key-that-is-long-enough"
+		"custom.turnstile.secret-key=test-secret"
 })
 class BackApplicationTests {
 

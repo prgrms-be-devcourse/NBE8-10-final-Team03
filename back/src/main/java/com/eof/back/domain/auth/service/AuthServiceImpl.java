@@ -177,9 +177,9 @@ public class AuthServiceImpl implements AuthService {
         // 1. Refresh Token 검증 및 저장된 토큰 조회
         RefreshToken savedRefreshToken = validateAndGetRefreshToken(refreshToken);
 
-        // 2. 저장소에서 Refresh Token 삭제 + tokenVersion 삭제
+        // 2. 저장소에서 Refresh Token 삭제 + tokenVersion 증가 (삭제하면 재로그인 시 version=1 재사용 취약점 발생)
         refreshTokenStore.delete(savedRefreshToken.getUserId());
-        tokenVersionStore.delete(savedRefreshToken.getUserId());
+        tokenVersionStore.increment(savedRefreshToken.getUserId());
     }
 
     @Override

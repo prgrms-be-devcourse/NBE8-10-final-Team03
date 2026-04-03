@@ -30,6 +30,7 @@ public interface TokenVersionStore {
      * <p>호출 시점:
      * <ul>
      *   <li>로그인 성공 - 이전 세션의 access token을 즉시 무효화하여 1계정 1세션을 보장합니다.</li>
+     *   <li>로그아웃 - version을 증가시켜 현재 토큰을 무효화합니다.</li>
      *   <li>관리자 정지 - 정지 처리와 동시에 해당 사용자의 현재 토큰을 무효화합니다.</li>
      * </ul>
      *
@@ -60,7 +61,6 @@ public interface TokenVersionStore {
      *
      * <p>호출 시점:
      * <ul>
-     *   <li>로그아웃 - 세션 종료와 함께 키를 제거하여 이후 요청을 모두 차단합니다.</li>
      *   <li>회원 탈퇴 - soft delete 처리 후 잔여 토큰을 즉시 무효화합니다.</li>
      *   <li>관리자 삭제 - 영구 삭제(soft) 처리 시 키를 제거합니다.</li>
      * </ul>

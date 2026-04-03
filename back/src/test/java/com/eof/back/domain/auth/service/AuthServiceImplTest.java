@@ -552,7 +552,7 @@ public class AuthServiceImplTest {
     class Logout {
 
         @Test
-        @DisplayName("성공 - RefreshToken과 tokenVersion을 저장소에서 삭제한다")
+        @DisplayName("성공 - RefreshToken을 삭제하고 tokenVersion을 증가시킨다")
         void success() {
             // given
             Claims claims = mock(Claims.class);
@@ -571,7 +571,7 @@ public class AuthServiceImplTest {
 
             // then
             verify(refreshTokenStore).delete(USER_ID);
-            verify(tokenVersionStore).delete(USER_ID);
+            verify(tokenVersionStore).increment(USER_ID);
         }
 
         @Test

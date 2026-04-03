@@ -5,10 +5,10 @@ on:
     branches: [ main ]
     paths:
       - ".github/workflows/**"
-      - "src/**"
-      - "build.gradle.kts"
-      - "settings.gradle.kts"
-      - "Dockerfile"
+      - "back/src/**"
+      - "back/build.gradle.kts"
+      - "back/settings.gradle.kts"
+      - "back/Dockerfile"
 
 permissions:
   contents: write

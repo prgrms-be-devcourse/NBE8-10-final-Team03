@@ -1,5 +1,6 @@
 package com.eof.back.admin.service;
 
+import com.eof.back.admin.dto.AdminUserResponse;
 import com.eof.back.admin.entity.UserSuspension;
 import com.eof.back.admin.repository.UserSuspensionRepository;
 import com.eof.back.domain.quiz.dto.QuizUpdateRequest;
@@ -30,6 +31,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -203,6 +206,23 @@ public class AdminServiceImpl implements AdminService {
         
         user.delete();
         userSuspensionRepository.deleteByUserId(targetUserId);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Slice<AdminUserResponse> getUsers(String keyword, Pageable pageable, Long adminId) {
+        validateAdminRole(adminId);
+
+        Slice<User> users;
+        if (keyword != null && !keyword.isBlank()) {
+            users = userRepository.findByNicknameContaining(keyword, pageable);
+        } else {
+            users = userRepository.findAllBy(pageable);
+        }
+
+        return users.map(AdminUserResponse::from);
     }
 
     /**

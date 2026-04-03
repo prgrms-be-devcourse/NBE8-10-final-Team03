@@ -3,6 +3,7 @@ package com.eof.back.domain.user.user.repository;
 import com.eof.back.domain.user.user.entity.AuthProvider;
 import com.eof.back.domain.user.user.entity.User;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -52,4 +53,8 @@ public interface UserRepository extends JpaRepository<User,Long> {
             "OR (u.totalRankingScore = (SELECT u2.totalRankingScore FROM User u2 WHERE u2.id = :userId) " +
             "AND u.id < :userId))")
     Long findMyRankByUserId(@Param("userId") Long userId);
+
+    Slice<User> findByNicknameContaining(String nickname, Pageable pageable);
+
+    Slice<User> findAllBy(Pageable pageable);
 }

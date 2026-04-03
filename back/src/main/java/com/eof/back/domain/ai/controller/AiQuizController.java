@@ -6,9 +6,12 @@ import com.eof.back.domain.ai.service.AiQuizService;
 import com.eof.back.global.jwt.UserPrincipal;
 import com.eof.back.global.response.CommonResponse;
 import com.eof.back.global.response.Response;
+import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,6 +28,7 @@ import java.util.List;
  * @since 2026-04-02
  */
 
+@Validated
 @RestController
 @RequestMapping("/api/v1/ai")
 @RequiredArgsConstructor
@@ -34,8 +38,13 @@ public class AiQuizController {
 
     @PostMapping("/quizzes")
     public ResponseEntity<Response<AiQuizGenerateResponse>> generateQuiz(
-            @RequestParam String topic,
+            @RequestParam @NotBlank(message = "주제를 입력해주세요.") String topic,
             @AuthenticationPrincipal UserPrincipal principal) {
+
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
         AiQuizGenerateResponse response = aiQuizService.generateQuiz(topic, principal.id());
         return ResponseEntity.ok(CommonResponse.success(response, "AI 퀴즈 생성 완료"));
     }

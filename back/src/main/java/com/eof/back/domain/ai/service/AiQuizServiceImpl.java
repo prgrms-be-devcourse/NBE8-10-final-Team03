@@ -66,7 +66,7 @@ public class AiQuizServiceImpl implements AiQuizService {
         List<AiQuizResponse> quizzes = parseQuizzes(response);
 
         if (quizzes.isEmpty()) {
-            throw new QuizSetException(QuizSetErrorCode.QUIZ_SET_CREATE_FAIL);
+            throw new QuizSetException(QuizSetErrorCode.INVALID_TOPIC);
         }
 
         Long quizSetId = saveQuizSet(topic, quizzes, userId);
@@ -95,7 +95,8 @@ public class AiQuizServiceImpl implements AiQuizService {
         }
         return quizSet.getId();
     }
-    private String callGeminiApi(String topic) {
+    // 테스트를 위해 private 제거
+    String callGeminiApi(String topic) {
         String prompt = """
                 주제: %s
                 위 주제로 객관식 퀴즈 5개를 만들어줘.
@@ -148,7 +149,7 @@ public class AiQuizServiceImpl implements AiQuizService {
 
             return objectMapper.readValue(json, new TypeReference<List<AiQuizResponse>>() {});
         } catch (Exception e) {
-            throw new RuntimeException("퀴즈 파싱 실패: " + e.getMessage());
+            throw new QuizSetException(QuizSetErrorCode.QUIZ_SET_CREATE_FAIL);
         }
     }
 }

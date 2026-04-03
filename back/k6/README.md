@@ -35,7 +35,7 @@ docker compose up -d
 
 실행되는 서비스:
 
-* MySQL
+* PostgreSQL
 * Redis
 * InfluxDB
 * Grafana

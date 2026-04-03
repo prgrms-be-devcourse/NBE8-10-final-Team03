@@ -12,6 +12,7 @@ import com.eof.back.domain.user.user.repository.UserRepository;
 import com.eof.back.global.exception.errorCode.AuthErrorCode;
 import com.eof.back.global.exception.exceptions.AuthException;
 import com.eof.back.global.jwt.JwtTokenProvider;
+import com.eof.back.global.token.TokenVersionStore;
 import io.jsonwebtoken.Claims;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,7 +43,7 @@ import static org.mockito.Mockito.verify;
 /**
  * AuthServiceImpl의 단위 테스트입니다.
  * <p>
- * signup, login, reissue, logout 메서드의 성공 및 실패 시나리오를 검증합니다.
+ * signup, login, reissue, logout, withdraw 메서드의 성공 및 실패 시나리오를 검증합니다.
  *
  * @author 5h6vm
  * @since 2026-03-23
@@ -56,6 +57,9 @@ public class AuthServiceImplTest {
 
     @Mock
     private RefreshTokenStore refreshTokenStore;
+
+    @Mock
+    private TokenVersionStore tokenVersionStore;
 
     @Mock
     private UserRepository userRepository;
@@ -76,6 +80,7 @@ public class AuthServiceImplTest {
     private static final String NEW_ACCESS_TOKEN = "new.access.token";
     private static final String NEW_REFRESH_TOKEN = "new.refresh.token";
     private static final Long USER_ID = 1L;
+    private static final long TOKEN_VERSION = 1L;
 
     @BeforeEach
     void setUp() {
@@ -166,12 +171,11 @@ public class AuthServiceImplTest {
     class Login {
 
         @Test
-        @DisplayName("성공 - AccessToken과 RefreshToken을 반환한다")
+        @DisplayName("성공 - tokenVersion을 증가시키고 AccessToken, RefreshToken을 반환한다")
         void success() {
             // given
             LoginRequest req = new LoginRequest("testUser", "password123", null);
             User user = mock(User.class);
-
 
             given(userRepository.findByUsername("testUser")).willReturn(Optional.of(user));
             given(user.getPassword()).willReturn("encodedPassword");
@@ -181,8 +185,11 @@ public class AuthServiceImplTest {
             given(user.getUsername()).willReturn("testUser");
             given(user.getRole()).willReturn(Role.USER);
             given(user.getNickname()).willReturn("tester");
-            given(jwtTokenProvider.createAccessToken(USER_ID, "testUser", "USER", "tester")).willReturn(NEW_ACCESS_TOKEN);
-            given(jwtTokenProvider.createRefreshToken(USER_ID, "testUser", "USER", "tester")).willReturn(NEW_REFRESH_TOKEN);
+            given(tokenVersionStore.increment(USER_ID)).willReturn(TOKEN_VERSION);
+            given(jwtTokenProvider.createAccessToken(USER_ID, "testUser", "USER", "tester", TOKEN_VERSION))
+                    .willReturn(NEW_ACCESS_TOKEN);
+            given(jwtTokenProvider.createRefreshToken(USER_ID, "testUser", "USER", "tester", TOKEN_VERSION))
+                    .willReturn(NEW_REFRESH_TOKEN);
 
             // when
             LoginResult response = authService.login(req);
@@ -191,7 +198,38 @@ public class AuthServiceImplTest {
             assertThat(response.accessToken()).isEqualTo(NEW_ACCESS_TOKEN);
             assertThat(response.refreshToken()).isEqualTo(NEW_REFRESH_TOKEN);
             assertThat(response.nickname()).isEqualTo("tester");
+            verify(tokenVersionStore).increment(USER_ID);
             verify(refreshTokenStore).save(eq(USER_ID), eq(NEW_REFRESH_TOKEN), any(LocalDateTime.class));
+        }
+
+        @Test
+        @DisplayName("성공 - 재로그인 시 tokenVersion이 증가하여 이전 세션 토큰을 무효화한다")
+        void success_relogin_incrementsVersion() {
+            // given
+            LoginRequest req = new LoginRequest("testUser", "password123", null);
+            User user = mock(User.class);
+            long newVersion = 5L; // 재로그인으로 version 증가
+
+            given(userRepository.findByUsername("testUser")).willReturn(Optional.of(user));
+            given(user.getPassword()).willReturn("encodedPassword");
+            given(passwordEncoder.matches("password123", "encodedPassword")).willReturn(true);
+            given(user.isActive()).willReturn(true);
+            given(user.getId()).willReturn(USER_ID);
+            given(user.getUsername()).willReturn("testUser");
+            given(user.getRole()).willReturn(Role.USER);
+            given(user.getNickname()).willReturn("tester");
+            given(tokenVersionStore.increment(USER_ID)).willReturn(newVersion);
+            given(jwtTokenProvider.createAccessToken(USER_ID, "testUser", "USER", "tester", newVersion))
+                    .willReturn(NEW_ACCESS_TOKEN);
+            given(jwtTokenProvider.createRefreshToken(USER_ID, "testUser", "USER", "tester", newVersion))
+                    .willReturn(NEW_REFRESH_TOKEN);
+
+            // when
+            authService.login(req);
+
+            // then
+            verify(tokenVersionStore).increment(USER_ID);
+            verify(jwtTokenProvider).createAccessToken(USER_ID, "testUser", "USER", "tester", newVersion);
         }
 
         @Test
@@ -235,7 +273,6 @@ public class AuthServiceImplTest {
             LoginRequest req = new LoginRequest("testUser", "wrongPassword", null);
             User user = mock(User.class);
 
-
             given(userRepository.findByUsername("testUser")).willReturn(Optional.of(user));
             given(user.getPassword()).willReturn("encodedPassword");
             given(passwordEncoder.matches("wrongPassword", "encodedPassword")).willReturn(false);
@@ -246,7 +283,7 @@ public class AuthServiceImplTest {
                     .satisfies(e -> assertThat(((AuthException) e).getErrorCode())
                             .isEqualTo(AuthErrorCode.INVALID_CREDENTIALS));
 
-            verify(jwtTokenProvider, never()).createAccessToken(any(), any(), any(), any());
+            verify(tokenVersionStore, never()).increment(any());
         }
 
         @Test
@@ -256,7 +293,6 @@ public class AuthServiceImplTest {
             LoginRequest req = new LoginRequest("testUser", "password123", null);
             User user = mock(User.class);
 
-
             given(userRepository.findByUsername("testUser")).willReturn(Optional.of(user));
             given(user.getPassword()).willReturn("encodedPassword");
             given(passwordEncoder.matches("password123", "encodedPassword")).willReturn(true);
@@ -268,7 +304,7 @@ public class AuthServiceImplTest {
                     .satisfies(e -> assertThat(((AuthException) e).getErrorCode())
                             .isEqualTo(AuthErrorCode.LOGIN_FAIL));
 
-            verify(jwtTokenProvider, never()).createAccessToken(any(), any(), any(), any());
+            verify(tokenVersionStore, never()).increment(any());
         }
 
         @Test
@@ -278,7 +314,6 @@ public class AuthServiceImplTest {
             LoginRequest req = new LoginRequest("testUser", "password123", null);
             User user = mock(User.class);
 
-
             given(userRepository.findByUsername("testUser")).willReturn(Optional.of(user));
             given(user.getPassword()).willReturn("encodedPassword");
             given(passwordEncoder.matches("password123", "encodedPassword")).willReturn(true);
@@ -290,7 +325,7 @@ public class AuthServiceImplTest {
                     .satisfies(e -> assertThat(((AuthException) e).getErrorCode())
                             .isEqualTo(AuthErrorCode.LOGIN_FAIL));
 
-            verify(jwtTokenProvider, never()).createAccessToken(any(), any(), any(), any());
+            verify(tokenVersionStore, never()).increment(any());
         }
 
         @Test
@@ -298,7 +333,6 @@ public class AuthServiceImplTest {
         void fail_captchaRequired() {
             // given
             LoginRequest req = new LoginRequest("testUser", "password123", null);
-
 
             given(loginAttemptService.getAttemptCount("testUser")).willReturn(CaptchaService.CAPTCHA_THRESHOLD);
 
@@ -316,7 +350,6 @@ public class AuthServiceImplTest {
         void fail_captchaInvalid() {
             // given
             LoginRequest req = new LoginRequest("testUser", "password123", "invalid-token");
-
 
             given(loginAttemptService.getAttemptCount("testUser")).willReturn(CaptchaService.CAPTCHA_THRESHOLD);
             willThrow(new AuthException(AuthErrorCode.CAPTCHA_INVALID)).given(captchaService).verify("invalid-token");
@@ -337,7 +370,7 @@ public class AuthServiceImplTest {
     class Reissue {
 
         @Test
-        @DisplayName("성공 - 새로운 AccessToken과 RefreshToken을 반환한다")
+        @DisplayName("성공 - tokenVersion 일치 시 새로운 AccessToken과 RefreshToken을 반환한다")
         void success() {
             // given
             Claims claims = mock(Claims.class);
@@ -352,9 +385,13 @@ public class AuthServiceImplTest {
             given(jwtTokenProvider.getUsername(claims)).willReturn("testuser");
             given(jwtTokenProvider.getRole(claims)).willReturn("USER");
             given(jwtTokenProvider.getNickname(claims)).willReturn("tester");
+            given(jwtTokenProvider.getTokenVersion(claims)).willReturn(TOKEN_VERSION);
             given(refreshTokenStore.findByUserId(USER_ID)).willReturn(Optional.of(savedToken));
-            given(jwtTokenProvider.createAccessToken(USER_ID, "testuser", "USER", "tester")).willReturn(NEW_ACCESS_TOKEN);
-            given(jwtTokenProvider.createRefreshToken(USER_ID, "testuser", "USER", "tester")).willReturn(NEW_REFRESH_TOKEN);
+            given(tokenVersionStore.findByUserId(USER_ID)).willReturn(Optional.of(TOKEN_VERSION));
+            given(jwtTokenProvider.createAccessToken(USER_ID, "testuser", "USER", "tester", TOKEN_VERSION))
+                    .willReturn(NEW_ACCESS_TOKEN);
+            given(jwtTokenProvider.createRefreshToken(USER_ID, "testuser", "USER", "tester", TOKEN_VERSION))
+                    .willReturn(NEW_REFRESH_TOKEN);
 
             // when
             LoginResult response = authService.reissue(REFRESH_TOKEN);
@@ -363,6 +400,8 @@ public class AuthServiceImplTest {
             assertThat(response.accessToken()).isEqualTo(NEW_ACCESS_TOKEN);
             assertThat(response.refreshToken()).isEqualTo(NEW_REFRESH_TOKEN);
             verify(refreshTokenStore).save(eq(USER_ID), eq(NEW_REFRESH_TOKEN), any(LocalDateTime.class));
+            // reissue는 version을 증가시키지 않고 현재 값을 그대로 사용
+            verify(tokenVersionStore, never()).increment(any());
         }
 
         @Test
@@ -453,6 +492,59 @@ public class AuthServiceImplTest {
                             .isEqualTo(AuthErrorCode.TOKEN_INVALID));
         }
 
+        @Test
+        @DisplayName("실패 - Redis에 tokenVersion 키 없음(로그아웃 상태)이면 TOKEN_INVALID 예외가 발생한다")
+        void fail_tokenVersionKeyAbsent() {
+            // given
+            Claims claims = mock(Claims.class);
+            RefreshToken savedToken = RefreshToken.builder()
+                    .userId(USER_ID)
+                    .token(REFRESH_TOKEN)
+                    .expiredAt(LocalDateTime.now().plusDays(7))
+                    .build();
+
+            given(jwtTokenProvider.validateToken(REFRESH_TOKEN)).willReturn(claims);
+            given(jwtTokenProvider.getUserId(claims)).willReturn(USER_ID);
+            given(jwtTokenProvider.getUsername(claims)).willReturn("testuser");
+            given(jwtTokenProvider.getRole(claims)).willReturn("USER");
+            given(jwtTokenProvider.getNickname(claims)).willReturn("tester");
+            given(jwtTokenProvider.getTokenVersion(claims)).willReturn(TOKEN_VERSION);
+            given(refreshTokenStore.findByUserId(USER_ID)).willReturn(Optional.of(savedToken));
+            given(tokenVersionStore.findByUserId(USER_ID)).willReturn(Optional.empty());
+
+            // when & then
+            assertThatThrownBy(() -> authService.reissue(REFRESH_TOKEN))
+                    .isInstanceOf(AuthException.class)
+                    .satisfies(e -> assertThat(((AuthException) e).getErrorCode())
+                            .isEqualTo(AuthErrorCode.TOKEN_INVALID));
+        }
+
+        @Test
+        @DisplayName("실패 - tokenVersion 불일치(다른 기기 재로그인)이면 TOKEN_INVALID 예외가 발생한다")
+        void fail_tokenVersionMismatch() {
+            // given
+            Claims claims = mock(Claims.class);
+            RefreshToken savedToken = RefreshToken.builder()
+                    .userId(USER_ID)
+                    .token(REFRESH_TOKEN)
+                    .expiredAt(LocalDateTime.now().plusDays(7))
+                    .build();
+
+            given(jwtTokenProvider.validateToken(REFRESH_TOKEN)).willReturn(claims);
+            given(jwtTokenProvider.getUserId(claims)).willReturn(USER_ID);
+            given(jwtTokenProvider.getUsername(claims)).willReturn("testuser");
+            given(jwtTokenProvider.getRole(claims)).willReturn("USER");
+            given(jwtTokenProvider.getNickname(claims)).willReturn("tester");
+            given(jwtTokenProvider.getTokenVersion(claims)).willReturn(1L); // refresh token의 version = 1
+            given(refreshTokenStore.findByUserId(USER_ID)).willReturn(Optional.of(savedToken));
+            given(tokenVersionStore.findByUserId(USER_ID)).willReturn(Optional.of(2L)); // Redis = 2 (재로그인)
+
+            // when & then
+            assertThatThrownBy(() -> authService.reissue(REFRESH_TOKEN))
+                    .isInstanceOf(AuthException.class)
+                    .satisfies(e -> assertThat(((AuthException) e).getErrorCode())
+                            .isEqualTo(AuthErrorCode.TOKEN_INVALID));
+        }
     }
 
     @Nested
@@ -460,7 +552,7 @@ public class AuthServiceImplTest {
     class Logout {
 
         @Test
-        @DisplayName("성공 - RefreshToken을 저장소에서 삭제한다")
+        @DisplayName("성공 - RefreshToken을 삭제하고 tokenVersion을 증가시킨다")
         void success() {
             // given
             Claims claims = mock(Claims.class);
@@ -479,6 +571,7 @@ public class AuthServiceImplTest {
 
             // then
             verify(refreshTokenStore).delete(USER_ID);
+            verify(tokenVersionStore).increment(USER_ID);
         }
 
         @Test
@@ -561,7 +654,7 @@ public class AuthServiceImplTest {
     class Withdraw {
 
         @Test
-        @DisplayName("성공 - 사용자를 soft delete하고 RefreshToken을 삭제한다")
+        @DisplayName("성공 - 사용자를 soft delete하고 RefreshToken과 tokenVersion을 삭제한다")
         void success() {
             // given
             User user = mock(User.class);
@@ -575,6 +668,7 @@ public class AuthServiceImplTest {
             // then
             verify(user).delete();
             verify(refreshTokenStore).delete(USER_ID);
+            verify(tokenVersionStore).delete(USER_ID);
         }
 
         @Test

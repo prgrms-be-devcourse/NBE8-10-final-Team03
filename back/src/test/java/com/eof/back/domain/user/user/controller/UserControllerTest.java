@@ -9,6 +9,7 @@ import com.eof.back.global.exception.exceptions.AuthException;
 import com.eof.back.global.jwt.CookieUtil;
 import com.eof.back.global.jwt.JwtAuthenticationEntryPoint;
 import com.eof.back.global.jwt.JwtTokenProvider;
+import com.eof.back.global.token.TokenVersionStore;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -45,6 +46,9 @@ class UserControllerTest {
 
     @MockitoBean
     private JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+
+    @MockitoBean
+    private TokenVersionStore tokenVersionStore;
 
     @MockitoBean
     private CookieUtil cookieUtil;

@@ -10,6 +10,7 @@ import com.eof.back.global.jwt.CookieUtil;
 import com.eof.back.global.jwt.JwtAuthenticationEntryPoint;
 import com.eof.back.global.jwt.JwtTokenProvider;
 import com.eof.back.global.jwt.UserPrincipal;
+import com.eof.back.global.token.TokenVersionStore;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -61,6 +62,9 @@ class AuthControllerTest {
 
     @MockitoBean
     private JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+
+    @MockitoBean
+    private TokenVersionStore tokenVersionStore;
 
     @Nested
     @DisplayName("signup")

@@ -8,6 +8,7 @@ import com.eof.back.global.jwt.UserPrincipal;
 import com.eof.back.global.jwt.CookieUtil;
 import com.eof.back.global.jwt.JwtAuthenticationEntryPoint;
 import com.eof.back.global.jwt.JwtTokenProvider;
+import com.eof.back.global.token.TokenVersionStore;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
@@ -55,6 +56,9 @@ class QuizControllerTest {
 
     @MockitoBean
     private JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+
+    @MockitoBean
+    private TokenVersionStore tokenVersionStore;
 
     @MockitoBean
     private CookieUtil cookieUtil;

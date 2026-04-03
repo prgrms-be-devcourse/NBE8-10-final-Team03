@@ -4,6 +4,7 @@ import com.eof.back.domain.ranking.dto.RankingResponse;
 import com.eof.back.domain.ranking.service.RankingService;
 import com.eof.back.global.jwt.CookieUtil;
 import com.eof.back.global.jwt.JwtTokenProvider;
+import com.eof.back.global.token.TokenVersionStore;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -39,6 +40,9 @@ class RankingControllerTest {
 
     @MockitoBean
     private JwtTokenProvider jwtTokenProvider;
+
+    @MockitoBean
+    private TokenVersionStore tokenVersionStore;
 
     @MockitoBean
     private CookieUtil cookieUtil;

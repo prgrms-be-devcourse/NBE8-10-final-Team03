@@ -1,6 +1,7 @@
 package com.eof.back.domain.quizset.service;
 
 import com.eof.back.domain.quizset.dto.QuizSetCreateRequest;
+import com.eof.back.domain.quizset.dto.QuizSetInfoResponse;
 import com.eof.back.domain.quizset.dto.QuizSetListResponse;
 import com.eof.back.domain.quizset.dto.QuizSetResponse;
 import com.eof.back.domain.quizset.dto.QuizSetUpdateRequest;
@@ -46,6 +47,18 @@ public interface QuizSetService {
      * @throws com.eof.back.global.exception.exceptions.QuizSetException 권한이 없거나 존재하지 않을 경우 발생합니다.
      */
     QuizSetResponse getQuizSet(Long id, Long userId);
+
+    /**
+     * 특정 식별자(ID)를 가진 퀴즈 세트의 기본 정보를 조회합니다.
+     * <p>
+     * 퀴즈 목록을 포함하지 않으므로, 권한에 관계없이 조회가 가능합니다.
+     * </p>
+     *
+     * @param id 조회할 퀴즈 세트의 식별자
+     * @return 퀴즈 목록을 제외한 퀴즈 세트 정보
+     * @throws com.eof.back.global.exception.exceptions.QuizSetException 존재하지 않을 경우 발생합니다.
+     */
+    QuizSetInfoResponse getQuizSetInfo(Long id);
 
     /**
      * 시스템에 등록된 모든 퀴즈 세트 목록을 조회합니다.

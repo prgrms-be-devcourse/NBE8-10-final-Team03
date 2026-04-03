@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import api from "@/lib/api";
+import { Turnstile } from "@marsidev/react-turnstile";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -11,22 +12,47 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showCaptcha, setShowCaptcha] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const turnstileRef = useRef<any>(null);
 
   const handleLogin = async () => {
     setError("");
+
+    if (showCaptcha && !captchaToken) {
+      setError("보안 문자를 완료해주세요.");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const res = await api.post("/auth/login", { username, password });
+      const res = await api.post("/auth/login", {
+        username,
+        password,
+        captchaToken,
+      });
       const { userId, nickname, role } = res.data.data;
       localStorage.setItem("role", role);
-
       localStorage.setItem("nickname", nickname);
       localStorage.setItem("userId", String(userId));
 
       router.push("/rooms");
     } catch (err: any) {
-      setError(err.response?.data?.message || "로그인에 실패했습니다.");
+      const status = err.response?.status;
+      const message = err.response?.data?.message;
+
+      if (status === 429) {
+        setError(message);
+      } else if (status === 403 && message === "보안 문자 인증이 필요합니다.") {
+        setShowCaptcha(true);
+        setError(message);
+      } else {
+        // CAPTCHA 토큰은 1회용이므로 실패 시 초기화 후 위젯 재시작
+        setCaptchaToken(null);
+        turnstileRef.current?.reset();
+        setError(message || "로그인에 실패했습니다.");
+      }
     } finally {
       setLoading(false);
     }
@@ -97,6 +123,18 @@ export default function LoginPage() {
               className="w-full px-4 py-3 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none transition-colors"
             />
           </div>
+
+          {showCaptcha && (
+            <div className="mb-6">
+              <Turnstile
+                ref={turnstileRef}
+                siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
+                onSuccess={(token) => setCaptchaToken(token)}
+                onExpire={() => setCaptchaToken(null)}
+                options={{ theme: "light" }}
+              />
+            </div>
+          )}
 
           <button
             onClick={handleLogin}

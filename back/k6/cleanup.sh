@@ -20,8 +20,8 @@ fi
 
 echo "테스트 유저 삭제 중... (DB: $DB_NAME, USER: $DB_USERNAME)"
 
-docker exec dabjeongneo-mysql \
-  mysql -u"$DB_USERNAME" -p"$DB_PASSWORD" "$DB_NAME" \
-  -e "DELETE FROM users WHERE username LIKE 'loadtest%'; SELECT ROW_COUNT() AS deleted_count;"
+docker exec dabjeongneo-postgres \
+  psql -U "$DB_USERNAME" -d "$DB_NAME" \
+  -c "DELETE FROM users WHERE username LIKE 'loadtest%';"
 
 echo "완료"

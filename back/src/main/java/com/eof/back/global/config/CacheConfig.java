@@ -37,11 +37,15 @@ public class CacheConfig {
 
     @Bean
     public RedisCacheManager cacheManager(RedisConnectionFactory connectionFactory) {
+        // Spring Data Redis 4.0 표준: 인터페이스의 정적 메서드를 통해 최적화된 JSON 직렬화기 생성
+        // 이 방식은 Jackson2JsonRedisSerializer와 GenericJackson2JsonRedisSerializer를 모두 대체합니다.
+        RedisSerializer<Object> jsonSerializer = RedisSerializer.json();
+
         RedisCacheConfiguration defaultConfig = RedisCacheConfiguration.defaultCacheConfig()
                 .serializeKeysWith(RedisSerializationContext.SerializationPair
-                        .fromSerializer(new StringRedisSerializer()))
+                        .fromSerializer(RedisSerializer.string()))
                 .serializeValuesWith(RedisSerializationContext.SerializationPair
-                        .fromSerializer(new JdkSerializationRedisSerializer()))
+                        .fromSerializer(jsonSerializer))
                 .disableCachingNullValues();
 
         Map<String, RedisCacheConfiguration> cacheConfigs = new HashMap<>();

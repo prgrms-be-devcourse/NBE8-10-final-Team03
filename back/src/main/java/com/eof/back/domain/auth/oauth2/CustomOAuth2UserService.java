@@ -110,7 +110,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
      */
     private String generateUniqueNickname(String nickname) {
         // 한 번의 쿼리로 관련 닉네임 전부 조회 후 메모리에서 처리
-        // TreeSet(CASE_INSENSITIVE_ORDER): MySQL utf8mb4_unicode_ci(대소문자 무시)와 동일하게 비교
+        // TreeSet(CASE_INSENSITIVE_ORDER): PostgreSQL과의 대소문자 비교 일관성을 위해 메모리에서도 대소문자 무시 비교 수행
         Set<String> existingNicknames = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
         existingNicknames.addAll(userRepository.findNicknamesStartingWith(nickname));
 

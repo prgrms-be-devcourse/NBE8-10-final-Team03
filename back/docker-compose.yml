@@ -1,21 +1,17 @@
 services:
-  mysql:
-    image: mysql:8.0
-    container_name: dabjeongneo-mysql
+  postgres:
+    image: postgres:16-alpine
+    container_name: dabjeongneo-postgres
     restart: always
     ports:
-      - "3306:3306"
+      - "5432:5432"
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
-      MYSQL_DATABASE: ${DB_NAME}
-      MYSQL_USER: ${DB_USERNAME}
-      MYSQL_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
       TZ: Asia/Seoul
     volumes:
-      - mysql-data:/var/lib/mysql
-    command:
-      - --character-set-server=utf8mb4
-      - --collation-server=utf8mb4_unicode_ci
+      - postgres-data:/var/lib/postgresql/data
 
   redis:
     image: redis:7-alpine
@@ -59,7 +55,7 @@ services:
 
 
 volumes:
-  mysql-data:
+  postgres-data:
   redis-data:
   influxdb-data:
   grafana-data:

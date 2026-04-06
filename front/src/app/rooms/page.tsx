@@ -158,6 +158,35 @@ function RoomsContent() {
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, [gameState, timeLeft]);
 
+  // 게임 중 뒤로가기/새로고침 감지
+  useEffect(() => {
+    if (gameState !== "playing" && gameState !== "roundResult") return;
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
+
+    const handlePopState = () => {
+      const confirmed = window.confirm("게임이 진행 중입니다. 나가면 게임에서 퇴장됩니다. 나가시겠습니까?");
+      if (confirmed) {
+        handleLeaveRoom();
+      } else {
+        // 뒤로가기 취소 - 히스토리 다시 앞으로
+        window.history.pushState(null, "", window.location.href);
+      }
+    };
+
+    // 뒤로가기 막기 위해 현재 상태 push
+    window.history.pushState(null, "", window.location.href);
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener("popstate", handlePopState);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, [gameState]);
   const fetchLobbyData = async () => {
     setLoading(true);
     try {
@@ -451,6 +480,8 @@ function RoomsContent() {
       await handleJoinRoom(gameSessionId);
     } catch (err: any) {
       setCreateError(err.response?.data?.message || "입력한 주제로는 퀴즈를 생성할 수 없습니다.");
+    } finally {
+      setAiGenerating(false);
     }
   };
 
@@ -712,7 +743,7 @@ function RoomsContent() {
                   🚨 신고
                 </button>
               </div>
-              
+
 
               <div className="text-center mb-10">
                 <h1 className="font-title text-4xl mb-2">🎉 게임 종료!</h1>

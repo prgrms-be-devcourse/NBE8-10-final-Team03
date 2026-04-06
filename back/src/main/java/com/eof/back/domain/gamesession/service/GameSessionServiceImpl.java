@@ -64,11 +64,11 @@ public class GameSessionServiceImpl implements GameSessionService {
     @Override
     @Transactional
     public List<GameSessionListResponse> getAllGameSessions() {
-        List<GameSession> waitingSessions = gameSessionRepository.findAllByStatus(GameSessionStatus.WAIT);
+        List<GameSession> waitingSessions = gameSessionRepository.findAll();
 
         return waitingSessions.stream()
                 .map(GameSessionListResponse::from)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override

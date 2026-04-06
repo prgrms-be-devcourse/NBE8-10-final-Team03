@@ -21,7 +21,8 @@ import org.springframework.http.HttpStatus;
 @AllArgsConstructor
 public enum QuizErrorCode implements ErrorCode {
     QUIZ_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 퀴즈를 찾을 수 없습니다."),
-    QUIZ_MULTIPLE_CHOICE_OPTIONS_REQUIRED(HttpStatus.BAD_REQUEST, "객관식 문제는 4개의 선택지가 모두 필수입니다.");
+    QUIZ_MULTIPLE_CHOICE_OPTIONS_REQUIRED(HttpStatus.BAD_REQUEST, "객관식 문제는 4개의 선택지가 모두 필수입니다."),
+    QUIZ_VIDEO_URL_REQUIRED(HttpStatus.BAD_REQUEST, "영상 또는 음성 문제인 경우 유튜브 링크는 필수입니다.");
 
     private final HttpStatus status;
     private final String message;

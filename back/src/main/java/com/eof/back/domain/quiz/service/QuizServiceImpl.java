@@ -4,6 +4,7 @@ import com.eof.back.domain.quiz.dto.QuizCreateRequest;
 import com.eof.back.domain.quiz.dto.QuizResponse;
 import com.eof.back.domain.quiz.dto.QuizUpdateRequest;
 import com.eof.back.domain.quiz.entity.AnswerType;
+import com.eof.back.domain.quiz.entity.QuestionType;
 import com.eof.back.domain.quiz.entity.Quiz;
 import com.eof.back.domain.quiz.repository.QuizRepository;
 import com.eof.back.domain.quizset.entity.QuizSet;
@@ -79,6 +80,8 @@ public class QuizServiceImpl implements QuizService {
 
         // 객관식 선택지 검증
         validateMultipleChoiceOptions(request.answerType(), request.choice1(), request.choice2(), request.choice3(), request.choice4());
+        // 유튜브 링크 검증
+        validateVideoUrl(request.questionType(), request.videoUrl());
 
         Quiz quiz = Quiz.builder()
                 .quizSet(quizSet)
@@ -167,10 +170,7 @@ public class QuizServiceImpl implements QuizService {
         // 권한 검증
         validateOwnership(quiz.getQuizSet(), userId);
 
-        // 객관식 선택지 검증 (수정 시에도 유형이 변경되거나 선택지가 변경될 수 있으므로 검증 필요)
-        // null인 필드는 기존 값을 유지하므로, 검증 시 로직 주의 필요
-        // 여기서는 request에 담긴 값이 있을 때만 검증하거나, 최종 결과물을 검증하는 방식이 좋음
-        // record의 특성상 request의 answerType이 null일 수 있으므로 null 체크 필수
+        // 객관식 선택지 검증
         AnswerType finalAnswerType = request.answerType() != null ? request.answerType() : quiz.getAnswerType();
         if (finalAnswerType == AnswerType.MULTIPLE_CHOICE) {
             String c1 = request.choice1() != null ? request.choice1() : quiz.getChoice1();
@@ -179,6 +179,11 @@ public class QuizServiceImpl implements QuizService {
             String c4 = request.choice4() != null ? request.choice4() : quiz.getChoice4();
             validateMultipleChoiceOptions(finalAnswerType, c1, c2, c3, c4);
         }
+
+        // 유튜브 링크 검증
+        QuestionType finalQuestionType = request.questionType() != null ? request.questionType() : quiz.getQuestionType();
+        String finalVideoUrl = request.videoUrl() != null ? request.videoUrl() : quiz.getVideoUrl();
+        validateVideoUrl(finalQuestionType, finalVideoUrl);
 
         quiz.update(
                 request.questionType(),
@@ -294,6 +299,21 @@ public class QuizServiceImpl implements QuizService {
                 c3 == null || c3.isBlank() ||
                 c4 == null || c4.isBlank()) {
                 throw new QuizException(QuizErrorCode.QUIZ_MULTIPLE_CHOICE_OPTIONS_REQUIRED);
+            }
+        }
+    }
+
+    /**
+     * 영상 또는 음성 문제인 경우 유튜브 링크가 존재하는지 검증합니다.
+     *
+     * @param questionType 문제 유형
+     * @param videoUrl     유튜브 링크
+     * @throws QuizException 영상/음성인데 링크가 누락된 경우
+     */
+    private void validateVideoUrl(QuestionType questionType, String videoUrl) {
+        if (questionType == QuestionType.VIDEO || questionType == QuestionType.AUDIO) {
+            if (videoUrl == null || videoUrl.isBlank()) {
+                throw new QuizException(QuizErrorCode.QUIZ_VIDEO_URL_REQUIRED);
             }
         }
     }

@@ -109,6 +109,8 @@ public class AdminServiceImpl implements AdminService {
                 request.answer(),
                 request.imageUrl(),
                 request.videoUrl(),
+                request.startTime(),
+                request.endTime(),
                 request.choice1(),
                 request.choice2(),
                 request.choice3(),

@@ -79,7 +79,7 @@ public class BaseInitData implements ApplicationRunner {
         saveShortAnswerQuiz(generalKnowledgeQuizSet, "대한민국의 국화는 무엇인가요?", "무궁화");
 
         // 3. 영상 + 객관식 (유튜브 시작/종료 시간 추가)
-        saveVideoQuiz(generalKnowledgeQuizSet, "영상 속의 노래 제목은?", "Dynamite", "https://www.youtube.com/embed/gdZLi9hqLxml", 10, 40, "Dynamite", "Butter", "Boy with Luv", "Idol");
+        saveVideoQuiz(generalKnowledgeQuizSet, "영상 속의 노래 제목은?", "Dynamite", "https://www.youtube.com/embed/KhZ5DCd7m6s", 10, 40, "Dynamite", "Butter", "Boy with Luv", "Idol");
 
         // 4. 음성 + 주관식 (유튜브 시작 시간 추가)
         saveAudioQuiz(generalKnowledgeQuizSet, "들려오는 소리의 악기는?", "피아노", "https://www.youtube.com/embed/WJ3-F02-F_Y", 60, null);

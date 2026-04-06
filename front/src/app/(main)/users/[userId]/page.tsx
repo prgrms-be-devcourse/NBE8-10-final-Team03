@@ -66,11 +66,8 @@ export default function MyPage() {
       await api.patch(`/users/${myUserId}`, body);
       if (newNickname.trim()) {
         localStorage.setItem("nickname", newNickname);
-        setUser((prev) => prev ? { ...prev, nickname: newNickname } : prev);
       }
-      setIsEditing(false);
-      setNewNickname("");
-      setNewPassword("");
+      window.location.reload();
     } catch (err: any) {
       setUpdateError(err.response?.data?.message || "수정에 실패했습니다.");
     } finally {
@@ -84,7 +81,7 @@ export default function MyPage() {
     try {
       await api.delete("/auth/withdraw");
       localStorage.clear();
-      router.push("/");
+      window.location.href = "/";  // router.push 대신 이걸로
     } catch (err) {
       alert("탈퇴에 실패했습니다.");
     } finally {

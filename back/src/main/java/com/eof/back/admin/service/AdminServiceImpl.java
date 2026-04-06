@@ -3,6 +3,8 @@ package com.eof.back.admin.service;
 import com.eof.back.admin.dto.AdminUserResponse;
 import com.eof.back.admin.entity.UserSuspension;
 import com.eof.back.admin.repository.UserSuspensionRepository;
+import com.eof.back.domain.auth.store.RefreshTokenStore;
+import com.eof.back.global.token.TokenVersionStore;
 import com.eof.back.domain.quiz.dto.QuizUpdateRequest;
 import com.eof.back.domain.quiz.entity.Quiz;
 import com.eof.back.domain.quiz.repository.QuizRepository;
@@ -59,6 +61,8 @@ public class AdminServiceImpl implements AdminService {
     private final QuizSetBookmarkRepository quizSetBookmarkRepository;
     private final GameRecordRepository gameRecordRepository;
     private final GameSessionRepository gameSessionRepository;
+    private final RefreshTokenStore refreshTokenStore;
+    private final TokenVersionStore tokenVersionStore;
 
     /**
      * {@inheritDoc}
@@ -197,9 +201,13 @@ public class AdminServiceImpl implements AdminService {
         User user = findUserById(targetUserId);
         
         user.suspend();
-        
+
+        // 기존 토큰 즉시 무효화: version 증가 + refresh token 삭제
+        tokenVersionStore.increment(targetUserId);
+        refreshTokenStore.delete(targetUserId);
+
         LocalDateTime until = LocalDateTime.now().plusDays(suspensionDays);
-        
+
         userSuspensionRepository.findByUserId(targetUserId)
                 .ifPresentOrElse(
                         suspension -> suspension.update(reason, until),
@@ -219,6 +227,10 @@ public class AdminServiceImpl implements AdminService {
         
         user.delete();
         userSuspensionRepository.deleteByUserId(targetUserId);
+
+        // 기존 토큰 즉시 무효화: version 삭제 + refresh token 삭제
+        tokenVersionStore.delete(targetUserId);
+        refreshTokenStore.delete(targetUserId);
     }
 
     /**

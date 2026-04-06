@@ -26,7 +26,9 @@ public enum QuizSetErrorCode implements ErrorCode {
 
     //북마크
     QUIZ_SET_BOOKMARK_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 북마크한 퀴즈 세트입니다."),
-    QUIZ_SET_BOOKMARK_NOT_FOUND(HttpStatus.NOT_FOUND, "북마크하지 않은 퀴즈 세트입니다.");
+    QUIZ_SET_BOOKMARK_NOT_FOUND(HttpStatus.NOT_FOUND, "북마크하지 않은 퀴즈 세트입니다."),
+
+    INVALID_TOPIC(HttpStatus.BAD_REQUEST, "부적절하거나 잘못된 주제입니다.");
 
     private final HttpStatus status;
     private final String message;

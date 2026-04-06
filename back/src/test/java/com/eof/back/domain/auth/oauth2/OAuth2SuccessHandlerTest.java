@@ -4,6 +4,7 @@ import com.eof.back.domain.auth.store.RefreshTokenStore;
 import com.eof.back.domain.user.user.entity.Role;
 import com.eof.back.global.jwt.CookieUtil;
 import com.eof.back.global.jwt.JwtTokenProvider;
+import com.eof.back.global.token.TokenVersionStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -45,6 +46,9 @@ class OAuth2SuccessHandlerTest {
     private RefreshTokenStore refreshTokenStore;
 
     @Mock
+    private TokenVersionStore tokenVersionStore;
+
+    @Mock
     private CookieUtil cookieUtil;
 
     @InjectMocks
@@ -77,9 +81,10 @@ class OAuth2SuccessHandlerTest {
         @Test
         @DisplayName("성공 - JWT 쿠키를 설정하고 프론트엔드로 redirect한다")
         void success() throws Exception {
-            given(jwtTokenProvider.createAccessToken(eq(USER_ID), any(), any(), any()))
+            given(tokenVersionStore.increment(USER_ID)).willReturn(1L);
+            given(jwtTokenProvider.createAccessToken(eq(USER_ID), any(), any(), any(), eq(1L)))
                     .willReturn(ACCESS_TOKEN);
-            given(jwtTokenProvider.createRefreshToken(eq(USER_ID), any(), any(), any())).willReturn(REFRESH_TOKEN);
+            given(jwtTokenProvider.createRefreshToken(eq(USER_ID), any(), any(), any(), eq(1L))).willReturn(REFRESH_TOKEN);
 
             MockHttpServletRequest request = new MockHttpServletRequest();
             MockHttpServletResponse response = new MockHttpServletResponse();

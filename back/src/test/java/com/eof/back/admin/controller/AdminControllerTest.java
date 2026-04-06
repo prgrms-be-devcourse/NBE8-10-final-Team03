@@ -17,6 +17,7 @@ import com.eof.back.global.jwt.UserPrincipal;
 import com.eof.back.global.jwt.CookieUtil;
 import com.eof.back.global.jwt.JwtAuthenticationEntryPoint;
 import com.eof.back.global.jwt.JwtTokenProvider;
+import com.eof.back.global.token.TokenVersionStore;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.util.List;
@@ -51,6 +52,9 @@ class AdminControllerTest {
 
     @MockitoBean
     private JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+
+    @MockitoBean
+    private TokenVersionStore tokenVersionStore;
 
     @MockitoBean
     private CookieUtil cookieUtil;
@@ -94,5 +98,49 @@ class AdminControllerTest {
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("success"));
+    }
+
+    @Test
+    @DisplayName("사용자 정지 API - reason 없으면 400 반환")
+    void suspendUser_Fail_BlankReason() throws Exception {
+        // given
+        AdminController.UserSuspensionRequest request = new AdminController.UserSuspensionRequest(
+                "", 7
+        );
+
+        // when & then
+        mockMvc.perform(patch("/api/v1/admin/users/2/suspend")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("사용자 정지 API - suspensionDays 0이면 400 반환")
+    void suspendUser_Fail_ZeroDays() throws Exception {
+        // given
+        AdminController.UserSuspensionRequest request = new AdminController.UserSuspensionRequest(
+                "사유", 0
+        );
+
+        // when & then
+        mockMvc.perform(patch("/api/v1/admin/users/2/suspend")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("사용자 삭제 API 호출 성공")
+    void deleteUser_Success() throws Exception {
+        // when & then
+        mockMvc.perform(patch("/api/v1/admin/users/2/delete")
+                        .with(csrf()))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("success"))
+                .andExpect(jsonPath("$.message").value("사용자가 삭제(탈퇴) 처리되었습니다."));
     }
 }

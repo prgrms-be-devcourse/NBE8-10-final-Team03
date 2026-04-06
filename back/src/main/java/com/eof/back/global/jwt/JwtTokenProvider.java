@@ -65,12 +65,18 @@ public class JwtTokenProvider {
      * <p>사용자의 인증 정보를 담은 토큰을 생성합니다.
      * 이후 요청 시 Authorization 헤더에 포함되어 사용됩니다.
      *
-     * @param userId 사용자 ID (subject로 사용됨)
-     * @param username 사용자 아이디
-     * @param role 사용자 권한 (USER, ADMIN 등)
+     * <p>{@code tokenVersion}은 {@link com.eof.back.global.token.TokenVersionStore}에서 관리하는 값으로,
+     * 로그인 시 증가된 버전을 claim에 포함합니다.
+     * 필터에서 Redis 저장 값과 비교하여 버전이 다르면 인증을 거부합니다.
+     *
+     * @param userId       사용자 ID (subject로 사용됨)
+     * @param username     사용자 아이디
+     * @param role         사용자 권한 (USER, ADMIN 등)
+     * @param nickname     사용자 닉네임
+     * @param tokenVersion 다중 로그인 제어 및 즉시 무효화를 위한 버전 값
      * @return JWT AccessToken 문자열
      */
-    public String createAccessToken(Long userId, String username, String role, String nickname) {
+    public String createAccessToken(Long userId, String username, String role, String nickname, long tokenVersion) {
 
         // 현재 시간
         Date now = new Date();
@@ -78,14 +84,15 @@ public class JwtTokenProvider {
         Date expiry = new Date(now.getTime() + accessTokenExpiration);
 
         return Jwts.builder()
-                .subject(String.valueOf(userId))  // subject: 토큰의 주체 (보통 사용자 식별값)
-                .claim("username", username)  // 사용자 아이디를 claim으로 추가
-                .claim("role", role)          // 사용자 권한 정보 추가
-                .claim("nickname", nickname)  // 사용할 닉네임 추가
-                .issuedAt(now)                    // 토큰 발급 시간
-                .expiration(expiry)               // 토큰 만료 시간
-                .signWith(secretKey)              // secretKey로 서명 (위조 방지 핵심)
-                .compact();                       // 최종적으로 JWT 문자열 생성
+                .subject(String.valueOf(userId))          // subject: 토큰의 주체 (보통 사용자 식별값)
+                .claim("username", username)              // 사용자 아이디를 claim으로 추가
+                .claim("role", role)                      // 사용자 권한 정보 추가
+                .claim("nickname", nickname)              // 사용할 닉네임 추가
+                .claim("tokenVersion", tokenVersion)      // 다중 로그인 제어 및 즉시 무효화용 버전
+                .issuedAt(now)                            // 토큰 발급 시간
+                .expiration(expiry)                       // 토큰 만료 시간
+                .signWith(secretKey)                      // secretKey로 서명 (위조 방지 핵심)
+                .compact();                               // 최종적으로 JWT 문자열 생성
     }
 
     /**
@@ -94,10 +101,17 @@ public class JwtTokenProvider {
      * <p>AccessToken이 만료되었을 때 재발급을 위한 토큰입니다.
      * 보통 AccessToken보다 만료 시간이 길게 설정됩니다.
      *
-     * @param userId 사용자 ID
+     * <p>{@code tokenVersion}을 claim에 포함하여, reissue 시 Redis 저장 값과 비교합니다.
+     * 다른 기기에서 재로그인하여 version이 증가한 경우 이 refresh token으로는 재발급이 거부됩니다.
+     *
+     * @param userId       사용자 ID
+     * @param username     사용자 아이디
+     * @param role         사용자 권한
+     * @param nickname     사용자 닉네임
+     * @param tokenVersion 발급 시점의 tokenVersion
      * @return JWT RefreshToken 문자열
      */
-    public String createRefreshToken(Long userId, String username, String role, String nickname) {
+    public String createRefreshToken(Long userId, String username, String role, String nickname, long tokenVersion) {
 
         Date now = new Date();
         Date expiry = new Date(now.getTime() + refreshTokenExpiration);
@@ -107,6 +121,7 @@ public class JwtTokenProvider {
                 .claim("username", username)
                 .claim("role", role)
                 .claim("nickname", nickname)
+                .claim("tokenVersion", tokenVersion)
                 .issuedAt(now)
                 .expiration(expiry)
                 .signWith(secretKey)
@@ -191,6 +206,22 @@ public class JwtTokenProvider {
      */
     public String getNickname(Claims claims) {
         String value = claims.get("nickname", String.class);
+        if (value == null) throw new AuthException(AuthErrorCode.TOKEN_INVALID);
+        return value;
+    }
+
+    /**
+     * Claims에서 tokenVersion을 추출합니다.
+     *
+     * <p>tokenVersion claim이 없는 경우는 이 기능 도입 이전에 발급된 토큰이거나
+     * 위변조된 토큰입니다. 두 경우 모두 인증 실패로 처리합니다.
+     *
+     * @param claims JWT Claims
+     * @return tokenVersion
+     * @throws com.eof.back.global.exception.exceptions.AuthException claim이 없는 경우
+     */
+    public long getTokenVersion(Claims claims) {
+        Long value = claims.get("tokenVersion", Long.class);
         if (value == null) throw new AuthException(AuthErrorCode.TOKEN_INVALID);
         return value;
     }

@@ -3,6 +3,7 @@ package com.eof.back.domain.auth.oauth2;
 import com.eof.back.domain.auth.store.RefreshTokenStore;
 import com.eof.back.global.jwt.CookieUtil;
 import com.eof.back.global.jwt.JwtTokenProvider;
+import com.eof.back.global.token.TokenVersionStore;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +41,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenStore refreshTokenStore;
+    private final TokenVersionStore tokenVersionStore;
     private final CookieUtil cookieUtil;
 
     @Value("${custom.oauth2.redirect-uri}")
@@ -67,10 +69,11 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         CustomOAuth2User customUser = (CustomOAuth2User) authToken.getPrincipal();
 
         // 1. AccessToken, RefreshToken 발급
+        long tokenVersion = tokenVersionStore.increment(customUser.getUserId());
         String accessToken = jwtTokenProvider.createAccessToken(
-                customUser.getUserId(), customUser.getUsername(), customUser.getRole().name(), customUser.getNickname());
+                customUser.getUserId(), customUser.getUsername(), customUser.getRole().name(), customUser.getNickname(), tokenVersion);
         String refreshToken = jwtTokenProvider.createRefreshToken(
-                customUser.getUserId(), customUser.getUsername(), customUser.getRole().name(), customUser.getNickname());
+                customUser.getUserId(), customUser.getUsername(), customUser.getRole().name(), customUser.getNickname(), tokenVersion);
 
         // 2. RefreshToken 저장소에 저장
         LocalDateTime refreshTokenExpiredAt = LocalDateTime.now().plusSeconds(refreshTokenExpireSeconds);

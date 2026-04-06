@@ -26,32 +26,34 @@ class JwtTokenProviderTest {
     }
 
     @Test
-    @DisplayName("AccessToken 생성 후 userId, username, role 추출 성공")
+    @DisplayName("AccessToken 생성 후 userId, username, role, tokenVersion 추출 성공")
     void createAccessToken_extractClaims_success() {
-        String token = jwtTokenProvider.createAccessToken(1L, "testUser", "USER", "tester");
+        String token = jwtTokenProvider.createAccessToken(1L, "testUser", "USER", "tester", 3L);
         Claims claims = jwtTokenProvider.validateToken(token);
 
         assertThat(jwtTokenProvider.getUserId(claims)).isEqualTo(1L);
         assertThat(jwtTokenProvider.getUsername(claims)).isEqualTo("testUser");
         assertThat(jwtTokenProvider.getRole(claims)).isEqualTo("USER");
+        assertThat(jwtTokenProvider.getTokenVersion(claims)).isEqualTo(3L);
     }
 
     @Test
-    @DisplayName("RefreshToken 생성 후 userId, username, role, nickname 추출 성공")
+    @DisplayName("RefreshToken 생성 후 userId, username, role, nickname, tokenVersion 추출 성공")
     void createRefreshToken_extractClaims_success() {
-        String token = jwtTokenProvider.createRefreshToken(2L, "testUser", "USER", "tester");
+        String token = jwtTokenProvider.createRefreshToken(2L, "testUser", "USER", "tester", 5L);
         Claims claims = jwtTokenProvider.validateToken(token);
 
         assertThat(jwtTokenProvider.getUserId(claims)).isEqualTo(2L);
         assertThat(jwtTokenProvider.getUsername(claims)).isEqualTo("testUser");
         assertThat(jwtTokenProvider.getRole(claims)).isEqualTo("USER");
         assertThat(jwtTokenProvider.getNickname(claims)).isEqualTo("tester");
+        assertThat(jwtTokenProvider.getTokenVersion(claims)).isEqualTo(5L);
     }
 
     @Test
     @DisplayName("유효한 토큰 검증 성공 - Claims 반환")
     void validateToken_success() {
-        String token = jwtTokenProvider.createAccessToken(1L, "testUser", "USER", "tester");
+        String token = jwtTokenProvider.createAccessToken(1L, "testUser", "USER", "tester", 1L);
 
         Claims claims = jwtTokenProvider.validateToken(token);
 
@@ -62,9 +64,8 @@ class JwtTokenProviderTest {
     @Test
     @DisplayName("만료된 토큰 검증 시 TOKEN_EXPIRED 예외 발생")
     void validateToken_expired_throwsException() {
-        // 만료 시간을 음수로 설정하여 즉시 만료된 토큰 생성
         JwtTokenProvider expiredProvider = new JwtTokenProvider(SECRET, -1, -1);
-        String token = expiredProvider.createAccessToken(1L, "testUser", "USER", "tester");
+        String token = expiredProvider.createAccessToken(1L, "testUser", "USER", "tester", 1L);
 
         assertThatThrownBy(() -> jwtTokenProvider.validateToken(token))
                 .isInstanceOf(AuthException.class)
@@ -87,9 +88,24 @@ class JwtTokenProviderTest {
         String otherSecret =
                 "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz";
         JwtTokenProvider otherProvider = new JwtTokenProvider(otherSecret, 1200, 1209600);
-        String token = otherProvider.createAccessToken(1L, "testUser", "USER", "tester");
+        String token = otherProvider.createAccessToken(1L, "testUser", "USER", "tester", 1L);
 
         assertThatThrownBy(() -> jwtTokenProvider.validateToken(token))
+                .isInstanceOf(AuthException.class)
+                .satisfies(e -> assertThat(((AuthException) e).getErrorCode())
+                        .isEqualTo(AuthErrorCode.TOKEN_INVALID));
+    }
+
+    @Test
+    @DisplayName("tokenVersion claim이 없는 토큰에서 getTokenVersion 호출 시 TOKEN_INVALID 예외 발생")
+    void getTokenVersion_missingClaim_throwsException() {
+        // tokenVersion이 없는 토큰 = 이 기능 도입 이전에 발급된 토큰 또는 위변조된 토큰
+        // 현재 provider가 tokenVersion을 항상 포함하므로, 다른 secret으로 수동 생성하는 대신
+        // claims.get()이 null을 반환하는 상황을 mock으로 재현
+        io.jsonwebtoken.Claims claims = org.mockito.Mockito.mock(io.jsonwebtoken.Claims.class);
+        org.mockito.Mockito.when(claims.get("tokenVersion", Long.class)).thenReturn(null);
+
+        assertThatThrownBy(() -> jwtTokenProvider.getTokenVersion(claims))
                 .isInstanceOf(AuthException.class)
                 .satisfies(e -> assertThat(((AuthException) e).getErrorCode())
                         .isEqualTo(AuthErrorCode.TOKEN_INVALID));

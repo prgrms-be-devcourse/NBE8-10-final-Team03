@@ -78,8 +78,12 @@ public class QuizServiceImpl implements QuizService {
 
         Quiz quiz = Quiz.builder()
                 .quizSet(quizSet)
+                .questionType(request.questionType())
+                .answerType(request.answerType())
                 .content(request.content())
                 .answer(request.answer())
+                .imageUrl(request.imageUrl())
+                .videoUrl(request.videoUrl())
                 .choice1(request.choice1())
                 .choice2(request.choice2())
                 .choice3(request.choice3())
@@ -158,8 +162,12 @@ public class QuizServiceImpl implements QuizService {
         validateOwnership(quiz.getQuizSet(), userId);
 
         quiz.update(
+                request.questionType(),
+                request.answerType(),
                 request.content(),
                 request.answer(),
+                request.imageUrl(),
+                request.videoUrl(),
                 request.choice1(),
                 request.choice2(),
                 request.choice3(),

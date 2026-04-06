@@ -3,6 +3,8 @@ package com.eof.back.domain.quiz.service;
 import com.eof.back.domain.quiz.dto.QuizCreateRequest;
 import com.eof.back.domain.quiz.dto.QuizResponse;
 import com.eof.back.domain.quiz.dto.QuizUpdateRequest;
+import com.eof.back.domain.quiz.entity.AnswerType;
+import com.eof.back.domain.quiz.entity.QuestionType;
 import com.eof.back.domain.quiz.entity.Quiz;
 import com.eof.back.domain.quiz.repository.QuizRepository;
 import com.eof.back.domain.quizset.entity.QuizSet;
@@ -71,9 +73,11 @@ class QuizServiceTest {
         @DisplayName("성공 - 퀴즈를 생성하고 세트의 퀴즈 수를 증가시킨다")
         void success() {
             // given
-            QuizCreateRequest request = new QuizCreateRequest("문제", "정답", "1", "2", "3", "4");
+            QuizCreateRequest request = new QuizCreateRequest(QuestionType.TEXT, AnswerType.MULTIPLE_CHOICE, "문제", "정답", null, null, "1", "2", "3", "4");
             Quiz quiz = Quiz.builder()
                     .quizSet(quizSet)
+                    .questionType(request.questionType())
+                    .answerType(request.answerType())
                     .content(request.content())
                     .answer(request.answer())
                     .choice1(request.choice1())
@@ -99,7 +103,7 @@ class QuizServiceTest {
         @DisplayName("실패 - 존재하지 않는 퀴즈 세트")
         void fail_quizSetNotFound() {
             // given
-            QuizCreateRequest request = new QuizCreateRequest("문제", "정답", "1", "2", "3", "4");
+            QuizCreateRequest request = new QuizCreateRequest(QuestionType.TEXT, AnswerType.MULTIPLE_CHOICE, "문제", "정답", null, null, "1", "2", "3", "4");
             given(quizSetRepository.findById(quizSetId)).willReturn(Optional.empty());
 
             // when & then
@@ -112,7 +116,7 @@ class QuizServiceTest {
         @DisplayName("실패 - 권한 없음 (제작자가 아님)")
         void fail_noOwnership() {
             // given
-            QuizCreateRequest request = new QuizCreateRequest("문제", "정답", "1", "2", "3", "4");
+            QuizCreateRequest request = new QuizCreateRequest(QuestionType.TEXT, AnswerType.MULTIPLE_CHOICE, "문제", "정답", null, null, "1", "2", "3", "4");
             given(quizSetRepository.findById(quizSetId)).willReturn(Optional.of(quizSet));
 
             // when & then
@@ -130,7 +134,7 @@ class QuizServiceTest {
         void success_getQuiz() {
             // given
             Long quizId = 100L;
-            Quiz quiz = Quiz.builder().quizSet(quizSet).content("문제").build();
+            Quiz quiz = Quiz.builder().quizSet(quizSet).questionType(QuestionType.TEXT).answerType(AnswerType.MULTIPLE_CHOICE).content("문제").build();
             ReflectionTestUtils.setField(quiz, "id", quizId);
 
             given(quizRepository.findById(quizId)).willReturn(Optional.of(quiz));
@@ -149,7 +153,7 @@ class QuizServiceTest {
             // given
             Long quizId = 100L;
             Long otherSetId = 999L;
-            Quiz quiz = Quiz.builder().quizSet(quizSet).build();
+            Quiz quiz = Quiz.builder().quizSet(quizSet).questionType(QuestionType.TEXT).answerType(AnswerType.MULTIPLE_CHOICE).build();
             ReflectionTestUtils.setField(quiz, "id", quizId);
 
             given(quizRepository.findById(quizId)).willReturn(Optional.of(quiz));
@@ -168,8 +172,8 @@ class QuizServiceTest {
         @DisplayName("성공 - 해당 세트의 모든 퀴즈를 조회한다")
         void success() {
             // given
-            Quiz quiz1 = Quiz.builder().quizSet(quizSet).content("문제1").build();
-            Quiz quiz2 = Quiz.builder().quizSet(quizSet).content("문제2").build();
+            Quiz quiz1 = Quiz.builder().quizSet(quizSet).questionType(QuestionType.TEXT).answerType(AnswerType.MULTIPLE_CHOICE).content("문제1").build();
+            Quiz quiz2 = Quiz.builder().quizSet(quizSet).questionType(QuestionType.TEXT).answerType(AnswerType.MULTIPLE_CHOICE).content("문제2").build();
             ReflectionTestUtils.setField(quizSet, "quizzes", List.of(quiz1, quiz2));
 
             given(quizSetRepository.findById(quizSetId)).willReturn(Optional.of(quizSet));
@@ -192,9 +196,9 @@ class QuizServiceTest {
         void success() {
             // given
             Long quizId = 100L;
-            Quiz quiz = Quiz.builder().quizSet(quizSet).content("이전 내용").build();
+            Quiz quiz = Quiz.builder().quizSet(quizSet).questionType(QuestionType.TEXT).answerType(AnswerType.MULTIPLE_CHOICE).content("이전 내용").build();
             ReflectionTestUtils.setField(quiz, "id", quizId);
-            QuizUpdateRequest request = new QuizUpdateRequest("수정된 내용", null, null, null, null, null);
+            QuizUpdateRequest request = new QuizUpdateRequest(null, null, "수정된 내용", null, null, null, null, null, null, null);
 
             given(quizRepository.findById(quizId)).willReturn(Optional.of(quiz));
 
@@ -215,7 +219,7 @@ class QuizServiceTest {
         void success() {
             // given
             Long quizId = 100L;
-            Quiz quiz = Quiz.builder().quizSet(quizSet).build();
+            Quiz quiz = Quiz.builder().quizSet(quizSet).questionType(QuestionType.TEXT).answerType(AnswerType.MULTIPLE_CHOICE).build();
             ReflectionTestUtils.setField(quiz, "id", quizId);
             ReflectionTestUtils.setField(quizSet, "totalQuizCount", 5);
 

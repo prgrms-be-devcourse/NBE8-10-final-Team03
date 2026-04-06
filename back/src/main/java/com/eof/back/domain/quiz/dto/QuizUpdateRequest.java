@@ -16,6 +16,8 @@ import jakarta.validation.constraints.Size;
  * @param answer       수정할 정답
  * @param imageUrl     수정할 이미지 링크
  * @param videoUrl     수정할 유튜브 링크
+ * @param startTime    수정할 시작 시간
+ * @param endTime      수정할 종료 시간
  * @param choice1      수정할 선택지 1
  * @param choice2      수정할 선택지 2
  * @param choice3      수정할 선택지 3
@@ -31,6 +33,8 @@ public record QuizUpdateRequest(
         String answer,
         String imageUrl,
         String videoUrl,
+        Integer startTime,
+        Integer endTime,
         String choice1,
         String choice2,
         String choice3,

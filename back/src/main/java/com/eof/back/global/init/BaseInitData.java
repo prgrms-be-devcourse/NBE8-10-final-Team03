@@ -78,11 +78,11 @@ public class BaseInitData implements ApplicationRunner {
         // 2. 텍스트 + 주관식
         saveShortAnswerQuiz(generalKnowledgeQuizSet, "대한민국의 국화는 무엇인가요?", "무궁화");
 
-        // 3. 영상 + 객관식
-        saveVideoQuiz(generalKnowledgeQuizSet, "영상 속의 노래 제목은?", "Dynamite", "https://www.youtube.com/embed/gdZLi9hqLxml", "Dynamite", "Butter", "Boy with Luv", "Idol");
+        // 3. 영상 + 객관식 (유튜브 시작/종료 시간 추가)
+        saveVideoQuiz(generalKnowledgeQuizSet, "영상 속의 노래 제목은?", "Dynamite", "https://www.youtube.com/embed/gdZLi9hqLxml", 10, 40, "Dynamite", "Butter", "Boy with Luv", "Idol");
 
-        // 4. 음성 + 주관식
-        saveAudioQuiz(generalKnowledgeQuizSet, "들려오는 소리의 악기는?", "피아노", "https://www.youtube.com/embed/WJ3-F02-F_Y");
+        // 4. 음성 + 주관식 (유튜브 시작 시간 추가)
+        saveAudioQuiz(generalKnowledgeQuizSet, "들려오는 소리의 악기는?", "피아노", "https://www.youtube.com/embed/WJ3-F02-F_Y", 60, null);
 
         // 5. 텍스트 + 객관식
         saveMultipleChoiceQuiz(generalKnowledgeQuizSet, "지구에서 가장 높은 산은?", "에베레스트", "백두산", "에베레스트", "후지산", "킬리만자로");
@@ -169,6 +169,7 @@ public class BaseInitData implements ApplicationRunner {
     }
 
     private void saveVideoQuiz(QuizSet quizSet, String content, String answer, String videoUrl,
+                              Integer startTime, Integer endTime,
                               String choice1, String choice2, String choice3, String choice4) {
         Quiz quiz = Quiz.builder()
                 .quizSet(quizSet)
@@ -177,6 +178,8 @@ public class BaseInitData implements ApplicationRunner {
                 .content(content)
                 .answer(answer)
                 .videoUrl(videoUrl)
+                .startTime(startTime)
+                .endTime(endTime)
                 .choice1(choice1)
                 .choice2(choice2)
                 .choice3(choice3)
@@ -186,7 +189,7 @@ public class BaseInitData implements ApplicationRunner {
         quizSet.increaseQuizCount();
     }
 
-    private void saveAudioQuiz(QuizSet quizSet, String content, String answer, String videoUrl) {
+    private void saveAudioQuiz(QuizSet quizSet, String content, String answer, String videoUrl, Integer startTime, Integer endTime) {
         Quiz quiz = Quiz.builder()
                 .quizSet(quizSet)
                 .questionType(QuestionType.AUDIO)
@@ -194,6 +197,8 @@ public class BaseInitData implements ApplicationRunner {
                 .content(content)
                 .answer(answer)
                 .videoUrl(videoUrl)
+                .startTime(startTime)
+                .endTime(endTime)
                 .build();
         quizRepository.save(quiz);
         quizSet.increaseQuizCount();

@@ -84,6 +84,8 @@ public class QuizServiceImpl implements QuizService {
                 .answer(request.answer())
                 .imageUrl(request.imageUrl())
                 .videoUrl(request.videoUrl())
+                .startTime(request.startTime())
+                .endTime(request.endTime())
                 .choice1(request.choice1())
                 .choice2(request.choice2())
                 .choice3(request.choice3())
@@ -168,6 +170,8 @@ public class QuizServiceImpl implements QuizService {
                 request.answer(),
                 request.imageUrl(),
                 request.videoUrl(),
+                request.startTime(),
+                request.endTime(),
                 request.choice1(),
                 request.choice2(),
                 request.choice3(),

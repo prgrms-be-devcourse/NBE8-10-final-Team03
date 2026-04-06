@@ -73,7 +73,7 @@ class QuizServiceTest {
         @DisplayName("성공 - 퀴즈를 생성하고 세트의 퀴즈 수를 증가시킨다")
         void success() {
             // given
-            QuizCreateRequest request = new QuizCreateRequest(QuestionType.TEXT, AnswerType.MULTIPLE_CHOICE, "문제", "정답", null, null, "1", "2", "3", "4");
+            QuizCreateRequest request = new QuizCreateRequest(QuestionType.TEXT, AnswerType.MULTIPLE_CHOICE, "문제", "정답", null, null, null, null, "1", "2", "3", "4");
             Quiz quiz = Quiz.builder()
                     .quizSet(quizSet)
                     .questionType(request.questionType())
@@ -103,7 +103,7 @@ class QuizServiceTest {
         @DisplayName("실패 - 존재하지 않는 퀴즈 세트")
         void fail_quizSetNotFound() {
             // given
-            QuizCreateRequest request = new QuizCreateRequest(QuestionType.TEXT, AnswerType.MULTIPLE_CHOICE, "문제", "정답", null, null, "1", "2", "3", "4");
+            QuizCreateRequest request = new QuizCreateRequest(QuestionType.TEXT, AnswerType.MULTIPLE_CHOICE, "문제", "정답", null, null, null, null, "1", "2", "3", "4");
             given(quizSetRepository.findById(quizSetId)).willReturn(Optional.empty());
 
             // when & then
@@ -116,7 +116,7 @@ class QuizServiceTest {
         @DisplayName("실패 - 권한 없음 (제작자가 아님)")
         void fail_noOwnership() {
             // given
-            QuizCreateRequest request = new QuizCreateRequest(QuestionType.TEXT, AnswerType.MULTIPLE_CHOICE, "문제", "정답", null, null, "1", "2", "3", "4");
+            QuizCreateRequest request = new QuizCreateRequest(QuestionType.TEXT, AnswerType.MULTIPLE_CHOICE, "문제", "정답", null, null, null, null, "1", "2", "3", "4");
             given(quizSetRepository.findById(quizSetId)).willReturn(Optional.of(quizSet));
 
             // when & then
@@ -198,7 +198,7 @@ class QuizServiceTest {
             Long quizId = 100L;
             Quiz quiz = Quiz.builder().quizSet(quizSet).questionType(QuestionType.TEXT).answerType(AnswerType.MULTIPLE_CHOICE).content("이전 내용").build();
             ReflectionTestUtils.setField(quiz, "id", quizId);
-            QuizUpdateRequest request = new QuizUpdateRequest(null, null, "수정된 내용", null, null, null, null, null, null, null);
+            QuizUpdateRequest request = new QuizUpdateRequest(null, null, "수정된 내용", null, null, null, null, null, null, null, null, null);
 
             given(quizRepository.findById(quizId)).willReturn(Optional.of(quiz));
 

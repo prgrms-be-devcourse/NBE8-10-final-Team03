@@ -17,7 +17,7 @@ import lombok.NoArgsConstructor;
 
 /**
  * <p>퀴즈 세트 내에 속한 개별 퀴즈의 상세 데이터를 관리하는 엔티티입니다.</p>
- * 퀴즈의 유형(문제 형태/정답 형태), 발문(내용), 이미지, 유튜브 링크, 그리고 사지선다형 보기를 포함합니다.
+ * 퀴즈의 유형(문제 형태/정답 형태), 발문(내용), 이미지, 유튜브 링크(시작/종료 시간 포함), 그리고 사지선다형 보기를 포함합니다.
  *
  * @author MintyU
  * @since 2026-03-18
@@ -75,6 +75,16 @@ public class Quiz extends BaseEntity {
     private String videoUrl;
 
     /**
+     * 유튜브 영상 시작 시간 (초 단위, 선택 사항)
+     */
+    private Integer startTime;
+
+    /**
+     * 유튜브 영상 종료 시간 (초 단위, 선택 사항)
+     */
+    private Integer endTime;
+
+    /**
      * 첫 번째 보기 내용 (객관식일 경우 필수)
      */
     @Column
@@ -108,13 +118,15 @@ public class Quiz extends BaseEntity {
      * @param answer       정답
      * @param imageUrl     이미지 링크
      * @param videoUrl     유튜브 링크
+     * @param startTime    영상 시작 시간
+     * @param endTime      영상 종료 시간
      * @param choice1      보기1
      * @param choice2      보기2
      * @param choice3      보기3
      * @param choice4      보기4
      */
     @Builder
-    private Quiz(QuizSet quizSet, QuestionType questionType, AnswerType answerType, String content, String answer, String imageUrl, String videoUrl, String choice1, String choice2, String choice3, String choice4) {
+    private Quiz(QuizSet quizSet, QuestionType questionType, AnswerType answerType, String content, String answer, String imageUrl, String videoUrl, Integer startTime, Integer endTime, String choice1, String choice2, String choice3, String choice4) {
         this.quizSet = quizSet;
         this.questionType = questionType != null ? questionType : QuestionType.TEXT;
         this.answerType = answerType != null ? answerType : AnswerType.MULTIPLE_CHOICE;
@@ -122,6 +134,8 @@ public class Quiz extends BaseEntity {
         this.answer = answer;
         this.imageUrl = imageUrl;
         this.videoUrl = videoUrl;
+        this.startTime = startTime;
+        this.endTime = endTime;
         this.choice1 = choice1;
         this.choice2 = choice2;
         this.choice3 = choice3;
@@ -138,18 +152,22 @@ public class Quiz extends BaseEntity {
      * @param answer       새로운 정답
      * @param imageUrl     새로운 이미지 링크
      * @param videoUrl     새로운 유튜브 링크
+     * @param startTime    새로운 시작 시간
+     * @param endTime      새로운 종료 시간
      * @param choice1      새로운 보기1
      * @param choice2      새로운 보기2
      * @param choice3      새로운 보기3
      * @param choice4      새로운 보기4
      */
-    public void update(QuestionType questionType, AnswerType answerType, String content, String answer, String imageUrl, String videoUrl, String choice1, String choice2, String choice3, String choice4) {
+    public void update(QuestionType questionType, AnswerType answerType, String content, String answer, String imageUrl, String videoUrl, Integer startTime, Integer endTime, String choice1, String choice2, String choice3, String choice4) {
         if (questionType != null) this.questionType = questionType;
         if (answerType != null) this.answerType = answerType;
         if (content != null) this.content = content;
         if (answer != null) this.answer = answer;
         if (imageUrl != null) this.imageUrl = imageUrl;
         if (videoUrl != null) this.videoUrl = videoUrl;
+        if (startTime != null) this.startTime = startTime;
+        if (endTime != null) this.endTime = endTime;
         if (choice1 != null) this.choice1 = choice1;
         if (choice2 != null) this.choice2 = choice2;
         if (choice3 != null) this.choice3 = choice3;

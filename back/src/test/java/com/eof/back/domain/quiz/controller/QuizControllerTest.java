@@ -82,7 +82,7 @@ class QuizControllerTest {
         // given
         Long quizSetId = 1L;
         QuizCreateRequest request = new QuizCreateRequest(
-                QuestionType.TEXT, AnswerType.MULTIPLE_CHOICE, "문제 내용", "정답", null, null, "보기1", "보기2", "보기3", "보기4"
+                QuestionType.TEXT, AnswerType.MULTIPLE_CHOICE, "문제 내용", "정답", null, null, null, null, "보기1", "보기2", "보기3", "보기4"
         );
 
         given(quizService.createQuiz(any(), any(), any())).willReturn(100L);
@@ -103,7 +103,7 @@ class QuizControllerTest {
         // given
         Long quizSetId = 1L;
         QuizCreateRequest request = new QuizCreateRequest(
-                null, null, "", "정답", null, null, "보기1", "보기2", "보기3", "보기4"
+                null, null, "", "정답", null, null, null, null, "보기1", "보기2", "보기3", "보기4"
         );
 
         // when & then
@@ -157,7 +157,7 @@ class QuizControllerTest {
         // given
         Long quizSetId = 1L;
         Long quizId = 100L;
-        QuizUpdateRequest request = new QuizUpdateRequest(null, null, "수정된 내용", null, null, null, null, null, null, null);
+        QuizUpdateRequest request = new QuizUpdateRequest(null, null, "수정된 내용", null, null, null, null, null, null, null, null, null);
 
         given(quizService.updateQuiz(any(), any(), any(), any())).willReturn(quizId);
 

@@ -19,6 +19,8 @@ public record QuizResponse(
         String answer,
         String imageUrl,
         String videoUrl,
+        Integer startTime,
+        Integer endTime,
         String choice1,
         String choice2,
         String choice3,
@@ -45,6 +47,8 @@ public record QuizResponse(
                 .answer(quiz.getAnswer())
                 .imageUrl(quiz.getImageUrl())
                 .videoUrl(quiz.getVideoUrl())
+                .startTime(quiz.getStartTime())
+                .endTime(quiz.getEndTime())
                 .choice1(quiz.getChoice1())
                 .choice2(quiz.getChoice2())
                 .choice3(quiz.getChoice3())

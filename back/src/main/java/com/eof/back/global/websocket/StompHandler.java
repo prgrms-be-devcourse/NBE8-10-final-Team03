@@ -93,6 +93,29 @@ public class StompHandler implements ChannelInterceptor {
                 log.error(" 토큰 검증 오류: {}", e.getMessage());
                 throw new AuthException(AuthErrorCode.TOKEN_INVALID, "유효하지 않은 JWT 토큰입니다.");
             }
+        } else if (StompCommand.SUBSCRIBE.equals(accessor.getCommand())) {
+            // 2. 방 입장(SUBSCRIBE) 시: 어느 방에 들어갔는지 세션에 기록
+            String destination = accessor.getDestination();
+
+            // 구독하는 목적지가 채팅방일 경우 (ex) /topic/rooms/12/chat
+            if (destination != null && destination.startsWith("/topic/rooms/")) {
+                String[] parts = destination.split("/");
+                if (parts.length >= 4) {
+                    try {
+                        Long gameSessionId = Long.valueOf(parts[3]); // 12 추출
+                        accessor.getSessionAttributes().put("CURRENT_ROOM_ID", gameSessionId);
+                    } catch (NumberFormatException e) {
+                        log.warn("잘못된 형식의 방 번호 구독 요청: {}", destination);
+                    }
+                }
+            }
+            
+            Authentication authentication = (Authentication) accessor.getSessionAttributes().get("USER_AUTH");
+            if (authentication != null) {
+                accessor.setUser(authentication);
+                accessor.setLeaveMutable(true);
+            }
+            return MessageBuilder.createMessage(message.getPayload(), accessor.getMessageHeaders());
 
         } else if (accessor.getCommand() != null && !StompCommand.DISCONNECT.equals(accessor.getCommand())) {
 

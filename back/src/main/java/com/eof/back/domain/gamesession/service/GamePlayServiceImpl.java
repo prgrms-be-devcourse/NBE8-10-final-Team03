@@ -70,7 +70,7 @@ public class GamePlayServiceImpl implements GamePlayService {
      * 게임 시작 및 스케줄러 가동
      */
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public void startGame(Long gameSessionId) {
 
         GameSession gameSession = gameSessionRepository.findById(gameSessionId)

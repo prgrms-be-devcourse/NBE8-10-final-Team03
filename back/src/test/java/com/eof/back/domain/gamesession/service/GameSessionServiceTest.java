@@ -98,7 +98,7 @@ public class GameSessionServiceTest {
         setupMockSession(session1, 1L, "방1", "테스터1", 10L, "퀴즈1");
         setupMockSession(session2, 2L, "방2", "테스터2", 20L, "퀴즈2");
 
-        given(gameSessionRepository.findAllByStatus(GameSessionStatus.WAIT))
+        given(gameSessionRepository.findAll())
                 .willReturn(List.of(session1, session2));
 
         List<GameSessionListResponse> responses = gameSessionService.getAllGameSessions();
@@ -256,7 +256,7 @@ public class GameSessionServiceTest {
     }
 
     @Test
-    @DisplayName("방 나가기 성공 - 방장이 나갈 때 (방 폭파)")
+    @DisplayName("방 나가기 성공 -    방장이 나갈 때 (방 폭파)")
     void leaveRoom_Success_HostLeave() {
         Long hostId = 1L;
         Long gameSessionId = 10L;

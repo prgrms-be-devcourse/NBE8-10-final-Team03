@@ -23,6 +23,7 @@ public enum ImageErrorCode implements ErrorCode {
     IMAGE_EMPTY(HttpStatus.BAD_REQUEST, "빈 파일입니다."),
     IMAGE_INVALID_EXTENSION(HttpStatus.BAD_REQUEST, "허용되지 않는 확장자입니다. (jpg, jpeg, png, gif, webp)"),
     IMAGE_SIZE_EXCEEDED(HttpStatus.BAD_REQUEST, "파일 크기가 초과되었습니다."),
+    IMAGE_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 이미지를 찾을 수 없습니다."),
     IMAGE_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "이미지 업로드에 실패했습니다."),
     IMAGE_DELETE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "이미지 삭제에 실패했습니다.");
 

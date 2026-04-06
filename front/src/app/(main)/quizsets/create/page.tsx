@@ -270,7 +270,7 @@ export default function QuizSetCreatePage() {
                   <div className="mt-4 pt-4 border-t-[2px] border-gray-300 border-dashed">
                     <p className="text-sm font-bold text-gray-500 mb-2">실제 화면 미리보기 테스트 (직접 재생해보세요)</p>
                     {getYoutubeId(quiz.videoUrl) ? (
-                      <div className={`relative mx-auto ${quiz.questionType === "AUDIO" ? "w-0 h-0 overflow-hidden opacity-0" : "w-full max-w-sm bg-black rounded-xl border-[3px] border-dark overflow-hidden aspect-video"}`}>
+                      <div className="relative mx-auto w-full bg-black rounded-xl border-[3px] border-dark overflow-hidden aspect-video mt-3">
                         <YouTube
                           videoId={getYoutubeId(quiz.videoUrl)!}
                           opts={{
@@ -290,10 +290,10 @@ export default function QuizSetCreatePage() {
                       <p className="text-sm text-red-500 font-bold mt-2">유효하지 않은 유튜브 링크입니다.</p>
                     )}
                     {quiz.questionType === "AUDIO" && getYoutubeId(quiz.videoUrl) && (
-                      <div className="text-center p-4 bg-white border-[3px] border-dark border-dashed rounded-xl mt-2 mx-auto max-w-sm">
-                        <span className="text-3xl mb-2 block">🎶</span>
-                        <p className="font-title text-sm text-primary">미리보기 (오디오 모드)</p>
-                        <p className="text-xs text-gray-400 mt-1">※ 위 검은 화면(플레이어)을 클릭하여 시간이 짤렸는지 소리를 확인해보세요.</p>
+                      <div className="text-center p-4 bg-white border-[3px] border-dark border-dashed rounded-xl mt-4 mx-auto w-full">
+                        <span className="text-3xl mb-2 block animate-pulse">🎶</span>
+                        <p className="font-title text-sm text-primary">이 문제는 플레이 화면에서 영상이 숨겨지고 소리만 재생됩니다.</p>
+                        <p className="text-xs text-gray-400 mt-1">※ 위 플레이어를 직접 조작해 가장 완벽한 컷(초)을 찾아보세요!</p>
                       </div>
                     )}
                   </div>

@@ -6,7 +6,9 @@ import api from "@/lib/api";
 import Header from "@/components/common/Header";
 import { Client } from "@stomp/stompjs";
 import { useSearchParams } from "next/navigation";
-import { Suspense } from "react"
+import { Suspense } from "react";
+import YouTube, { YouTubePlayer } from "react-youtube";
+import { useRouter } from "next/navigation";
 
 interface Room {
   gameSessionId: number;
@@ -40,13 +42,25 @@ interface ChatMessage {
 
 interface QuizBroadcastResponse {
   questionId: number;
+  questionType: string;
+  answerType: string;
   content: string;
   choice1: string;
   choice2: string;
   choice3: string;
   choice4: string;
+  videoUrl?: string;
+  startTime?: number;
+  endTime?: number;
   timeLimit: number;
 }
+
+const getYoutubeId = (url: string) => {
+  if (!url) return null;
+  const regExp = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=|shorts\/)|youtu\.be\/)([^"&?\/\s]{11})/i;
+  const match = url.match(regExp);
+  return match ? match[1] : null;
+};
 
 interface ScoreboardItem {
   username: string;
@@ -63,6 +77,7 @@ type GameState = "waiting" | "playing" | "roundResult" | "result";
 type ViewMode = "lobby" | "room";
 
 function RoomsContent() {
+  const router = useRouter();
   const [viewMode, setViewMode] = useState<ViewMode>("lobby");
   const [rooms, setRooms] = useState<Room[]>([]);
   const [rankings, setRankings] = useState<RankingItem[]>([]);
@@ -75,7 +90,7 @@ function RoomsContent() {
   const [myUserId, setMyUserId] = useState<string | null>(null);
   const [showQuizSetModal, setShowQuizSetModal] = useState(false);
   const [quizSetSearch, setQuizSetSearch] = useState("");
-  const [quizSetTab, setQuizSetTab] = useState<"all" | "mine" | "bookmark">("all");
+  const [quizSetTab, setQuizSetTab] = useState<"all" | "mine" | "bookmark" | "ai">("all");
   const [bookmarkedQuizSetIds, setBookmarkedQuizSetIds] = useState<Set<number>>(new Set());
   const [selectedQuizSet, setSelectedQuizSet] = useState<QuizSet | null>(null);
   const [myQuizSets, setMyQuizSets] = useState<QuizSet[]>([]);
@@ -83,6 +98,11 @@ function RoomsContent() {
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportReason, setReportReason] = useState("");
   const [reporting, setReporting] = useState(false);
+  const [useAiQuiz, setUseAiQuiz] = useState(false);
+  const [aiTopic, setAiTopic] = useState("");
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
+  const leaveGuardActive = useRef(false);
 
   // 방 만들기 모달
   const [showModal, setShowModal] = useState(false);
@@ -100,6 +120,7 @@ function RoomsContent() {
   const [roundResult, setRoundResult] = useState<QuizResultResponse | null>(null);
   const [scoreboard, setScoreboard] = useState<ScoreboardItem[]>([]);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
+  const [shortAnswerInput, setShortAnswerInput] = useState("");
   const [answerSubmitted, setAnswerSubmitted] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
   const [currentRound, setCurrentRound] = useState(0);
@@ -110,6 +131,10 @@ function RoomsContent() {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState("");
   const chatBottomRef = useRef<HTMLDivElement | null>(null);
+
+  // 미디어 재생 state
+  const playerRef = useRef<YouTubePlayer>(null);
+  const [isPlayingMedia, setIsPlayingMedia] = useState(false);
 
   useEffect(() => {
     setMyNickname(localStorage.getItem("nickname"));
@@ -152,6 +177,39 @@ function RoomsContent() {
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, [gameState, timeLeft]);
 
+  useEffect(() => {
+    if (gameState !== "playing" && gameState !== "roundResult") {
+      leaveGuardActive.current = false;
+      return;
+    }
+
+    if (leaveGuardActive.current) return;
+    leaveGuardActive.current = true;
+
+    window.history.pushState(null, "", window.location.href);
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
+
+    const handlePopState = () => {
+      const confirmed = window.confirm("게임이 진행 중입니다. 나가면 게임에서 퇴장됩니다. 나가시겠습니까?");
+      if (confirmed) {
+        handleLeaveRoom();
+      } else {
+        window.history.pushState(null, "", window.location.href);
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener("popstate", handlePopState);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, [gameState]);
+
   const fetchLobbyData = async () => {
     setLoading(true);
     try {
@@ -190,6 +248,7 @@ function RoomsContent() {
       setCurrentRoom(enrichedRoom);
       setGameState("waiting");
       setSelectedAnswer(null);
+      setShortAnswerInput("");
       setAnswerSubmitted(false);
       setChatMessages([]);
 
@@ -245,7 +304,10 @@ function RoomsContent() {
                 setCurrentQuestion(data.data);
                 setCurrentRound((prev) => prev + 1);
                 setSelectedAnswer(null);
+                setShortAnswerInput("");
                 setAnswerSubmitted(false);
+                setIsPlayingMedia(false);
+                playerRef.current = null;
                 setTimeLeft(data.data.timeLimit);
                 setGameState("playing");
                 setChatMessages((prev) => [...prev, {
@@ -325,11 +387,13 @@ function RoomsContent() {
   };
 
   const handleStartGame = () => {
-    if (!stompClientRef.current?.connected || !currentRoom) return;
+    if (isStarting || !stompClientRef.current?.connected || !currentRoom) return;
+    setIsStarting(true);
     stompClientRef.current.publish({
       destination: `/app/rooms/${currentRoom.gameSessionId}/start`,
       body: "",
     });
+    setTimeout(() => setIsStarting(false), 3000);
   };
 
   const handleSubmitAnswer = (answer: string) => {
@@ -391,7 +455,7 @@ function RoomsContent() {
   const handleCreateRoom = async () => {
     setCreateError("");
     if (!roomName.trim()) { setCreateError("방 제목을 입력하세요."); return; }
-    if (!selectedQuizSetId) { setCreateError("퀴즈셋을 선택하세요."); return; }
+    if (!selectedQuizSetId) { setCreateError("퀴즈셋을 선택하거나 AI로 생성하세요."); return; }
     if (maxQuizzes < 5) { setCreateError("문제 수는 최소 5개 이상이어야 합니다."); return; }
     setCreating(true);
     try {
@@ -422,6 +486,29 @@ function RoomsContent() {
       alert("신고 접수에 실패했습니다.");
     } finally {
       setReporting(false);
+    }
+  };
+
+  const handleAiGenerate = async () => {
+    if (!roomName.trim()) { setCreateError("방 제목을 입력하세요."); return; }
+    if (!aiTopic.trim()) { setCreateError("주제를 입력하세요."); return; }
+    setCreateError("");
+    setAiGenerating(true);
+    try {
+      const res = await api.post(`/ai/quizzes?topic=${encodeURIComponent(aiTopic)}`);
+      const quizSetId = res.data.data.quizSetId;
+      setSelectedQuizSetId(quizSetId);
+      setSelectedQuizSet({ id: quizSetId, title: `[AI] ${aiTopic}`, totalQuizCount: 5 } as any);
+      // 바로 방 생성
+      const roomRes = await api.post("/rooms", { roomName, quizSetId, maxPlayers, maxQuizzes: 5 });
+      const gameSessionId = roomRes.data.data.gameSessionId;
+      setShowModal(false);
+      setRoomName("");
+      await handleJoinRoom(gameSessionId);
+    } catch (err: any) {
+      setCreateError(err.response?.data?.message || "입력한 주제로는 퀴즈를 생성할 수 없습니다.");
+    } finally {
+      setAiGenerating(false);
     }
   };
 
@@ -509,10 +596,10 @@ function RoomsContent() {
                   {hostNickname === myNickname ? (
                     <button
                       onClick={handleStartGame}
-                      disabled={!stompConnected || (roomInfo?.players?.length ?? 0) < 2}
+                      disabled={!stompConnected || (roomInfo?.players?.length ?? 0) < 2 || isStarting}
                       className="flex-1 py-4 bg-primary text-white font-bold text-lg border-[3px] border-dark rounded-2xl shadow-kitsch hover:shadow-kitsch-lg hover:-translate-y-0.5 transition-all disabled:opacity-50"
                     >
-                      {(roomInfo?.players?.length ?? 0) < 2 ? "2명 이상이어야 시작할 수 있어요" : "🎮 게임 시작"}
+                      {isStarting ? "시작 중..." : (roomInfo?.players?.length ?? 0) < 2 ? "2명 이상이어야 시작할 수 있어요" : "🎮 게임 시작"}
                     </button>
                   ) : (
                     <div className="flex-1 py-4 bg-cream border-[3px] border-dark rounded-2xl text-center font-bold text-gray-400">
@@ -597,25 +684,118 @@ function RoomsContent() {
 
                 <div className="bg-white border-[3px] border-dark rounded-2xl shadow-kitsch p-10 mb-6 text-center">
                   <h2 className="font-title text-3xl">{currentQuestion.content}</h2>
+                  {(currentQuestion.questionType === "VIDEO" || currentQuestion.questionType === "AUDIO") && currentQuestion.videoUrl && (
+                    <div className="mt-6 flex flex-col justify-center items-center">
+                      {getYoutubeId(currentQuestion.videoUrl) ? (
+                        <>
+                          <div className={`relative ${currentQuestion.questionType === "AUDIO" ? "w-0 h-0 overflow-hidden opacity-0" : "w-full max-w-2xl bg-black rounded-xl border-[3px] border-dark overflow-hidden aspect-video pointer-events-none select-none"}`}>
+                            <YouTube
+                              videoId={getYoutubeId(currentQuestion.videoUrl)!}
+                              opts={{
+                                width: "100%",
+                                height: "100%",
+                                playerVars: {
+                                  autoplay: 1,
+                                  controls: 0,
+                                  disablekb: 1,
+                                  fs: 0,
+                                  iv_load_policy: 3,
+                                  start: currentQuestion.startTime || 0,
+                                  ...(currentQuestion.endTime ? { end: currentQuestion.endTime } : {}),
+                                  rel: 0,
+                                  modestbranding: 1,
+                                  origin: typeof window !== "undefined" ? window.location.origin : undefined,
+                                },
+                              }}
+                              onReady={(e) => {
+                                playerRef.current = e.target;
+                                e.target.playVideo();
+                              }}
+                              onStateChange={(e) => {
+                                // 1: PLAYING, 기타: buffering, paused 등
+                                if (e.data === 1) setIsPlayingMedia(true);
+                                else setIsPlayingMedia(false);
+                              }}
+                              className="w-full h-full pointer-events-none"
+                              iframeClassName="w-full h-full pointer-events-none"
+                            />
+                          </div>
+                      
+                      {/* 자동재생이 차단되었을 때 띄워주는 직접 재생 UI */}
+                      {!isPlayingMedia && (
+                        <div className="mt-4 p-6 bg-cream border-[3px] border-dark border-dashed rounded-2xl shadow-kitsch-sm flex flex-col items-center">
+                          <p className="font-title text-lg text-primary mb-3">
+                            브라우저 정책으로 미디어 자동 재생이 정지되었습니다.
+                          </p>
+                          <button
+                            onClick={() => {
+                              if (playerRef.current) {
+                                playerRef.current.playVideo();
+                                setIsPlayingMedia(true);
+                              }
+                            }}
+                            className="px-6 py-3 bg-accent text-white font-bold text-lg border-[3px] border-dark rounded-xl shadow-kitsch-sm hover:-translate-y-0.5 hover:shadow-kitsch transition-all"
+                          >
+                            ▶ 수동 재생하기
+                          </button>
+                        </div>
+                      )}
+
+                      {currentQuestion.questionType === "AUDIO" && isPlayingMedia && (
+                        <div className="text-center p-8 bg-cream border-[3px] border-dark border-dashed rounded-2xl shadow-kitsch-sm mt-4">
+                          <span className="text-6xl mb-4 block animate-bounce">🎶</span>
+                          <p className="font-title text-xl text-primary">소리를 듣고 정답을 맞춰주세요!</p>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="mt-6 p-6 bg-cream border-[3px] border-red-400 border-dashed rounded-2xl flex flex-col items-center">
+                      <p className="font-title text-lg text-red-500">유효하지 않은 유튜브 링크입니다.</p>
+                      <p className="text-sm text-gray-500 mt-2">({currentQuestion.videoUrl})</p>
+                    </div>
+                  )}
+                    </div>
+                  )}
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  {choices.map((choice, i) => {
-                    const isSelected = selectedAnswer === choice;
-                    return (
-                      <button
-                        key={i}
-                        onClick={() => handleSubmitAnswer(choice)}
-                        disabled={answerSubmitted}
-                        className={`p-6 border-[3px] rounded-2xl font-bold text-lg shadow-kitsch-sm transition-all hover:-translate-y-0.5 hover:shadow-kitsch disabled:cursor-not-allowed ${isSelected ? choiceColors[i].selected : `${choiceColors[i].base} ${choiceColors[i].hover}`
-                          }`}
-                      >
-                        <span className="font-title mr-2">{i + 1}.</span>
-                        {choice}
-                      </button>
-                    );
-                  })}
-                </div>
+                {currentQuestion.answerType === "SHORT_ANSWER" ? (
+                  <div className="flex gap-3 max-w-xl mx-auto">
+                    <input
+                      type="text"
+                      placeholder="정답을 입력하세요"
+                      value={shortAnswerInput}
+                      onChange={(e) => setShortAnswerInput(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && handleSubmitAnswer(shortAnswerInput)}
+                      disabled={answerSubmitted}
+                      className="flex-1 px-6 py-4 bg-white border-[3px] border-dark rounded-2xl text-xl font-bold focus:border-primary outline-none transition-colors"
+                    />
+                    <button
+                      onClick={() => handleSubmitAnswer(shortAnswerInput)}
+                      disabled={answerSubmitted || !shortAnswerInput.trim()}
+                      className="px-8 py-4 bg-primary text-white font-bold text-xl border-[3px] border-dark rounded-2xl shadow-kitsch hover:shadow-kitsch-lg hover:-translate-y-0.5 transition-all disabled:opacity-50"
+                    >
+                      제출
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-4">
+                    {choices.map((choice, i) => {
+                      const isSelected = selectedAnswer === choice;
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => handleSubmitAnswer(choice)}
+                          disabled={answerSubmitted}
+                          className={`p-6 border-[3px] rounded-2xl font-bold text-lg shadow-kitsch-sm transition-all hover:-translate-y-0.5 hover:shadow-kitsch disabled:cursor-not-allowed ${isSelected ? choiceColors[i].selected : `${choiceColors[i].base} ${choiceColors[i].hover}`
+                            }`}
+                        >
+                          <span className="font-title mr-2">{i + 1}.</span>
+                          {choice}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
                 {answerSubmitted && (
                   <p className="text-center font-hand text-lg text-accent mt-4">정답을 제출했습니다! 결과를 기다려주세요...</p>
                 )}
@@ -684,6 +864,7 @@ function RoomsContent() {
                 </button>
               </div>
 
+
               <div className="text-center mb-10">
                 <h1 className="font-title text-4xl mb-2">🎉 게임 종료!</h1>
               </div>
@@ -720,15 +901,13 @@ function RoomsContent() {
                     setRoundResult(null);
                     setScoreboard([]);
                     setCurrentRound(0);
+                    setIsStarting(false);
                   }}
                   className="flex-1 py-4 bg-primary text-white font-bold text-lg border-[3px] border-dark rounded-2xl shadow-kitsch hover:shadow-kitsch-lg hover:-translate-y-0.5 transition-all"
                 >
                   한 판 더!
                 </button>
-                <button
-                  onClick={handleLeaveRoom}
-                  className="flex-1 py-4 bg-white text-dark font-bold text-lg border-[3px] border-dark rounded-2xl shadow-kitsch-sm hover:shadow-kitsch hover:-translate-y-0.5 transition-all text-center"
-                >
+                <button onClick={handleLeaveRoom} className="flex-1 py-4 bg-white text-dark font-bold text-lg border-[3px] border-dark rounded-2xl shadow-kitsch-sm hover:shadow-kitsch hover:-translate-y-0.5 transition-all text-center">
                   로비로 돌아가기
                 </button>
               </div>
@@ -885,7 +1064,7 @@ function RoomsContent() {
               )}
               <div className="mb-4">
                 <label className="block text-sm font-bold mb-2">방 제목</label>
-                <input type="text" placeholder="방 제목을 입력하세요" value={roomName} onChange={(e) => setRoomName(e.target.value)} className="w-full px-4 py-3 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none transition-colors" />
+                <input type="text" placeholder="방 제목을 입력하세요" value={roomName} onChange={(e) => { setRoomName(e.target.value); setCreateError(""); }} className="w-full px-4 py-3 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none transition-colors" />
               </div>
               <div className="mb-4">
                 <label className="block text-sm font-bold mb-2">퀴즈셋</label>
@@ -903,12 +1082,53 @@ function RoomsContent() {
                   <div className="bg-white border-[3px] border-dark rounded-2xl shadow-kitsch-lg p-6 w-full max-w-lg max-h-[80vh] flex flex-col">
                     <div className="flex items-center justify-between mb-4">
                       <h3 className="font-title text-xl">퀴즈셋 선택</h3>
+                      {createError && (
+                        <div className="mb-4 px-4 py-3 bg-red-50 border-2 border-red-300 rounded-xl text-sm text-red-600 font-bold">
+                          {createError}
+                        </div>
+                      )}
                       <button
                         onClick={() => { setShowQuizSetModal(false); setQuizSetSearch(""); }}
                         className="text-gray-400 hover:text-dark font-bold text-lg"
                       >
                         ✕
                       </button>
+                    </div>
+                    {/* AI 퀴즈 생성 */}
+                    <div className="mb-4">
+                      <label className="block text-sm font-bold mb-2">
+                        <input
+                          type="checkbox"
+                          checked={useAiQuiz}
+                          onChange={(e) => {
+                            setUseAiQuiz(e.target.checked);
+                            if (e.target.checked) {
+                              setSelectedQuizSetId(null);
+                              setSelectedQuizSet(null);
+                            }
+                          }}
+                          className="mr-2"
+                        />
+                        🤖 AI로 퀴즈 생성하기
+                      </label>
+                      {useAiQuiz && (
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            placeholder="주제를 입력하세요 (예: 한국사, 축구, 과학)"
+                            value={aiTopic}
+                            onChange={(e) => { setAiTopic(e.target.value); setCreateError(""); }}
+                            className="flex-1 px-4 py-3 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none"
+                          />
+                          <button
+                            onClick={handleAiGenerate}
+                            disabled={aiGenerating || !aiTopic.trim()}
+                            className="px-4 py-3 bg-secondary font-bold border-[3px] border-dark rounded-xl text-sm shadow-kitsch disabled:opacity-50"
+                          >
+                            {aiGenerating ? "생성 중..." : "생성"}
+                          </button>
+                        </div>
+                      )}
                     </div>
 
                     {/* 검색 */}
@@ -926,6 +1146,7 @@ function RoomsContent() {
                         { key: "all", label: "전체" },
                         { key: "mine", label: "내 퀴즈셋" },
                         { key: "bookmark", label: "북마크" },
+                        { key: "ai", label: "🤖 AI 생성" },
                       ] as const).map((tab) => (
                         <button
                           key={tab.key}
@@ -940,9 +1161,10 @@ function RoomsContent() {
 
                     {/* 목록 */}
                     <div className="flex-1 overflow-y-auto flex flex-col gap-2">
-                      {(quizSetTab === "all" ? quizSets
-                        : quizSetTab === "mine" ? myQuizSets
-                          : bookmarkedQuizSets
+                      {(quizSetTab === "all" ? quizSets.filter((q) => !q.title.startsWith("[AI]"))
+                        : quizSetTab === "mine" ? myQuizSets.filter((q) => !q.title.startsWith("[AI]"))
+                          : quizSetTab === "bookmark" ? bookmarkedQuizSets.filter((q) => !q.title.startsWith("[AI]"))
+                            : quizSets.filter((q) => q.title.startsWith("[AI]"))
                       )
                         .filter((q) => q.title.toLowerCase().includes(quizSetSearch.toLowerCase()))
                         .map((q) => (
@@ -950,8 +1172,8 @@ function RoomsContent() {
                             key={q.id}
                             onClick={() => handleSelectQuizSet(q)}
                             className={`w-full flex items-center justify-between px-4 py-3 border-[3px] rounded-xl text-left transition-all hover:-translate-y-0.5 ${selectedQuizSetId === q.id
-                                ? "border-primary bg-primary/5 shadow-kitsch-sm"
-                                : "border-dark bg-white hover:shadow-kitsch-sm"
+                              ? "border-primary bg-primary/5 shadow-kitsch-sm"
+                              : "border-dark bg-white hover:shadow-kitsch-sm"
                               }`}
                           >
                             <div>
@@ -968,10 +1190,12 @@ function RoomsContent() {
                             </div>
                           </button>
                         ))}
-                      {(quizSetTab === "all" ? quizSets
-                        : quizSetTab === "mine" ? myQuizSets
-                          : bookmarkedQuizSets
-                      ).filter((q) => q.title.toLowerCase().includes(quizSetSearch.toLowerCase())).length === 0 && (
+                      {(quizSetTab === "all" ? quizSets.filter((q) => !q.title.startsWith("[AI]"))
+                        : quizSetTab === "mine" ? myQuizSets.filter((q) => !q.title.startsWith("[AI]"))
+                          : quizSetTab === "bookmark" ? bookmarkedQuizSets.filter((q) => !q.title.startsWith("[AI]"))
+                            : quizSets.filter((q) => q.title.startsWith("[AI]"))
+                      )
+                        .filter((q) => q.title.toLowerCase().includes(quizSetSearch.toLowerCase())).length === 0 && (
                           <div className="text-center py-10">
                             <p className="font-hand text-gray-400">퀴즈셋이 없어요!</p>
                           </div>

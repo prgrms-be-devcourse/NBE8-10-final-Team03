@@ -3,11 +3,14 @@ package com.eof.back.domain.quiz.controller;
 import com.eof.back.domain.quiz.dto.QuizCreateRequest;
 import com.eof.back.domain.quiz.dto.QuizResponse;
 import com.eof.back.domain.quiz.dto.QuizUpdateRequest;
+import com.eof.back.domain.quiz.entity.AnswerType;
+import com.eof.back.domain.quiz.entity.QuestionType;
 import com.eof.back.domain.quiz.service.QuizService;
 import com.eof.back.global.jwt.UserPrincipal;
 import com.eof.back.global.jwt.CookieUtil;
 import com.eof.back.global.jwt.JwtAuthenticationEntryPoint;
 import com.eof.back.global.jwt.JwtTokenProvider;
+import com.eof.back.global.token.TokenVersionStore;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
@@ -57,6 +60,9 @@ class QuizControllerTest {
     private JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
 
     @MockitoBean
+    private TokenVersionStore tokenVersionStore;
+
+    @MockitoBean
     private CookieUtil cookieUtil;
 
     private UserPrincipal principal;
@@ -80,7 +86,7 @@ class QuizControllerTest {
         // given
         Long quizSetId = 1L;
         QuizCreateRequest request = new QuizCreateRequest(
-                "문제 내용", "정답", "보기1", "보기2", "보기3", "보기4"
+                QuestionType.TEXT, AnswerType.MULTIPLE_CHOICE, "문제 내용", "정답", null, null, null, null, "보기1", "보기2", "보기3", "보기4"
         );
 
         given(quizService.createQuiz(any(), any(), any())).willReturn(100L);
@@ -101,7 +107,7 @@ class QuizControllerTest {
         // given
         Long quizSetId = 1L;
         QuizCreateRequest request = new QuizCreateRequest(
-                "", "정답", "보기1", "보기2", "보기3", "보기4"
+                null, null, "", "정답", null, null, null, null, "보기1", "보기2", "보기3", "보기4"
         );
 
         // when & then
@@ -118,8 +124,8 @@ class QuizControllerTest {
     void getQuizzesByQuizSetId_success() throws Exception {
         // given
         Long quizSetId = 1L;
-        QuizResponse quiz1 = QuizResponse.builder().id(10L).content("문제1").build();
-        QuizResponse quiz2 = QuizResponse.builder().id(11L).content("문제2").build();
+        QuizResponse quiz1 = QuizResponse.builder().id(10L).questionType(QuestionType.TEXT).answerType(AnswerType.MULTIPLE_CHOICE).content("문제1").build();
+        QuizResponse quiz2 = QuizResponse.builder().id(11L).questionType(QuestionType.TEXT).answerType(AnswerType.MULTIPLE_CHOICE).content("문제2").build();
         given(quizService.getQuizzesByQuizSetId(quizSetId)).willReturn(List.of(quiz1, quiz2));
 
         // when & then
@@ -137,7 +143,7 @@ class QuizControllerTest {
         // given
         Long quizSetId = 1L;
         Long quizId = 100L;
-        QuizResponse response = QuizResponse.builder().id(quizId).content("문제 내용").build();
+        QuizResponse response = QuizResponse.builder().id(quizId).questionType(QuestionType.TEXT).answerType(AnswerType.MULTIPLE_CHOICE).content("문제 내용").build();
         given(quizService.getQuiz(quizSetId, quizId)).willReturn(response);
 
         // when & then
@@ -155,7 +161,7 @@ class QuizControllerTest {
         // given
         Long quizSetId = 1L;
         Long quizId = 100L;
-        QuizUpdateRequest request = new QuizUpdateRequest("수정된 내용", null, null, null, null, null);
+        QuizUpdateRequest request = new QuizUpdateRequest(null, null, "수정된 내용", null, null, null, null, null, null, null, null, null);
 
         given(quizService.updateQuiz(any(), any(), any(), any())).willReturn(quizId);
 

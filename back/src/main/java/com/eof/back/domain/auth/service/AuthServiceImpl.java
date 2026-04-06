@@ -11,6 +11,7 @@ import com.eof.back.domain.user.user.repository.UserRepository;
 import com.eof.back.global.exception.errorCode.AuthErrorCode;
 import com.eof.back.global.exception.exceptions.AuthException;
 import com.eof.back.global.jwt.JwtTokenProvider;
+import com.eof.back.global.token.TokenVersionStore;
 import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -49,6 +50,7 @@ public class AuthServiceImpl implements AuthService {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenStore refreshTokenStore;
+    private final TokenVersionStore tokenVersionStore;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final LoginAttemptService loginAttemptService;
@@ -149,9 +151,18 @@ public class AuthServiceImpl implements AuthService {
             throw new AuthException(AuthErrorCode.TOKEN_INVALID);
         }
 
-        // 3. 새 토큰 발급 및 저장
-        String newAccessToken = jwtTokenProvider.createAccessToken(userId, username, role, nickname);
-        String newRefreshToken = jwtTokenProvider.createRefreshToken(userId, username, role, nickname);
+        // 3. tokenVersion 검증 및 새 토큰 발급
+        // 재발급은 동일 세션 내 연장이므로 version을 증가시키지 않고 현재 값을 그대로 사용합니다.
+        // refresh token의 version claim과 Redis 저장 version을 비교하여
+        // 다른 기기에서 재로그인한 경우(version 불일치)에는 재발급을 거부합니다.
+        long refreshTokenVersion = jwtTokenProvider.getTokenVersion(claims);
+        long storedVersion = tokenVersionStore.findByUserId(userId)
+                .orElseThrow(() -> new AuthException(AuthErrorCode.TOKEN_INVALID));
+        if (refreshTokenVersion != storedVersion) {
+            throw new AuthException(AuthErrorCode.TOKEN_INVALID);
+        }
+        String newAccessToken = jwtTokenProvider.createAccessToken(userId, username, role, nickname, storedVersion);
+        String newRefreshToken = jwtTokenProvider.createRefreshToken(userId, username, role, nickname, storedVersion);
 
         LocalDateTime refreshTokenExpiredAt = LocalDateTime.now().plusSeconds(refreshTokenExpireSeconds);
         refreshTokenStore.save(userId, newRefreshToken, refreshTokenExpiredAt);
@@ -166,8 +177,9 @@ public class AuthServiceImpl implements AuthService {
         // 1. Refresh Token 검증 및 저장된 토큰 조회
         RefreshToken savedRefreshToken = validateAndGetRefreshToken(refreshToken);
 
-        // 2. 저장소에서 Refresh Token 삭제
+        // 2. 저장소에서 Refresh Token 삭제 + tokenVersion 증가 (삭제하면 재로그인 시 version=1 재사용 취약점 발생)
         refreshTokenStore.delete(savedRefreshToken.getUserId());
+        tokenVersionStore.increment(savedRefreshToken.getUserId());
     }
 
     @Override
@@ -186,8 +198,9 @@ public class AuthServiceImpl implements AuthService {
         // 3. soft delete 처리
         user.delete();
 
-        // 4. Refresh Token 삭제
+        // 4. Refresh Token + tokenVersion 삭제
         refreshTokenStore.delete(userId);
+        tokenVersionStore.delete(userId);
     }
 
     /**
@@ -195,10 +208,12 @@ public class AuthServiceImpl implements AuthService {
      * login과 reissue에서 공통으로 사용됩니다.
      */
     private LoginResult issueTokens(User user) {
+        // 로그인 시 version 증가 → 이전 세션의 access token 즉시 무효화 (1계정 1세션)
+        long tokenVersion = tokenVersionStore.increment(user.getId());
         String accessToken = jwtTokenProvider.createAccessToken(
-                user.getId(), user.getUsername(), user.getRole().name(), user.getNickname());
+                user.getId(), user.getUsername(), user.getRole().name(), user.getNickname(), tokenVersion);
         String refreshToken = jwtTokenProvider.createRefreshToken(
-                user.getId(), user.getUsername(), user.getRole().name(), user.getNickname());
+                user.getId(), user.getUsername(), user.getRole().name(), user.getNickname(), tokenVersion);
 
         LocalDateTime refreshTokenExpiredAt = LocalDateTime.now().plusSeconds(refreshTokenExpireSeconds);
         refreshTokenStore.save(user.getId(), refreshToken, refreshTokenExpiredAt);

@@ -29,7 +29,7 @@ spring:
             user-name-attribute: id
 
   datasource:
-    url: jdbc:h2:mem:testdb;MODE=MySQL
+    url: jdbc:h2:mem:testdb;MODE=PostgreSQL
     username: sa
     password:
     driver-class-name: org.h2.Driver
@@ -43,3 +43,7 @@ custom:
     store: db
   jwt:
     secretKey: testsecretkeytestsecretkeytestsecretkeytestsecretkeytestsecretkeytestsecretkey
+
+gemini:
+  api:
+    key: test-gemini-api-key

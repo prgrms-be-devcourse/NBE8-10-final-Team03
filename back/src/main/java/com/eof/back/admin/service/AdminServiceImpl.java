@@ -1,7 +1,10 @@
 package com.eof.back.admin.service;
 
+import com.eof.back.admin.dto.AdminUserResponse;
 import com.eof.back.admin.entity.UserSuspension;
 import com.eof.back.admin.repository.UserSuspensionRepository;
+import com.eof.back.domain.auth.store.RefreshTokenStore;
+import com.eof.back.global.token.TokenVersionStore;
 import com.eof.back.domain.quiz.dto.QuizUpdateRequest;
 import com.eof.back.domain.quiz.entity.Quiz;
 import com.eof.back.domain.quiz.repository.QuizRepository;
@@ -30,6 +33,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -56,6 +61,8 @@ public class AdminServiceImpl implements AdminService {
     private final QuizSetBookmarkRepository quizSetBookmarkRepository;
     private final GameRecordRepository gameRecordRepository;
     private final GameSessionRepository gameSessionRepository;
+    private final RefreshTokenStore refreshTokenStore;
+    private final TokenVersionStore tokenVersionStore;
 
     /**
      * {@inheritDoc}
@@ -99,7 +106,20 @@ public class AdminServiceImpl implements AdminService {
         
         validatePathConsistency(quiz, quizSetId);
 
-        quiz.update(request.content(), request.answer(), request.choice1(), request.choice2(), request.choice3(), request.choice4());
+        quiz.update(
+                request.questionType(),
+                request.answerType(),
+                request.content(),
+                request.answer(),
+                request.imageUrl(),
+                request.videoUrl(),
+                request.startTime(),
+                request.endTime(),
+                request.choice1(),
+                request.choice2(),
+                request.choice3(),
+                request.choice4()
+        );
         return quiz.getId();
     }
 
@@ -181,9 +201,13 @@ public class AdminServiceImpl implements AdminService {
         User user = findUserById(targetUserId);
         
         user.suspend();
-        
+
+        // 기존 토큰 즉시 무효화: version 증가 + refresh token 삭제
+        tokenVersionStore.increment(targetUserId);
+        refreshTokenStore.delete(targetUserId);
+
         LocalDateTime until = LocalDateTime.now().plusDays(suspensionDays);
-        
+
         userSuspensionRepository.findByUserId(targetUserId)
                 .ifPresentOrElse(
                         suspension -> suspension.update(reason, until),
@@ -203,6 +227,27 @@ public class AdminServiceImpl implements AdminService {
         
         user.delete();
         userSuspensionRepository.deleteByUserId(targetUserId);
+
+        // 기존 토큰 즉시 무효화: version 삭제 + refresh token 삭제
+        tokenVersionStore.delete(targetUserId);
+        refreshTokenStore.delete(targetUserId);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Slice<AdminUserResponse> getUsers(String keyword, Pageable pageable, Long adminId) {
+        validateAdminRole(adminId);
+
+        Slice<User> users;
+        if (keyword != null && !keyword.isBlank()) {
+            users = userRepository.findByNicknameContaining(keyword, pageable);
+        } else {
+            users = userRepository.findAllBy(pageable);
+        }
+
+        return users.map(AdminUserResponse::from);
     }
 
     /**

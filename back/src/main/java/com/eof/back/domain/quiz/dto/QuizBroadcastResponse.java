@@ -1,5 +1,8 @@
 package com.eof.back.domain.quiz.dto;
 
+import com.eof.back.domain.quiz.entity.AnswerType;
+import com.eof.back.domain.quiz.entity.QuestionType;
+
 /**
  * 프론트엔드로 문제를 브로드캐스트할 때 사용하는 안전한 DTO입니다.
  * 유저가 개발자 도구로 정답(answer)을 훔쳐보지 못하도록 정답 필드를 제외했습니다.
@@ -11,7 +14,13 @@ package com.eof.back.domain.quiz.dto;
  */
 public record QuizBroadcastResponse(
         Long questionId,
+        QuestionType questionType,
+        AnswerType answerType,
         String content,
+        String imageUrl,
+        String videoUrl,
+        Integer startTime,
+        Integer endTime,
         String choice1,
         String choice2,
         String choice3,
@@ -28,7 +37,13 @@ public record QuizBroadcastResponse(
     public static QuizBroadcastResponse from(QuizResponse quiz, int timeLimit) {
         return new QuizBroadcastResponse(
                 quiz.id(),
+                quiz.questionType(),
+                quiz.answerType(),
                 quiz.content(),
+                quiz.imageUrl(),
+                quiz.videoUrl(),
+                quiz.startTime(),
+                quiz.endTime(),
                 quiz.choice1(),
                 quiz.choice2(),
                 quiz.choice3(),

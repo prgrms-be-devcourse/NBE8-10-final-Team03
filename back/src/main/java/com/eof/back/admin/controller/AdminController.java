@@ -1,5 +1,6 @@
 package com.eof.back.admin.controller;
 
+import com.eof.back.admin.dto.AdminUserResponse;
 import com.eof.back.admin.service.AdminService;
 import com.eof.back.domain.quiz.dto.QuizUpdateRequest;
 import com.eof.back.domain.quizreport.dto.QuizReportResponse;
@@ -13,6 +14,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -21,6 +24,7 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -202,6 +206,23 @@ public class AdminController {
             @AuthenticationPrincipal UserPrincipal principal) {
         adminService.deleteUser(userId, principal.id());
         return ResponseEntity.ok(CommonResponse.success(null, "사용자가 삭제(탈퇴) 처리되었습니다."));
+    }
+
+    /**
+     * 전체 사용자 목록을 페이징하여 조회합니다. (닉네임 검색 필터 지원)
+     *
+     * @param keyword   검색어 (닉네임, 선택 사항)
+     * @param pageable  페이징 정보 (size, page, sort)
+     * @param principal 인증된 관리자 정보
+     * @return 페이징 처리된 사용자 목록
+     */
+    @GetMapping("/users")
+    public ResponseEntity<Response<Slice<AdminUserResponse>>> getUsers(
+            @RequestParam(required = false) String keyword,
+            Pageable pageable,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        Slice<AdminUserResponse> users = adminService.getUsers(keyword, pageable, principal.id());
+        return ResponseEntity.ok(CommonResponse.success(users));
     }
 
     /**

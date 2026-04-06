@@ -1,6 +1,8 @@
 package com.eof.back.global.jwt;
 
+import com.eof.back.global.exception.errorCode.AuthErrorCode;
 import com.eof.back.global.exception.exceptions.AuthException;
+import com.eof.back.global.token.TokenVersionStore;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -44,16 +46,26 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private static final String ROLE_PREFIX = "ROLE_";
 
     private final JwtTokenProvider jwtTokenProvider;
+    private final TokenVersionStore tokenVersionStore;
     private final CookieUtil cookieUtil;
 
     /**
-     * 요청마다 JWT 인증을 수행합니다.
+     * 요청마다 JWT 인증 및 tokenVersion 검증을 수행합니다.
      *
-     * <p>쿠키에서 accessToken을 추출한 뒤,
-     * 토큰이 유효하면 사용자 정보와 권한을 기반으로 인증 객체를 생성하여
-     * SecurityContext에 저장합니다.
+     * <p>쿠키에서 accessToken을 추출한 뒤 아래 순서로 검증합니다:
+     * <ol>
+     *   <li>JWT 서명·만료 검증 (위변조 및 만료 토큰 차단)</li>
+     *   <li>tokenVersion 검증 - JWT의 version과 Redis 저장 version을 비교합니다.
+     *       <ul>
+     *         <li>Redis에 키 없음: 로그아웃·삭제 상태 → 인증 실패</li>
+     *         <li>version 불일치: 다른 기기 로그인 또는 관리자 강제 무효화 → 인증 실패</li>
+     *       </ul>
+     *   </li>
+     *   <li>검증 통과 시 SecurityContext에 인증 객체 저장</li>
+     * </ol>
      *
-     * <p>토큰이 없거나 유효하지 않은 경우 인증 정보를 저장하지 않고 다음 필터로 전달합니다.
+     * <p>토큰이 없거나 검증에 실패한 경우 인증 정보를 저장하지 않고 다음 필터로 전달합니다.
+     * 이후 인가 처리에서 {@code 401 Unauthorized}가 발생합니다.
      *
      * @param request     HTTP 요청
      * @param response    HTTP 응답
@@ -80,12 +92,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 String username = jwtTokenProvider.getUsername(claims);
                 String role = jwtTokenProvider.getRole(claims);
                 String nickname = jwtTokenProvider.getNickname(claims);
+                long tokenVersion = jwtTokenProvider.getTokenVersion(claims);
 
-                // 4. 권한 생성
+                // 4. tokenVersion 검증
+                // Redis에 키가 없으면 로그아웃/탈퇴/관리자 삭제 상태 → 인증 실패
+                // version 불일치면 다른 기기에서 재로그인하거나 관리자가 강제 무효화한 상태 → 인증 실패
+                long storedVersion = tokenVersionStore.findByUserId(userId)
+                        .orElseThrow(() -> new AuthException(AuthErrorCode.TOKEN_INVALID));
+                if (tokenVersion != storedVersion) {
+                    throw new AuthException(AuthErrorCode.TOKEN_INVALID);
+                }
+
+                // 5. 권한 생성
                 List<SimpleGrantedAuthority> authorities =
                         List.of(new SimpleGrantedAuthority(ROLE_PREFIX + role));
 
-                // 5. 인증 객체 생성
+                // 6. 인증 객체 생성
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(
                                 new UserPrincipal(userId, username, nickname, role),
@@ -93,12 +115,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                 authorities
                         );
 
-                // 6. SecurityContext에 저장
+                // 7. SecurityContext에 저장
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }
 
         } catch (AuthException e) {
-            // 인증 실패 시 context 비움
+            // JWT 검증 실패 또는 tokenVersion 불일치 시 context를 비워
+            // 이후 인가 처리에서 401이 반환되도록 합니다.
             SecurityContextHolder.clearContext();
         }
 

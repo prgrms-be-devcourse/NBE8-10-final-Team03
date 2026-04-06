@@ -1,6 +1,8 @@
 package com.eof.back.global.websocket;
 
 
+import com.eof.back.domain.gamesession.entity.GameSession;
+import com.eof.back.domain.gamesession.repository.GameSessionRepository;
 import com.eof.back.global.jwt.UserPrincipal;
 import com.eof.back.global.exception.errorCode.AuthErrorCode;
 import com.eof.back.global.exception.exceptions.AuthException;
@@ -51,6 +53,7 @@ import java.util.List;
 public class StompHandler implements ChannelInterceptor {
 
     private final JwtTokenProvider jwtTokenProvider;
+    private final GameSessionRepository gameSessionRepository;
     private static final String ROLE_PREFIX = "ROLE_";
 
     @Override
@@ -93,6 +96,50 @@ public class StompHandler implements ChannelInterceptor {
                 log.error(" 토큰 검증 오류: {}", e.getMessage());
                 throw new AuthException(AuthErrorCode.TOKEN_INVALID, "유효하지 않은 JWT 토큰입니다.");
             }
+        } else if (StompCommand.SUBSCRIBE.equals(accessor.getCommand())) {
+            // 2. 방 입장(SUBSCRIBE) 시: 어느 방에 들어갔는지 세션에 기록
+            String destination = accessor.getDestination();
+
+            // 구독하는 목적지가 채팅방일 경우 (ex) /topic/rooms/12/chat
+            if (destination != null && destination.startsWith("/topic/rooms/")) {
+                String[] parts = destination.split("/");
+                if (parts.length >= 4) {
+                    try {
+                        Long gameSessionId = Long.valueOf(parts[3]);
+
+                        Authentication authentication = (Authentication) accessor.getSessionAttributes().get("USER_AUTH");
+                        if (authentication == null) {
+                            throw new AuthException(AuthErrorCode.USER_AUTH_FAIL, "인증되지 않은 사용자입니다.");
+                        }
+                        Long userId = ((UserPrincipal) authentication.getPrincipal()).id();
+
+                        // 실제 방 참가자인지 DB 검증
+                        GameSession gameSession = gameSessionRepository.findByIdWithPlayers(gameSessionId)
+                                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 방입니다."));
+
+                        boolean isParticipant = gameSession.getHost().getId().equals(userId) ||
+                                gameSession.getPlayers().stream().anyMatch(p -> p.getId().equals(userId));
+
+                        if (!isParticipant) {
+                            log.warn("권한 없는 방 구독 시도 차단 userId: {}, roomId: {}", userId, gameSessionId);
+                            // STOMP 구독 거절
+                            throw new AuthException(AuthErrorCode.USER_AUTH_FAIL, "방에 참여한 유저만 통신에 연결할 수 있습니다.");
+                        }
+
+                        accessor.getSessionAttributes().put("CURRENT_ROOM_ID", gameSessionId);
+
+                    } catch (NumberFormatException e) {
+                        log.warn("잘못된 형식의 방 번호 구독 요청: {}", destination);
+                    }
+                }
+            }
+
+            Authentication authentication = (Authentication) accessor.getSessionAttributes().get("USER_AUTH");
+            if (authentication != null) {
+                accessor.setUser(authentication);
+                accessor.setLeaveMutable(true);
+            }
+            return MessageBuilder.createMessage(message.getPayload(), accessor.getMessageHeaders());
 
         } else if (accessor.getCommand() != null && !StompCommand.DISCONNECT.equals(accessor.getCommand())) {
 

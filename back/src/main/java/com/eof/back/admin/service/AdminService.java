@@ -1,9 +1,12 @@
 package com.eof.back.admin.service;
 
+import com.eof.back.admin.dto.AdminUserResponse;
 import com.eof.back.domain.quiz.dto.QuizUpdateRequest;
 import com.eof.back.domain.quizreport.dto.QuizReportResponse;
 import com.eof.back.domain.quizset.dto.QuizSetUpdateRequest;
 import java.util.List;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.Pageable;
 
 /**
  * 서비스의 모든 관리자 전용 기능을 정의하는 비즈니스 로직 계층 인터페이스입니다.
@@ -117,4 +120,15 @@ public interface AdminService {
      * @param adminId      요청을 보낸 관리자의 식별자 (권한 검증용)
      */
     void deleteUser(Long targetUserId, Long adminId);
+
+    /**
+     * 전체 사용자 목록을 페이징하여 조회합니다.
+     * 검색어(keyword)가 제공되면 닉네임에 포함된 사용자를 검색합니다.
+     *
+     * @param keyword  검색어 (닉네임)
+     * @param pageable 페이징 정보
+     * @param adminId  요청을 보낸 관리자의 식별자 (권한 검증용)
+     * @return 페이징 처리된 사용자 목록 응답
+     */
+    Slice<AdminUserResponse> getUsers(String keyword, Pageable pageable, Long adminId);
 }

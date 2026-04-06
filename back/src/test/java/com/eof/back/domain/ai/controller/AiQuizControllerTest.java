@@ -8,6 +8,7 @@ import com.eof.back.global.exception.exceptions.QuizSetException;
 import com.eof.back.global.jwt.CookieUtil;
 import com.eof.back.global.jwt.JwtTokenProvider;
 import com.eof.back.global.jwt.UserPrincipal;
+import com.eof.back.global.token.TokenVersionStore;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,6 +51,9 @@ class AiQuizControllerTest {
 
     @MockitoBean
     private ClientRegistrationRepository clientRegistrationRepository;
+
+    @MockitoBean
+    private TokenVersionStore tokenVersionStore;
 
     @Test
     @WithMockUser

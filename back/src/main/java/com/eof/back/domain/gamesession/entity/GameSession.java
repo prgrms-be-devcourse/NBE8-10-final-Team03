@@ -158,6 +158,10 @@ public class GameSession extends BaseEntity {
         }
     }
 
+    public void startGame() {
+        this.status = GameSessionStatus.START;
+    }
+
     public void endGame() {
         this.status = GameSessionStatus.END;
     }

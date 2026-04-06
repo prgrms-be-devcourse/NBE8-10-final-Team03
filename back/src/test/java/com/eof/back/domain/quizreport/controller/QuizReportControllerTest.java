@@ -5,6 +5,7 @@ import com.eof.back.domain.quizreport.service.QuizReportService;
 import com.eof.back.global.jwt.CookieUtil;
 import com.eof.back.global.jwt.JwtAuthenticationEntryPoint;
 import com.eof.back.global.jwt.JwtTokenProvider;
+import com.eof.back.global.token.TokenVersionStore;
 import com.eof.back.global.jwt.UserPrincipal;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
@@ -49,6 +50,9 @@ class QuizReportControllerTest {
 
     @MockitoBean
     private JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+
+    @MockitoBean
+    private TokenVersionStore tokenVersionStore;
 
     @MockitoBean
     private CookieUtil cookieUtil;

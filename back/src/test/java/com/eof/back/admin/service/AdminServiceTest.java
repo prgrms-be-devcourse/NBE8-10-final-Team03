@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 
 import com.eof.back.admin.entity.UserSuspension;
 import com.eof.back.admin.repository.UserSuspensionRepository;
+import com.eof.back.domain.auth.store.RefreshTokenStore;
 import com.eof.back.domain.quiz.entity.Quiz;
 import com.eof.back.domain.quiz.repository.QuizRepository;
 import com.eof.back.domain.quizreport.entity.QuizReport;
@@ -23,6 +24,7 @@ import com.eof.back.domain.user.user.entity.User;
 import com.eof.back.domain.user.user.entity.UserStatus;
 import com.eof.back.domain.user.user.repository.UserRepository;
 import com.eof.back.global.exception.exceptions.AuthException;
+import com.eof.back.global.token.TokenVersionStore;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -56,6 +58,10 @@ class AdminServiceTest {
     private GameRecordRepository gameRecordRepository;
     @Mock
     private GameSessionRepository gameSessionRepository;
+    @Mock
+    private RefreshTokenStore refreshTokenStore;
+    @Mock
+    private TokenVersionStore tokenVersionStore;
 
     private User admin;
     private User user;
@@ -90,7 +96,7 @@ class AdminServiceTest {
     }
 
     @Test
-    @DisplayName("사용자 정지 성공")
+    @DisplayName("사용자 정지 성공 - 상태 변경, tokenVersion 증가, refreshToken 삭제")
     void suspendUser_Success() {
         // given
         int days = 7;
@@ -104,10 +110,42 @@ class AdminServiceTest {
         // then
         assertThat(user.getStatus()).isEqualTo(UserStatus.SUSPENDED);
         verify(userSuspensionRepository).save(any(UserSuspension.class));
+        // 정지 즉시 토큰 무효화: version 증가(access token 차단) + refresh token 삭제
+        verify(tokenVersionStore).increment(userId);
+        verify(refreshTokenStore).delete(userId);
     }
 
     @Test
-    @DisplayName("사용자 삭제 처리 성공")
+    @DisplayName("사용자 정지 성공 - 기존 정지 이력 있으면 update")
+    void suspendUser_UpdateExistingSuspension() {
+        // given
+        UserSuspension existing = UserSuspension.of(user, "이전 사유", LocalDateTime.now().plusDays(1));
+        given(userRepository.findById(adminId)).willReturn(Optional.of(admin));
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+        given(userSuspensionRepository.findByUserId(userId)).willReturn(Optional.of(existing));
+
+        // when
+        adminService.suspendUser(userId, "새 사유", 14, adminId);
+
+        // then
+        verify(userSuspensionRepository).findByUserId(userId);
+        verify(tokenVersionStore).increment(userId);
+        verify(refreshTokenStore).delete(userId);
+    }
+
+    @Test
+    @DisplayName("사용자 정지 실패 - 권한 없으면 예외 발생")
+    void suspendUser_Fail_NotAdmin() {
+        // given
+        given(userRepository.findById(userId)).willReturn(Optional.of(user)); // 일반 유저가 adminId 위치
+
+        // when & then
+        assertThatThrownBy(() -> adminService.suspendUser(userId, "사유", 7, userId))
+                .isInstanceOf(AuthException.class);
+    }
+
+    @Test
+    @DisplayName("사용자 삭제 성공 - 상태 변경, tokenVersion 삭제, refreshToken 삭제")
     void deleteUser_Success() {
         // given
         given(userRepository.findById(adminId)).willReturn(Optional.of(admin));
@@ -119,5 +157,19 @@ class AdminServiceTest {
         // then
         assertThat(user.getStatus()).isEqualTo(UserStatus.DELETED);
         verify(userSuspensionRepository).deleteByUserId(userId);
+        // 삭제 즉시 토큰 완전 무효화: version 키 삭제 + refresh token 삭제
+        verify(tokenVersionStore).delete(userId);
+        verify(refreshTokenStore).delete(userId);
+    }
+
+    @Test
+    @DisplayName("사용자 삭제 실패 - 권한 없으면 예외 발생")
+    void deleteUser_Fail_NotAdmin() {
+        // given
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+
+        // when & then
+        assertThatThrownBy(() -> adminService.deleteUser(userId, userId))
+                .isInstanceOf(AuthException.class);
     }
 }

@@ -53,3 +53,7 @@ custom:
     refreshTokenExpirationSeconds: 1209600  # 14일
   turnstile:
     secret-key: ${TURNSTILE_SECRET_KEY}
+
+gemini:
+  api:
+    key: ${GEMINI_API_KEY}

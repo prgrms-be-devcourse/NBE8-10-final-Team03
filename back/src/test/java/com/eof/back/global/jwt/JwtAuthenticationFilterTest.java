@@ -2,6 +2,7 @@ package com.eof.back.global.jwt;
 
 import com.eof.back.global.exception.errorCode.AuthErrorCode;
 import com.eof.back.global.exception.exceptions.AuthException;
+import com.eof.back.global.token.TokenVersionStore;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.Cookie;
@@ -30,6 +31,9 @@ class JwtAuthenticationFilterTest {
     private JwtTokenProvider jwtTokenProvider;
 
     @Mock
+    private TokenVersionStore tokenVersionStore;
+
+    @Mock
     private CookieUtil cookieUtil;
 
     @Mock
@@ -39,7 +43,7 @@ class JwtAuthenticationFilterTest {
 
     @BeforeEach
     void setUp() {
-        filter = new JwtAuthenticationFilter(jwtTokenProvider, cookieUtil);
+        filter = new JwtAuthenticationFilter(jwtTokenProvider, tokenVersionStore, cookieUtil);
         SecurityContextHolder.clearContext();
     }
 
@@ -49,8 +53,8 @@ class JwtAuthenticationFilterTest {
     }
 
     @Test
-    @DisplayName("유효한 accessToken 쿠키가 있으면 SecurityContext에 인증 정보가 저장된다")
-    void validToken_setsAuthentication() throws Exception {
+    @DisplayName("유효한 accessToken + tokenVersion 일치 시 SecurityContext에 인증 정보가 저장된다")
+    void validToken_matchingVersion_setsAuthentication() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setCookies(new Cookie(CookieUtil.ACCESS_TOKEN_COOKIE, "validToken"));
         MockHttpServletResponse response = new MockHttpServletResponse();
@@ -63,6 +67,8 @@ class JwtAuthenticationFilterTest {
         when(jwtTokenProvider.getUsername(claims)).thenReturn("testUser");
         when(jwtTokenProvider.getRole(claims)).thenReturn("USER");
         when(jwtTokenProvider.getNickname(claims)).thenReturn("tester");
+        when(jwtTokenProvider.getTokenVersion(claims)).thenReturn(3L);
+        when(tokenVersionStore.findByUserId(1L)).thenReturn(Optional.of(3L));
 
         filter.doFilter(request, response, filterChain);
 
@@ -124,6 +130,54 @@ class JwtAuthenticationFilterTest {
                 .thenReturn(Optional.of("invalidToken"));
         doThrow(new AuthException(AuthErrorCode.TOKEN_INVALID))
                 .when(jwtTokenProvider).validateToken("invalidToken");
+
+        filter.doFilter(request, response, filterChain);
+
+        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+        verify(filterChain).doFilter(request, response);
+    }
+
+    @Test
+    @DisplayName("tokenVersion 불일치 시 SecurityContext가 비워지고 다음 필터로 넘어간다 (다른 기기 재로그인)")
+    void tokenVersionMismatch_clearsContextAndContinues() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setCookies(new Cookie(CookieUtil.ACCESS_TOKEN_COOKIE, "oldToken"));
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        Claims claims = mock(Claims.class);
+        when(cookieUtil.resolveToken(request, CookieUtil.ACCESS_TOKEN_COOKIE))
+                .thenReturn(Optional.of("oldToken"));
+        when(jwtTokenProvider.validateToken("oldToken")).thenReturn(claims);
+        when(jwtTokenProvider.getUserId(claims)).thenReturn(1L);
+        when(jwtTokenProvider.getUsername(claims)).thenReturn("testUser");
+        when(jwtTokenProvider.getRole(claims)).thenReturn("USER");
+        when(jwtTokenProvider.getNickname(claims)).thenReturn("tester");
+        when(jwtTokenProvider.getTokenVersion(claims)).thenReturn(1L); // 토큰의 버전 = 1
+        when(tokenVersionStore.findByUserId(1L)).thenReturn(Optional.of(2L)); // Redis의 버전 = 2 (재로그인)
+
+        filter.doFilter(request, response, filterChain);
+
+        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+        verify(filterChain).doFilter(request, response);
+    }
+
+    @Test
+    @DisplayName("Redis에 tokenVersion 키 없음 시 SecurityContext가 비워진다 (로그아웃/탈퇴 상태)")
+    void tokenVersionKeyAbsent_clearsContext() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setCookies(new Cookie(CookieUtil.ACCESS_TOKEN_COOKIE, "token"));
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        Claims claims = mock(Claims.class);
+        when(cookieUtil.resolveToken(request, CookieUtil.ACCESS_TOKEN_COOKIE))
+                .thenReturn(Optional.of("token"));
+        when(jwtTokenProvider.validateToken("token")).thenReturn(claims);
+        when(jwtTokenProvider.getUserId(claims)).thenReturn(1L);
+        when(jwtTokenProvider.getUsername(claims)).thenReturn("testUser");
+        when(jwtTokenProvider.getRole(claims)).thenReturn("USER");
+        when(jwtTokenProvider.getNickname(claims)).thenReturn("tester");
+        when(jwtTokenProvider.getTokenVersion(claims)).thenReturn(1L);
+        when(tokenVersionStore.findByUserId(1L)).thenReturn(Optional.empty()); // 키 없음
 
         filter.doFilter(request, response, filterChain);
 

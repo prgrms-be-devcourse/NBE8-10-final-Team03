@@ -43,8 +43,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class ImageServiceImpl implements ImageService {
 
-    private static final long MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-    private static final List<String> ALLOWED_EXTENSIONS = List.of(".jpg", ".jpeg", ".png", ".gif", ".webp");
+    private static final List<String> ALLOWED_EXTENSIONS = List.of(".jpg", ".jpeg", ".png", ".gif");
 
     private final ObjectStorage objectStorage;
     private final ImageRepository imageRepository;
@@ -70,7 +69,7 @@ public class ImageServiceImpl implements ImageService {
                 .build();
 
         try {
-            imageRepository.save(image);
+            imageRepository.saveAndFlush(image);
         } catch (Exception e) {
             objectStorage.delete(storedName); // DB 저장 실패 시 S3 롤백
             throw new ImageException(ImageErrorCode.IMAGE_UPLOAD_FAILED,
@@ -113,7 +112,15 @@ public class ImageServiceImpl implements ImageService {
             );
         }
 
-        objectStorage.delete(objectStorage.parsePath(imageUrl));
+        String key = objectStorage.parsePath(imageUrl);
+        if (key.isBlank()) {
+            throw new ImageException(
+                    ImageErrorCode.IMAGE_DELETE_FAILED,
+                    "[ImageServiceImpl#deleteImage] failed to parse image path. url=" + imageUrl,
+                    "이미지 삭제 중 오류가 발생했습니다."
+            );
+        }
+        objectStorage.delete(key);
         imageRepository.delete(image);
     }
 
@@ -136,14 +143,7 @@ public class ImageServiceImpl implements ImageService {
             throw new ImageException(
                     ImageErrorCode.IMAGE_INVALID_EXTENSION,
                     "[ImageServiceImpl#validateFile] invalid extension. filename=" + file.getOriginalFilename(),
-                    "지원하지 않는 파일 형식입니다. (jpg, jpeg, png, gif, webp만 가능)"
-            );
-        }
-        if (file.getSize() > MAX_FILE_SIZE) {
-            throw new ImageException(
-                    ImageErrorCode.IMAGE_SIZE_EXCEEDED,
-                    "[ImageServiceImpl#validateFile] file size exceeded. size=" + file.getSize(),
-                    "파일 크기는 5MB를 초과할 수 없습니다."
+                    "지원하지 않는 파일 형식입니다. (jpg, jpeg, png, gif만 가능)"
             );
         }
     }
@@ -163,10 +163,10 @@ public class ImageServiceImpl implements ImageService {
      * UUID 기반의 S3 저장 경로(Object Key)를 생성합니다.
      *
      * @param originalName 원본 파일명
-     * @return images/{uuid}.{ext} 형태의 저장 경로
+     * @return {uuid}.{ext} 형태의 저장 경로
      */
     private String createStoredName(String originalName) {
         String ext = originalName.substring(originalName.lastIndexOf("."));
-        return "images/" + UUID.randomUUID() + ext;
+        return UUID.randomUUID() + ext;
     }
 }

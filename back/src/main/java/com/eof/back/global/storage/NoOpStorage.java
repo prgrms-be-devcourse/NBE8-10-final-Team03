@@ -30,5 +30,8 @@ public class NoOpStorage implements ObjectStorage {
     public void delete(String destination) { /* 아무것도 하지 않음 */ }
 
     @Override
-    public String parsePath(String url) { return ""; }
+    public String parsePath(String url) {
+        String prefix = "http://localhost:8080/temp-url/";
+        return (url != null && url.startsWith(prefix)) ? url.substring(prefix.length()) : "";
+    }
 }

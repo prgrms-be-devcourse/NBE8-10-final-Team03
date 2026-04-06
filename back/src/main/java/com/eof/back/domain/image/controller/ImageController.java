@@ -23,8 +23,7 @@ import org.springframework.web.multipart.MultipartFile;
  * {@code @RestController} 어노테이션을 통해 스프링 MVC 컨트롤러 빈으로 등록됩니다.
  *
  * <p><b>권한 모델:</b><br>
- * - <b>업로드:</b> 인증된 모든 사용자가 가능합니다.<br>
- * - <b>삭제:</b> 업로드한 본인 또는 ADMIN만 가능합니다.
+ * - <b>업로드:</b> 인증된 모든 사용자가 가능합니다.
  *
  * @author Minji-032
  * @since 2026-04-06
@@ -56,23 +55,4 @@ public class ImageController {
         return ResponseEntity.ok(CommonResponse.success(response));
     }
 
-    /**
-     * 이미지를 삭제합니다.
-     * <p>
-     * <b>API:</b> [DELETE] /api/v1/images <br>
-     * 업로드한 본인 또는 ADMIN만 삭제할 수 있습니다.
-     * </p>
-     *
-     * @param imageUrl  삭제할 이미지의 접근 URL (query parameter)
-     * @param principal 현재 로그인한 사용자의 정보
-     * @return 삭제 성공 응답 (HTTP 204 No Content)
-     */
-    @DeleteMapping
-    public ResponseEntity<Void> deleteImage(
-            @RequestParam String imageUrl,
-            @AuthenticationPrincipal UserPrincipal principal) {
-
-        imageService.deleteImage(imageUrl, principal.id());
-        return ResponseEntity.noContent().build();
-    }
 }

@@ -3,17 +3,32 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
+import YouTube from "react-youtube";
+
+const getYoutubeId = (url: string) => {
+  if (!url) return null;
+  const regExp = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=|shorts\/)|youtu\.be\/)([^"&?\/\s]{11})/i;
+  const match = url.match(regExp);
+  return match ? match[1] : null;
+};
 
 interface QuizInput {
+  questionType: string;
+  answerType: string;
   content: string;
   answer: string;
   choice1: string;
   choice2: string;
   choice3: string;
   choice4: string;
+  videoUrl?: string;
+  startTime?: number;
+  endTime?: number;
 }
 
 const emptyQuiz: QuizInput = {
+  questionType: "TEXT",
+  answerType: "MULTIPLE_CHOICE",
   content: "",
   answer: "",
   choice1: "",
@@ -42,7 +57,7 @@ export default function QuizSetCreatePage() {
     setQuizzes(quizzes.filter((_, i) => i !== index));
   };
 
-  const updateQuiz = (index: number, field: keyof QuizInput, value: string) => {
+  const updateQuiz = (index: number, field: keyof QuizInput, value: any) => {
     const updated = [...quizzes];
     updated[index] = { ...updated[index], [field]: value };
     setQuizzes(updated);
@@ -63,23 +78,35 @@ export default function QuizSetCreatePage() {
       const q = quizzes[i];
       const num = i + 1;
 
-      if (!q.content || !q.answer || !q.choice1 || !q.choice2 || !q.choice3 || !q.choice4) {
-        setErrorAndScroll(`${num}번 문제의 모든 항목을 입력하세요.`);
+      if (!q.content || !q.answer) {
+        setErrorAndScroll(`${num}번 문제의 필수 항목을 입력하세요.`);
         return;
       }
       if (q.content.trim().length < 5) {
         setErrorAndScroll(`${num}번 문제 내용은 5자 이상 입력하세요.`);
         return;
       }
-      const choices = [q.choice1, q.choice2, q.choice3, q.choice4];
-      const uniqueChoices = new Set(choices.map((c) => c.trim()));
-      if (uniqueChoices.size !== 4) {
-        setErrorAndScroll(`${num}번 문제의 보기가 중복되었습니다.`);
-        return;
+      if (q.questionType === "VIDEO" || q.questionType === "AUDIO") {
+        if (!q.videoUrl) {
+          setErrorAndScroll(`${num}번 문제의 유튜브 링크를 입력하세요.`);
+          return;
+        }
       }
-      if (!choices.map((c) => c.trim()).includes(q.answer.trim())) {
-        setErrorAndScroll(`${num}번 문제의 정답이 보기 중에 없습니다.`);
-        return;
+      if (q.answerType === "MULTIPLE_CHOICE") {
+        if (!q.choice1 || !q.choice2 || !q.choice3 || !q.choice4) {
+          setErrorAndScroll(`${num}번 문제의 4개 보기를 모두 입력하세요.`);
+          return;
+        }
+        const choices = [q.choice1, q.choice2, q.choice3, q.choice4];
+        const uniqueChoices = new Set(choices.map((c) => c.trim()));
+        if (uniqueChoices.size !== 4) {
+          setErrorAndScroll(`${num}번 문제의 보기가 중복되었습니다.`);
+          return;
+        }
+        if (!choices.map((c) => c.trim()).includes(q.answer.trim())) {
+          setErrorAndScroll(`${num}번 문제의 정답이 보기 중에 없습니다.`);
+          return;
+        }
       }
     }
 
@@ -93,12 +120,17 @@ export default function QuizSetCreatePage() {
 
       for (const quiz of quizzes) {
         await api.post(`/quizsets/${quizSetId}/quizzes`, {
+          questionType: quiz.questionType,
+          answerType: quiz.answerType,
           content: quiz.content,
           answer: quiz.answer,
           choice1: quiz.choice1,
           choice2: quiz.choice2,
           choice3: quiz.choice3,
           choice4: quiz.choice4,
+          videoUrl: quiz.videoUrl,
+          startTime: quiz.startTime,
+          endTime: quiz.endTime,
         });
       }
 
@@ -177,6 +209,102 @@ export default function QuizSetCreatePage() {
                 </button>
               )}
             </div>
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="block text-sm font-bold mb-2">문제 유형</label>
+                <select
+                  value={quiz.questionType}
+                  onChange={(e) => updateQuiz(index, "questionType", e.target.value)}
+                  className="w-full px-4 py-3 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none transition-colors"
+                >
+                  <option value="TEXT">텍스트</option>
+                  <option value="IMAGE">이미지</option>
+                  <option value="VIDEO">유튜브 영상</option>
+                  <option value="AUDIO">유튜브 음성(소리만)</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-bold mb-2">정답 유형</label>
+                <select
+                  value={quiz.answerType}
+                  onChange={(e) => updateQuiz(index, "answerType", e.target.value)}
+                  className="w-full px-4 py-3 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none transition-colors"
+                >
+                  <option value="MULTIPLE_CHOICE">객관식</option>
+                  <option value="SHORT_ANSWER">주관식</option>
+                </select>
+              </div>
+            </div>
+            
+            {(quiz.questionType === "VIDEO" || quiz.questionType === "AUDIO") && (
+              <div className="mb-4 bg-gray-50 border-[2px] border-dashed border-gray-300 rounded-xl p-4">
+                <label className="block text-sm font-bold mb-2">유튜브 링크</label>
+                <input
+                  type="text"
+                  placeholder="유튜브 영상 주소 (예: https://youtu.be/...)"
+                  value={quiz.videoUrl || ""}
+                  onChange={(e) => updateQuiz(index, "videoUrl", e.target.value)}
+                  className="w-full px-4 py-2 mb-3 bg-white border-[2px] border-gray-300 rounded-lg text-sm outline-none"
+                />
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold mb-1">시작 시간 (초 - 선택)</label>
+                    <input
+                      type="number"
+                      placeholder="예: 30"
+                      value={quiz.startTime || ""}
+                      onChange={(e) => updateQuiz(index, "startTime", e.target.value ? Number(e.target.value) : undefined)}
+                      className="w-full px-3 py-2 bg-white border-[2px] border-gray-300 rounded-lg text-sm outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold mb-1">종료 시간 (초 - 선택)</label>
+                    <input
+                      type="number"
+                      placeholder="예: 60"
+                      value={quiz.endTime || ""}
+                      onChange={(e) => updateQuiz(index, "endTime", e.target.value ? Number(e.target.value) : undefined)}
+                      className="w-full px-3 py-2 bg-white border-[2px] border-gray-300 rounded-lg text-sm outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* 미리보기 영역 */}
+                {quiz.videoUrl && (
+                  <div className="mt-4 pt-4 border-t-[2px] border-gray-300 border-dashed">
+                    <p className="text-sm font-bold text-gray-500 mb-2">실제 화면 미리보기 테스트 (직접 재생해보세요)</p>
+                    {getYoutubeId(quiz.videoUrl) ? (
+                      <div className="relative mx-auto w-full bg-black rounded-xl border-[3px] border-dark overflow-hidden aspect-video mt-3">
+                        <YouTube
+                          videoId={getYoutubeId(quiz.videoUrl)!}
+                          opts={{
+                            width: "100%",
+                            height: "100%",
+                            playerVars: {
+                              autoplay: 0,
+                              controls: 1, // 미리보기에서는 테스트하기 편하게 컨트롤바 허용
+                              start: quiz.startTime || 0,
+                              ...(quiz.endTime ? { end: quiz.endTime } : {}),
+                            },
+                          }}
+                          className="w-full h-full"
+                        />
+                      </div>
+                    ) : (
+                      <p className="text-sm text-red-500 font-bold mt-2">유효하지 않은 유튜브 링크입니다.</p>
+                    )}
+                    {quiz.questionType === "AUDIO" && getYoutubeId(quiz.videoUrl) && (
+                      <div className="text-center p-4 bg-white border-[3px] border-dark border-dashed rounded-xl mt-4 mx-auto w-full">
+                        <span className="text-3xl mb-2 block animate-pulse">🎶</span>
+                        <p className="font-title text-sm text-primary">이 문제는 플레이 화면에서 영상이 숨겨지고 소리만 재생됩니다.</p>
+                        <p className="text-xs text-gray-400 mt-1">※ 위 플레이어를 직접 조작해 가장 완벽한 컷(초)을 찾아보세요!</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="mb-4">
               <label className="block text-sm font-bold mb-2">문제</label>
               <input
@@ -197,20 +325,22 @@ export default function QuizSetCreatePage() {
                 className="w-full px-4 py-3 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-accent outline-none transition-colors"
               />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              {[1, 2, 3, 4].map((n) => (
-                <div key={n}>
-                  <label className="block text-xs font-bold mb-1">보기 {n}</label>
-                  <input
-                    type="text"
-                    placeholder={`보기 ${n}`}
-                    value={quiz[`choice${n}` as keyof QuizInput]}
-                    onChange={(e) => updateQuiz(index, `choice${n}` as keyof QuizInput, e.target.value)}
-                    className="w-full px-3 py-2 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none transition-colors"
-                  />
-                </div>
-              ))}
-            </div>
+            {quiz.answerType === "MULTIPLE_CHOICE" && (
+              <div className="grid grid-cols-2 gap-3">
+                {[1, 2, 3, 4].map((n) => (
+                  <div key={n}>
+                    <label className="block text-xs font-bold mb-1">보기 {n}</label>
+                    <input
+                      type="text"
+                      placeholder={`보기 ${n}`}
+                      value={quiz[`choice${n}` as keyof QuizInput]}
+                      onChange={(e) => updateQuiz(index, `choice${n}` as keyof QuizInput, e.target.value)}
+                      className="w-full px-3 py-2 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none transition-colors"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         ))}
       </div>

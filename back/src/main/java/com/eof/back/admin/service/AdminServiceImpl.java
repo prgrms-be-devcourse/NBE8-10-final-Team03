@@ -106,7 +106,20 @@ public class AdminServiceImpl implements AdminService {
         
         validatePathConsistency(quiz, quizSetId);
 
-        quiz.update(request.content(), request.answer(), request.choice1(), request.choice2(), request.choice3(), request.choice4());
+        quiz.update(
+                request.questionType(),
+                request.answerType(),
+                request.content(),
+                request.answer(),
+                request.imageUrl(),
+                request.videoUrl(),
+                request.startTime(),
+                request.endTime(),
+                request.choice1(),
+                request.choice2(),
+                request.choice3(),
+                request.choice4()
+        );
         return quiz.getId();
     }
 

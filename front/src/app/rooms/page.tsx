@@ -6,7 +6,8 @@ import api from "@/lib/api";
 import Header from "@/components/common/Header";
 import { Client } from "@stomp/stompjs";
 import { useSearchParams } from "next/navigation";
-import { Suspense } from "react"
+import { Suspense } from "react";
+import YouTube, { YouTubePlayer } from "react-youtube";
 import { useRouter } from "next/navigation";
 
 interface Room {
@@ -41,13 +42,25 @@ interface ChatMessage {
 
 interface QuizBroadcastResponse {
   questionId: number;
+  questionType: string;
+  answerType: string;
   content: string;
   choice1: string;
   choice2: string;
   choice3: string;
   choice4: string;
+  videoUrl?: string;
+  startTime?: number;
+  endTime?: number;
   timeLimit: number;
 }
+
+const getYoutubeId = (url: string) => {
+  if (!url) return null;
+  const regExp = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=|shorts\/)|youtu\.be\/)([^"&?\/\s]{11})/i;
+  const match = url.match(regExp);
+  return match ? match[1] : null;
+};
 
 interface ScoreboardItem {
   username: string;
@@ -107,6 +120,7 @@ function RoomsContent() {
   const [roundResult, setRoundResult] = useState<QuizResultResponse | null>(null);
   const [scoreboard, setScoreboard] = useState<ScoreboardItem[]>([]);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
+  const [shortAnswerInput, setShortAnswerInput] = useState("");
   const [answerSubmitted, setAnswerSubmitted] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
   const [currentRound, setCurrentRound] = useState(0);
@@ -117,6 +131,10 @@ function RoomsContent() {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState("");
   const chatBottomRef = useRef<HTMLDivElement | null>(null);
+
+  // 미디어 재생 state
+  const playerRef = useRef<YouTubePlayer>(null);
+  const [isPlayingMedia, setIsPlayingMedia] = useState(false);
 
   useEffect(() => {
     setMyNickname(localStorage.getItem("nickname"));
@@ -230,6 +248,7 @@ function RoomsContent() {
       setCurrentRoom(enrichedRoom);
       setGameState("waiting");
       setSelectedAnswer(null);
+      setShortAnswerInput("");
       setAnswerSubmitted(false);
       setChatMessages([]);
 
@@ -285,7 +304,10 @@ function RoomsContent() {
                 setCurrentQuestion(data.data);
                 setCurrentRound((prev) => prev + 1);
                 setSelectedAnswer(null);
+                setShortAnswerInput("");
                 setAnswerSubmitted(false);
+                setIsPlayingMedia(false);
+                playerRef.current = null;
                 setTimeLeft(data.data.timeLimit);
                 setGameState("playing");
                 setChatMessages((prev) => [...prev, {
@@ -662,25 +684,118 @@ function RoomsContent() {
 
                 <div className="bg-white border-[3px] border-dark rounded-2xl shadow-kitsch p-10 mb-6 text-center">
                   <h2 className="font-title text-3xl">{currentQuestion.content}</h2>
+                  {(currentQuestion.questionType === "VIDEO" || currentQuestion.questionType === "AUDIO") && currentQuestion.videoUrl && (
+                    <div className="mt-6 flex flex-col justify-center items-center">
+                      {getYoutubeId(currentQuestion.videoUrl) ? (
+                        <>
+                          <div className={`relative ${currentQuestion.questionType === "AUDIO" ? "w-0 h-0 overflow-hidden opacity-0" : "w-full max-w-2xl bg-black rounded-xl border-[3px] border-dark overflow-hidden aspect-video pointer-events-none select-none"}`}>
+                            <YouTube
+                              videoId={getYoutubeId(currentQuestion.videoUrl)!}
+                              opts={{
+                                width: "100%",
+                                height: "100%",
+                                playerVars: {
+                                  autoplay: 1,
+                                  controls: 0,
+                                  disablekb: 1,
+                                  fs: 0,
+                                  iv_load_policy: 3,
+                                  start: currentQuestion.startTime || 0,
+                                  ...(currentQuestion.endTime ? { end: currentQuestion.endTime } : {}),
+                                  rel: 0,
+                                  modestbranding: 1,
+                                  origin: typeof window !== "undefined" ? window.location.origin : undefined,
+                                },
+                              }}
+                              onReady={(e) => {
+                                playerRef.current = e.target;
+                                e.target.playVideo();
+                              }}
+                              onStateChange={(e) => {
+                                // 1: PLAYING, 기타: buffering, paused 등
+                                if (e.data === 1) setIsPlayingMedia(true);
+                                else setIsPlayingMedia(false);
+                              }}
+                              className="w-full h-full pointer-events-none"
+                              iframeClassName="w-full h-full pointer-events-none"
+                            />
+                          </div>
+                      
+                      {/* 자동재생이 차단되었을 때 띄워주는 직접 재생 UI */}
+                      {!isPlayingMedia && (
+                        <div className="mt-4 p-6 bg-cream border-[3px] border-dark border-dashed rounded-2xl shadow-kitsch-sm flex flex-col items-center">
+                          <p className="font-title text-lg text-primary mb-3">
+                            브라우저 정책으로 미디어 자동 재생이 정지되었습니다.
+                          </p>
+                          <button
+                            onClick={() => {
+                              if (playerRef.current) {
+                                playerRef.current.playVideo();
+                                setIsPlayingMedia(true);
+                              }
+                            }}
+                            className="px-6 py-3 bg-accent text-white font-bold text-lg border-[3px] border-dark rounded-xl shadow-kitsch-sm hover:-translate-y-0.5 hover:shadow-kitsch transition-all"
+                          >
+                            ▶ 수동 재생하기
+                          </button>
+                        </div>
+                      )}
+
+                      {currentQuestion.questionType === "AUDIO" && isPlayingMedia && (
+                        <div className="text-center p-8 bg-cream border-[3px] border-dark border-dashed rounded-2xl shadow-kitsch-sm mt-4">
+                          <span className="text-6xl mb-4 block animate-bounce">🎶</span>
+                          <p className="font-title text-xl text-primary">소리를 듣고 정답을 맞춰주세요!</p>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="mt-6 p-6 bg-cream border-[3px] border-red-400 border-dashed rounded-2xl flex flex-col items-center">
+                      <p className="font-title text-lg text-red-500">유효하지 않은 유튜브 링크입니다.</p>
+                      <p className="text-sm text-gray-500 mt-2">({currentQuestion.videoUrl})</p>
+                    </div>
+                  )}
+                    </div>
+                  )}
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  {choices.map((choice, i) => {
-                    const isSelected = selectedAnswer === choice;
-                    return (
-                      <button
-                        key={i}
-                        onClick={() => handleSubmitAnswer(choice)}
-                        disabled={answerSubmitted}
-                        className={`p-6 border-[3px] rounded-2xl font-bold text-lg shadow-kitsch-sm transition-all hover:-translate-y-0.5 hover:shadow-kitsch disabled:cursor-not-allowed ${isSelected ? choiceColors[i].selected : `${choiceColors[i].base} ${choiceColors[i].hover}`
-                          }`}
-                      >
-                        <span className="font-title mr-2">{i + 1}.</span>
-                        {choice}
-                      </button>
-                    );
-                  })}
-                </div>
+                {currentQuestion.answerType === "SHORT_ANSWER" ? (
+                  <div className="flex gap-3 max-w-xl mx-auto">
+                    <input
+                      type="text"
+                      placeholder="정답을 입력하세요"
+                      value={shortAnswerInput}
+                      onChange={(e) => setShortAnswerInput(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && handleSubmitAnswer(shortAnswerInput)}
+                      disabled={answerSubmitted}
+                      className="flex-1 px-6 py-4 bg-white border-[3px] border-dark rounded-2xl text-xl font-bold focus:border-primary outline-none transition-colors"
+                    />
+                    <button
+                      onClick={() => handleSubmitAnswer(shortAnswerInput)}
+                      disabled={answerSubmitted || !shortAnswerInput.trim()}
+                      className="px-8 py-4 bg-primary text-white font-bold text-xl border-[3px] border-dark rounded-2xl shadow-kitsch hover:shadow-kitsch-lg hover:-translate-y-0.5 transition-all disabled:opacity-50"
+                    >
+                      제출
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-4">
+                    {choices.map((choice, i) => {
+                      const isSelected = selectedAnswer === choice;
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => handleSubmitAnswer(choice)}
+                          disabled={answerSubmitted}
+                          className={`p-6 border-[3px] rounded-2xl font-bold text-lg shadow-kitsch-sm transition-all hover:-translate-y-0.5 hover:shadow-kitsch disabled:cursor-not-allowed ${isSelected ? choiceColors[i].selected : `${choiceColors[i].base} ${choiceColors[i].hover}`
+                            }`}
+                        >
+                          <span className="font-title mr-2">{i + 1}.</span>
+                          {choice}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
                 {answerSubmitted && (
                   <p className="text-center font-hand text-lg text-accent mt-4">정답을 제출했습니다! 결과를 기다려주세요...</p>
                 )}

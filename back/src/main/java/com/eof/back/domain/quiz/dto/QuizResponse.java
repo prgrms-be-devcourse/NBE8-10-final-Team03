@@ -1,5 +1,7 @@
 package com.eof.back.domain.quiz.dto;
 
+import com.eof.back.domain.quiz.entity.AnswerType;
+import com.eof.back.domain.quiz.entity.QuestionType;
 import com.eof.back.domain.quiz.entity.Quiz;
 import lombok.Builder;
 
@@ -11,8 +13,14 @@ import lombok.Builder;
  */
 public record QuizResponse(
         Long id,
+        QuestionType questionType,
+        AnswerType answerType,
         String content,
         String answer,
+        String imageUrl,
+        String videoUrl,
+        Integer startTime,
+        Integer endTime,
         String choice1,
         String choice2,
         String choice3,
@@ -33,8 +41,14 @@ public record QuizResponse(
     public static QuizResponse from(Quiz quiz) {
         return QuizResponse.builder()
                 .id(quiz.getId())
+                .questionType(quiz.getQuestionType())
+                .answerType(quiz.getAnswerType())
                 .content(quiz.getContent())
                 .answer(quiz.getAnswer())
+                .imageUrl(quiz.getImageUrl())
+                .videoUrl(quiz.getVideoUrl())
+                .startTime(quiz.getStartTime())
+                .endTime(quiz.getEndTime())
                 .choice1(quiz.getChoice1())
                 .choice2(quiz.getChoice2())
                 .choice3(quiz.getChoice3())

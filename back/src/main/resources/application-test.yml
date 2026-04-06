@@ -43,3 +43,7 @@ custom:
     store: db
   jwt:
     secretKey: testsecretkeytestsecretkeytestsecretkeytestsecretkeytestsecretkeytestsecretkey
+
+gemini:
+  api:
+    key: test-gemini-api-key

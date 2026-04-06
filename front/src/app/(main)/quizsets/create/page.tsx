@@ -54,6 +54,10 @@ export default function QuizSetCreatePage() {
     if (!title.trim()) { setErrorAndScroll("퀴즈셋 제목을 입력하세요."); return; }
     if (title.length < 5) { setErrorAndScroll("퀴즈셋 제목은 5자 이상이어야 합니다."); return; }
     if (quizzes.length < 5) { setErrorAndScroll("최소 5문제 이상 등록해야 합니다."); return; }
+    if (title.startsWith("[AI]")) {
+      setErrorAndScroll("제목은 [AI]로 시작할 수 없습니다.");
+      return;
+    }
 
     for (let i = 0; i < quizzes.length; i++) {
       const q = quizzes[i];

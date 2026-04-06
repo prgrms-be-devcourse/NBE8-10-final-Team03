@@ -7,6 +7,7 @@ import Header from "@/components/common/Header";
 import { Client } from "@stomp/stompjs";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react"
+import { useRouter } from "next/navigation";
 
 interface Room {
   gameSessionId: number;
@@ -63,6 +64,7 @@ type GameState = "waiting" | "playing" | "roundResult" | "result";
 type ViewMode = "lobby" | "room";
 
 function RoomsContent() {
+  const router = useRouter();
   const [viewMode, setViewMode] = useState<ViewMode>("lobby");
   const [rooms, setRooms] = useState<Room[]>([]);
   const [rankings, setRankings] = useState<RankingItem[]>([]);
@@ -75,7 +77,7 @@ function RoomsContent() {
   const [myUserId, setMyUserId] = useState<string | null>(null);
   const [showQuizSetModal, setShowQuizSetModal] = useState(false);
   const [quizSetSearch, setQuizSetSearch] = useState("");
-  const [quizSetTab, setQuizSetTab] = useState<"all" | "mine" | "bookmark">("all");
+  const [quizSetTab, setQuizSetTab] = useState<"all" | "mine" | "bookmark" | "ai">("all");
   const [bookmarkedQuizSetIds, setBookmarkedQuizSetIds] = useState<Set<number>>(new Set());
   const [selectedQuizSet, setSelectedQuizSet] = useState<QuizSet | null>(null);
   const [myQuizSets, setMyQuizSets] = useState<QuizSet[]>([]);
@@ -83,6 +85,10 @@ function RoomsContent() {
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportReason, setReportReason] = useState("");
   const [reporting, setReporting] = useState(false);
+  const [useAiQuiz, setUseAiQuiz] = useState(false);
+  const [aiTopic, setAiTopic] = useState("");
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
 
   // 방 만들기 모달
   const [showModal, setShowModal] = useState(false);
@@ -325,11 +331,13 @@ function RoomsContent() {
   };
 
   const handleStartGame = () => {
-    if (!stompClientRef.current?.connected || !currentRoom) return;
+    if (isStarting || !stompClientRef.current?.connected || !currentRoom) return;
+    setIsStarting(true);
     stompClientRef.current.publish({
       destination: `/app/rooms/${currentRoom.gameSessionId}/start`,
       body: "",
     });
+    setTimeout(() => setIsStarting(false), 3000);
   };
 
   const handleSubmitAnswer = (answer: string) => {
@@ -391,7 +399,7 @@ function RoomsContent() {
   const handleCreateRoom = async () => {
     setCreateError("");
     if (!roomName.trim()) { setCreateError("방 제목을 입력하세요."); return; }
-    if (!selectedQuizSetId) { setCreateError("퀴즈셋을 선택하세요."); return; }
+    if (!selectedQuizSetId) { setCreateError("퀴즈셋을 선택하거나 AI로 생성하세요."); return; }
     if (maxQuizzes < 5) { setCreateError("문제 수는 최소 5개 이상이어야 합니다."); return; }
     setCreating(true);
     try {
@@ -422,6 +430,27 @@ function RoomsContent() {
       alert("신고 접수에 실패했습니다.");
     } finally {
       setReporting(false);
+    }
+  };
+
+  const handleAiGenerate = async () => {
+    if (!roomName.trim()) { setCreateError("방 제목을 입력하세요."); return; }
+    if (!aiTopic.trim()) { setCreateError("주제를 입력하세요."); return; }
+    setCreateError("");
+    setAiGenerating(true);
+    try {
+      const res = await api.post(`/ai/quizzes?topic=${encodeURIComponent(aiTopic)}`);
+      const quizSetId = res.data.data.quizSetId;
+      setSelectedQuizSetId(quizSetId);
+      setSelectedQuizSet({ id: quizSetId, title: `[AI] ${aiTopic}`, totalQuizCount: 5 } as any);
+      // 바로 방 생성
+      const roomRes = await api.post("/rooms", { roomName, quizSetId, maxPlayers, maxQuizzes: 5 });
+      const gameSessionId = roomRes.data.data.gameSessionId;
+      setShowModal(false);
+      setRoomName("");
+      await handleJoinRoom(gameSessionId);
+    } catch (err: any) {
+      setCreateError(err.response?.data?.message || "입력한 주제로는 퀴즈를 생성할 수 없습니다.");
     }
   };
 
@@ -509,10 +538,10 @@ function RoomsContent() {
                   {hostNickname === myNickname ? (
                     <button
                       onClick={handleStartGame}
-                      disabled={!stompConnected || (roomInfo?.players?.length ?? 0) < 2}
+                      disabled={!stompConnected || (roomInfo?.players?.length ?? 0) < 2 || isStarting}
                       className="flex-1 py-4 bg-primary text-white font-bold text-lg border-[3px] border-dark rounded-2xl shadow-kitsch hover:shadow-kitsch-lg hover:-translate-y-0.5 transition-all disabled:opacity-50"
                     >
-                      {(roomInfo?.players?.length ?? 0) < 2 ? "2명 이상이어야 시작할 수 있어요" : "🎮 게임 시작"}
+                      {isStarting ? "시작 중..." : (roomInfo?.players?.length ?? 0) < 2 ? "2명 이상이어야 시작할 수 있어요" : "🎮 게임 시작"}
                     </button>
                   ) : (
                     <div className="flex-1 py-4 bg-cream border-[3px] border-dark rounded-2xl text-center font-bold text-gray-400">
@@ -683,6 +712,7 @@ function RoomsContent() {
                   🚨 신고
                 </button>
               </div>
+              
 
               <div className="text-center mb-10">
                 <h1 className="font-title text-4xl mb-2">🎉 게임 종료!</h1>
@@ -720,15 +750,13 @@ function RoomsContent() {
                     setRoundResult(null);
                     setScoreboard([]);
                     setCurrentRound(0);
+                    setIsStarting(false);
                   }}
                   className="flex-1 py-4 bg-primary text-white font-bold text-lg border-[3px] border-dark rounded-2xl shadow-kitsch hover:shadow-kitsch-lg hover:-translate-y-0.5 transition-all"
                 >
                   한 판 더!
                 </button>
-                <button
-                  onClick={handleLeaveRoom}
-                  className="flex-1 py-4 bg-white text-dark font-bold text-lg border-[3px] border-dark rounded-2xl shadow-kitsch-sm hover:shadow-kitsch hover:-translate-y-0.5 transition-all text-center"
-                >
+                <button onClick={handleLeaveRoom} className="flex-1 py-4 bg-white text-dark font-bold text-lg border-[3px] border-dark rounded-2xl shadow-kitsch-sm hover:shadow-kitsch hover:-translate-y-0.5 transition-all text-center">
                   로비로 돌아가기
                 </button>
               </div>
@@ -885,7 +913,7 @@ function RoomsContent() {
               )}
               <div className="mb-4">
                 <label className="block text-sm font-bold mb-2">방 제목</label>
-                <input type="text" placeholder="방 제목을 입력하세요" value={roomName} onChange={(e) => setRoomName(e.target.value)} className="w-full px-4 py-3 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none transition-colors" />
+                <input type="text" placeholder="방 제목을 입력하세요" value={roomName} onChange={(e) => { setRoomName(e.target.value); setCreateError(""); }} className="w-full px-4 py-3 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none transition-colors" />
               </div>
               <div className="mb-4">
                 <label className="block text-sm font-bold mb-2">퀴즈셋</label>
@@ -903,12 +931,53 @@ function RoomsContent() {
                   <div className="bg-white border-[3px] border-dark rounded-2xl shadow-kitsch-lg p-6 w-full max-w-lg max-h-[80vh] flex flex-col">
                     <div className="flex items-center justify-between mb-4">
                       <h3 className="font-title text-xl">퀴즈셋 선택</h3>
+                      {createError && (
+                        <div className="mb-4 px-4 py-3 bg-red-50 border-2 border-red-300 rounded-xl text-sm text-red-600 font-bold">
+                          {createError}
+                        </div>
+                      )}
                       <button
                         onClick={() => { setShowQuizSetModal(false); setQuizSetSearch(""); }}
                         className="text-gray-400 hover:text-dark font-bold text-lg"
                       >
                         ✕
                       </button>
+                    </div>
+                    {/* AI 퀴즈 생성 */}
+                    <div className="mb-4">
+                      <label className="block text-sm font-bold mb-2">
+                        <input
+                          type="checkbox"
+                          checked={useAiQuiz}
+                          onChange={(e) => {
+                            setUseAiQuiz(e.target.checked);
+                            if (e.target.checked) {
+                              setSelectedQuizSetId(null);
+                              setSelectedQuizSet(null);
+                            }
+                          }}
+                          className="mr-2"
+                        />
+                        🤖 AI로 퀴즈 생성하기
+                      </label>
+                      {useAiQuiz && (
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            placeholder="주제를 입력하세요 (예: 한국사, 축구, 과학)"
+                            value={aiTopic}
+                            onChange={(e) => { setAiTopic(e.target.value); setCreateError(""); }}
+                            className="flex-1 px-4 py-3 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none"
+                          />
+                          <button
+                            onClick={handleAiGenerate}
+                            disabled={aiGenerating || !aiTopic.trim()}
+                            className="px-4 py-3 bg-secondary font-bold border-[3px] border-dark rounded-xl text-sm shadow-kitsch disabled:opacity-50"
+                          >
+                            {aiGenerating ? "생성 중..." : "생성"}
+                          </button>
+                        </div>
+                      )}
                     </div>
 
                     {/* 검색 */}
@@ -926,6 +995,7 @@ function RoomsContent() {
                         { key: "all", label: "전체" },
                         { key: "mine", label: "내 퀴즈셋" },
                         { key: "bookmark", label: "북마크" },
+                        { key: "ai", label: "🤖 AI 생성" },
                       ] as const).map((tab) => (
                         <button
                           key={tab.key}
@@ -940,9 +1010,10 @@ function RoomsContent() {
 
                     {/* 목록 */}
                     <div className="flex-1 overflow-y-auto flex flex-col gap-2">
-                      {(quizSetTab === "all" ? quizSets
-                        : quizSetTab === "mine" ? myQuizSets
-                          : bookmarkedQuizSets
+                      {(quizSetTab === "all" ? quizSets.filter((q) => !q.title.startsWith("[AI]"))
+                        : quizSetTab === "mine" ? myQuizSets.filter((q) => !q.title.startsWith("[AI]"))
+                          : quizSetTab === "bookmark" ? bookmarkedQuizSets.filter((q) => !q.title.startsWith("[AI]"))
+                            : quizSets.filter((q) => q.title.startsWith("[AI]"))
                       )
                         .filter((q) => q.title.toLowerCase().includes(quizSetSearch.toLowerCase()))
                         .map((q) => (
@@ -950,8 +1021,8 @@ function RoomsContent() {
                             key={q.id}
                             onClick={() => handleSelectQuizSet(q)}
                             className={`w-full flex items-center justify-between px-4 py-3 border-[3px] rounded-xl text-left transition-all hover:-translate-y-0.5 ${selectedQuizSetId === q.id
-                                ? "border-primary bg-primary/5 shadow-kitsch-sm"
-                                : "border-dark bg-white hover:shadow-kitsch-sm"
+                              ? "border-primary bg-primary/5 shadow-kitsch-sm"
+                              : "border-dark bg-white hover:shadow-kitsch-sm"
                               }`}
                           >
                             <div>
@@ -968,10 +1039,12 @@ function RoomsContent() {
                             </div>
                           </button>
                         ))}
-                      {(quizSetTab === "all" ? quizSets
-                        : quizSetTab === "mine" ? myQuizSets
-                          : bookmarkedQuizSets
-                      ).filter((q) => q.title.toLowerCase().includes(quizSetSearch.toLowerCase())).length === 0 && (
+                      {(quizSetTab === "all" ? quizSets.filter((q) => !q.title.startsWith("[AI]"))
+                        : quizSetTab === "mine" ? myQuizSets.filter((q) => !q.title.startsWith("[AI]"))
+                          : quizSetTab === "bookmark" ? bookmarkedQuizSets.filter((q) => !q.title.startsWith("[AI]"))
+                            : quizSets.filter((q) => q.title.startsWith("[AI]"))
+                      )
+                        .filter((q) => q.title.toLowerCase().includes(quizSetSearch.toLowerCase())).length === 0 && (
                           <div className="text-center py-10">
                             <p className="font-hand text-gray-400">퀴즈셋이 없어요!</p>
                           </div>

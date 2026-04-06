@@ -21,6 +21,7 @@ export default function QuizSetsPage() {
   const [isLast, setIsLast] = useState(false);
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<number>>(new Set());
   const [userId, setUserId] = useState<number | null>(null);
+  const [categoryTab, setCategoryTab] = useState<"all" | "normal" | "ai">("all");
 
   useEffect(() => {
     // localStorage에서 userId 꺼내기 (저장 방식에 따라 수정 필요)
@@ -37,7 +38,6 @@ export default function QuizSetsPage() {
       const res = await api.get(`/quizsets?page=${pageNumber}&size=12`);
       const { content, last } = res.data.data as Slice<QuizSet>;
 
-      // 기존 데이터에 새 데이터를 이어붙임 (첫 페이지면 교체)
       setQuizSets(prev => (pageNumber === 0 ? content : [...prev, ...content]));
       setIsLast(last);
       setPage(pageNumber);
@@ -105,7 +105,11 @@ export default function QuizSetsPage() {
       </div>
     );
   }
-
+  const displayedQuizSets = quizSets.filter((q) => {
+    if (categoryTab === "ai") return q.title.startsWith("[AI]");
+    if (categoryTab === "normal") return !q.title.startsWith("[AI]");
+    return true;
+  });
   return (
     <div className="max-w-6xl mx-auto px-4 py-10">
       {/* 헤더 */}
@@ -121,15 +125,30 @@ export default function QuizSetsPage() {
           + 퀴즈셋 만들기
         </Link>
       </div>
-
+      {/* 카테고리 탭 */}
+      <div className="flex gap-2 mb-6">
+        {[
+          { key: "all", label: "전체" },
+          { key: "normal", label: "일반" },
+          { key: "ai", label: "🤖 AI 생성" },
+        ].map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setCategoryTab(tab.key as any)}
+            className={`px-5 py-2 border-[3px] border-dark rounded-full font-bold text-sm transition-all ${categoryTab === tab.key ? "bg-secondary" : "bg-white hover:bg-gray-50"}`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
       {/* 퀴즈셋 그리드 */}
-      {quizSets.length === 0 ? (
+      {displayedQuizSets.length === 0 ? (
         <div className="bg-white border-[3px] border-dark rounded-2xl shadow-kitsch p-10 text-center">
           <p className="font-hand text-lg text-gray-400">아직 퀴즈셋이 없어요!</p>
         </div>
       ) : (
         <div className="grid grid-cols-3 gap-6">
-          {quizSets.map((quiz) => (
+          {displayedQuizSets.map((quiz) => (
             <Link
               key={quiz.id}
               href={`/quizsets/${quiz.id}`}

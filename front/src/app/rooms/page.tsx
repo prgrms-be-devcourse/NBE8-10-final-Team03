@@ -89,6 +89,7 @@ function RoomsContent() {
   const [aiTopic, setAiTopic] = useState("");
   const [aiGenerating, setAiGenerating] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
+  const leaveGuardActive = useRef(false);
 
   // 방 만들기 모달
   const [showModal, setShowModal] = useState(false);
@@ -158,9 +159,16 @@ function RoomsContent() {
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, [gameState, timeLeft]);
 
-  // 게임 중 뒤로가기/새로고침 감지
   useEffect(() => {
-    if (gameState !== "playing" && gameState !== "roundResult") return;
+    if (gameState !== "playing" && gameState !== "roundResult") {
+      leaveGuardActive.current = false;
+      return;
+    }
+
+    if (leaveGuardActive.current) return;
+    leaveGuardActive.current = true;
+
+    window.history.pushState(null, "", window.location.href);
 
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       e.preventDefault();
@@ -171,13 +179,9 @@ function RoomsContent() {
       if (confirmed) {
         handleLeaveRoom();
       } else {
-        // 뒤로가기 취소 - 히스토리 다시 앞으로
         window.history.pushState(null, "", window.location.href);
       }
     };
-
-    // 뒤로가기 막기 위해 현재 상태 push
-    window.history.pushState(null, "", window.location.href);
 
     window.addEventListener("beforeunload", handleBeforeUnload);
     window.addEventListener("popstate", handlePopState);
@@ -187,6 +191,7 @@ function RoomsContent() {
       window.removeEventListener("popstate", handlePopState);
     };
   }, [gameState]);
+
   const fetchLobbyData = async () => {
     setLoading(true);
     try {

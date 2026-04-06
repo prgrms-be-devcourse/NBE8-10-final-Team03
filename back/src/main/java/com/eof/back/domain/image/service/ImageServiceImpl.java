@@ -126,7 +126,7 @@ public class ImageServiceImpl implements ImageService {
 
     /**
      * 파일 유효성을 검증합니다.
-     * 빈 파일, 허용되지 않는 확장자, 용량 초과를 검사합니다.
+     * 빈 파일, 허용되지 않는 확장자를 검사합니다.
      *
      * @param file 검증할 파일
      * @throws ImageException 유효성 검증 실패 시 발생합니다.

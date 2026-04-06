@@ -28,7 +28,7 @@ import lombok.*;
 @Table(name = "images")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
 public class Image extends BaseEntity {
 
@@ -40,7 +40,7 @@ public class Image extends BaseEntity {
 
     /**
      * S3에 저장된 파일 경로(Object Key)입니다.
-     * (예: quizzes/1/550e8400-uuid.png)
+     * (예: 550e8400-uuid.png)
      */
     @Column(nullable = false, unique = true)
     private String storedName;

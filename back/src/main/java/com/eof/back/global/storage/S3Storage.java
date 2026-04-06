@@ -3,7 +3,6 @@ package com.eof.back.global.storage;
 import com.eof.back.global.exception.errorCode.ImageErrorCode;
 import com.eof.back.global.exception.exceptions.ImageException;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
@@ -38,7 +37,6 @@ import java.io.IOException;
  * @author Minji-032
  * @since 2026-04-06
  */
-@Slf4j
 @Component
 @RequiredArgsConstructor
 @ConditionalOnProperty(prefix = "custom.s3", name = "enabled", havingValue = "true")

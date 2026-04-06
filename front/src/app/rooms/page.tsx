@@ -712,7 +712,7 @@ function RoomsContent() {
                   🚨 신고
                 </button>
               </div>
-              )
+              
 
               <div className="text-center mb-10">
                 <h1 className="font-title text-4xl mb-2">🎉 게임 종료!</h1>

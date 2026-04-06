@@ -40,11 +40,6 @@ public class AiQuizController {
     public ResponseEntity<Response<AiQuizGenerateResponse>> generateQuiz(
             @RequestParam @NotBlank(message = "주제를 입력해주세요.") String topic,
             @AuthenticationPrincipal UserPrincipal principal) {
-
-        if (principal == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-
         AiQuizGenerateResponse response = aiQuizService.generateQuiz(topic, principal.id());
         return ResponseEntity.ok(CommonResponse.success(response, "AI 퀴즈 생성 완료"));
     }

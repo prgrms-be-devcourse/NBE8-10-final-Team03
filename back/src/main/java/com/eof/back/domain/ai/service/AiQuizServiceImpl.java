@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.time.Duration;
 import java.util.List;
 
 /**
@@ -80,40 +81,46 @@ public class AiQuizServiceImpl implements AiQuizService {
         QuizSet quizSet = QuizSet.of("[AI] " + topic, "AI가 생성한 " + topic + " 퀴즈", user);
         quizSetRepository.save(quizSet);
 
-        for (AiQuizResponse quiz : quizzes) {
-            Quiz quizEntity = Quiz.builder()
-                    .quizSet(quizSet)
-                    .content(quiz.content())
-                    .answer(quiz.answer())
-                    .choice1(quiz.choice1())
-                    .choice2(quiz.choice2())
-                    .choice3(quiz.choice3())
-                    .choice4(quiz.choice4())
-                    .build();
-            quizRepository.save(quizEntity);
+        List<Quiz> quizList = quizzes.stream()
+                .map(quiz -> Quiz.builder()
+                        .quizSet(quizSet)
+                        .content(quiz.content())
+                        .answer(quiz.answer())
+                        .choice1(quiz.choice1())
+                        .choice2(quiz.choice2())
+                        .choice3(quiz.choice3())
+                        .choice4(quiz.choice4())
+                        .build())
+                .toList();
+
+        quizRepository.saveAll(quizList);
+
+// increaseQuizCount가 1씩 증가하는 구조라 size만큼 반복
+        for (int i = 0; i < quizList.size(); i++) {
             quizSet.increaseQuizCount();
         }
         return quizSet.getId();
     }
+
     // 테스트를 위해 private 제거
     String callGeminiApi(String topic) {
         String prompt = """
-                주제: %s
-                위 주제로 객관식 퀴즈 5개를 만들어줘.
-        단, 폭력적이거나 선정적이거나 혐오적인 주제는 거부하고 빈 배열 []만 반환해.
-        반드시 아래 JSON 형식으로만 응답해:
-        [
-          {
-            "content": "문제 내용",
-            "answer": "정답",
-            "choice1": "선택지1",
-            "choice2": "선택지2",
-            "choice3": "선택지3",
-            "choice4": "선택지4"
-          }
-        ]
-        JSON 외에 다른 텍스트는 절대 포함하지 마.
-        """.formatted(topic);
+                        주제: %s
+                        위 주제로 객관식 퀴즈 5개를 만들어줘.
+                단, 폭력적이거나 선정적이거나 혐오적인 주제는 거부하고 빈 배열 []만 반환해.
+                반드시 아래 JSON 형식으로만 응답해:
+                [
+                  {
+                    "content": "문제 내용",
+                    "answer": "정답",
+                    "choice1": "선택지1",
+                    "choice2": "선택지2",
+                    "choice3": "선택지3",
+                    "choice4": "선택지4"
+                  }
+                ]
+                JSON 외에 다른 텍스트는 절대 포함하지 마.
+                """.formatted(topic);
 
         String requestBody = """
                 {
@@ -129,25 +136,34 @@ public class AiQuizServiceImpl implements AiQuizService {
                 .bodyValue(requestBody)
                 .retrieve()
                 .bodyToMono(String.class)
+                .timeout(Duration.ofSeconds(10))
                 .block();
     }
 
     private List<AiQuizResponse> parseQuizzes(String response) {
         try {
             JsonNode root = objectMapper.readTree(response);
-            String text = root
-                    .path("candidates").get(0)
-                    .path("content")
-                    .path("parts").get(0)
-                    .path("text")
-                    .asText();
 
+            JsonNode candidate = root.path("candidates").get(0);
+            if (candidate == null) {
+                throw new QuizSetException(QuizSetErrorCode.QUIZ_SET_CREATE_FAIL);
+            }
+
+            JsonNode part = candidate.path("content").path("parts").get(0);
+            if (part == null) {
+                throw new QuizSetException(QuizSetErrorCode.QUIZ_SET_CREATE_FAIL);
+            }
+
+            String text = part.path("text").asText();
             String json = text
                     .replaceAll("```json", "")
                     .replaceAll("```", "")
                     .trim();
 
-            return objectMapper.readValue(json, new TypeReference<List<AiQuizResponse>>() {});
+            return objectMapper.readValue(json, new TypeReference<List<AiQuizResponse>>() {
+            });
+        } catch (QuizSetException e) {
+            throw e;
         } catch (Exception e) {
             throw new QuizSetException(QuizSetErrorCode.QUIZ_SET_CREATE_FAIL);
         }

@@ -3,6 +3,7 @@ package com.eof.back.domain.quiz.service;
 import com.eof.back.domain.quiz.dto.QuizCreateRequest;
 import com.eof.back.domain.quiz.dto.QuizResponse;
 import com.eof.back.domain.quiz.dto.QuizUpdateRequest;
+import com.eof.back.domain.quiz.entity.AnswerType;
 import com.eof.back.domain.quiz.entity.Quiz;
 import com.eof.back.domain.quiz.repository.QuizRepository;
 import com.eof.back.domain.quizset.entity.QuizSet;
@@ -75,6 +76,9 @@ public class QuizServiceImpl implements QuizService {
 
         // 권한 검증: 퀴즈 세트 제작자만 퀴즈를 추가할 수 있음
         validateOwnership(quizSet, userId);
+
+        // 객관식 선택지 검증
+        validateMultipleChoiceOptions(request.answerType(), request.choice1(), request.choice2(), request.choice3(), request.choice4());
 
         Quiz quiz = Quiz.builder()
                 .quizSet(quizSet)
@@ -162,6 +166,19 @@ public class QuizServiceImpl implements QuizService {
         validatePathConsistency(quiz, quizSetId);
         // 권한 검증
         validateOwnership(quiz.getQuizSet(), userId);
+
+        // 객관식 선택지 검증 (수정 시에도 유형이 변경되거나 선택지가 변경될 수 있으므로 검증 필요)
+        // null인 필드는 기존 값을 유지하므로, 검증 시 로직 주의 필요
+        // 여기서는 request에 담긴 값이 있을 때만 검증하거나, 최종 결과물을 검증하는 방식이 좋음
+        // record의 특성상 request의 answerType이 null일 수 있으므로 null 체크 필수
+        AnswerType finalAnswerType = request.answerType() != null ? request.answerType() : quiz.getAnswerType();
+        if (finalAnswerType == AnswerType.MULTIPLE_CHOICE) {
+            String c1 = request.choice1() != null ? request.choice1() : quiz.getChoice1();
+            String c2 = request.choice2() != null ? request.choice2() : quiz.getChoice2();
+            String c3 = request.choice3() != null ? request.choice3() : quiz.getChoice3();
+            String c4 = request.choice4() != null ? request.choice4() : quiz.getChoice4();
+            validateMultipleChoiceOptions(finalAnswerType, c1, c2, c3, c4);
+        }
 
         quiz.update(
                 request.questionType(),
@@ -257,6 +274,27 @@ public class QuizServiceImpl implements QuizService {
         if (!quiz.getQuizSet().getId().equals(quizSetId)) {
             throw new QuizException(QuizErrorCode.QUIZ_NOT_FOUND,
                     "The quiz does not belong to the specified quiz set.");
+        }
+    }
+
+    /**
+     * 객관식 문제인 경우 선택지 4개가 모두 존재하는지 검증합니다.
+     *
+     * @param answerType 정답 유형
+     * @param c1 선택지 1
+     * @param c2 선택지 2
+     * @param c3 선택지 3
+     * @param c4 선택지 4
+     * @throws QuizException 객관식인데 선택지가 누락된 경우
+     */
+    private void validateMultipleChoiceOptions(AnswerType answerType, String c1, String c2, String c3, String c4) {
+        if (answerType == AnswerType.MULTIPLE_CHOICE) {
+            if (c1 == null || c1.isBlank() ||
+                c2 == null || c2.isBlank() ||
+                c3 == null || c3.isBlank() ||
+                c4 == null || c4.isBlank()) {
+                throw new QuizException(QuizErrorCode.QUIZ_MULTIPLE_CHOICE_OPTIONS_REQUIRED);
+            }
         }
     }
 }

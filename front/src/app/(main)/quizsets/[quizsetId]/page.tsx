@@ -4,6 +4,14 @@ import { use, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import api from "@/lib/api";
+import YouTube from "react-youtube";
+
+const getYoutubeId = (url: string) => {
+  if (!url) return null;
+  const regExp = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=|shorts\/)|youtu\.be\/)([^"&?\/\s]{11})/i;
+  const match = url.match(regExp);
+  return match ? match[1] : null;
+};
 
 
 function QuizEditItem({
@@ -24,32 +32,50 @@ function QuizEditItem({
   const handleSave = async () => {
     const choices = [form.choice1, form.choice2, form.choice3, form.choice4];
 
-    if (!form.content || !form.answer || choices.some((c) => !c)) {
-      alert("모든 항목을 입력하세요.");
+    if (!form.content || !form.answer) {
+      alert("문항과 정답을 입력하세요.");
       return;
     }
     if (form.content.trim().length < 5) {
       alert("문제 내용은 5자 이상 입력하세요.");
       return;
     }
-    const uniqueChoices = new Set(choices.map((c) => c.trim()));
-    if (uniqueChoices.size !== 4) {
-      alert("보기가 중복되었습니다.");
-      return;
+    if (form.questionType === "VIDEO" || form.questionType === "AUDIO") {
+      if (!form.videoUrl) {
+        alert("유튜브 링크를 입력하세요.");
+        return;
+      }
     }
-    if (!choices.map((c) => c.trim()).includes(form.answer.trim())) {
-      alert("정답이 보기 중에 없습니다.");
-      return;
+    if (form.answerType === "MULTIPLE_CHOICE") {
+      const choices = [form.choice1, form.choice2, form.choice3, form.choice4];
+      if (choices.some((c) => !c)) {
+        alert("4개 보기를 모두 입력하세요.");
+        return;
+      }
+      const uniqueChoices = new Set(choices.map((c) => c?.trim()));
+      if (uniqueChoices.size !== 4) {
+        alert("보기가 중복되었습니다.");
+        return;
+      }
+      if (!choices.map((c) => c?.trim()).includes(form.answer.trim())) {
+        alert("정답이 보기 중에 없습니다.");
+        return;
+      }
     }
     setSaving(true);
     try {
       await api.patch(`/quizsets/${quizSetId}/quizzes/${quiz.id}`, {
+        questionType: form.questionType,
+        answerType: form.answerType,
         content: form.content,
         answer: form.answer,
         choice1: form.choice1,
         choice2: form.choice2,
         choice3: form.choice3,
         choice4: form.choice4,
+        videoUrl: form.videoUrl,
+        startTime: form.startTime,
+        endTime: form.endTime,
       });
       onUpdated(form);
       setEditing(false);
@@ -64,7 +90,16 @@ function QuizEditItem({
     return (
       <div className="bg-cream border-[3px] border-dark rounded-xl p-4">
         <div className="flex items-center justify-between mb-3">
-          <p className="font-bold">Q{index + 1}. {quiz.content}</p>
+          <p className="font-bold flex items-center gap-1 flex-wrap">
+            <span>Q{index + 1}.</span>
+            <span className="px-2 py-0.5 bg-primary/20 text-primary text-xs rounded-full">
+              {quiz.questionType === "VIDEO" ? "📺영상" : quiz.questionType === "AUDIO" ? "🔊음성" : quiz.questionType === "IMAGE" ? "🖼️이미지" : "📝텍스트"}
+            </span>
+            <span className="px-2 py-0.5 bg-accent/20 text-accent text-xs rounded-full mr-1">
+              {quiz.answerType === "SHORT_ANSWER" ? "주관식" : "객관식"}
+            </span>
+            <span>{quiz.content}</span>
+          </p>
           <button
             onClick={() => setEditing(true)}
             className="text-xs font-bold text-primary hover:underline"
@@ -72,19 +107,25 @@ function QuizEditItem({
             수정
           </button>
         </div>
-        <div className="grid grid-cols-2 gap-2 text-sm">
-          {[quiz.choice1, quiz.choice2, quiz.choice3, quiz.choice4].map((choice, j) => (
-            <div
-              key={j}
-              className={`px-3 py-2 rounded-lg border-2 ${choice === quiz.answer
-                  ? "border-accent bg-accent/10 font-bold"
-                  : "border-gray-200 bg-white"
-                }`}
-            >
-              {j + 1}. {choice}
-            </div>
-          ))}
-        </div>
+        {quiz.answerType === "MULTIPLE_CHOICE" ? (
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            {[quiz.choice1, quiz.choice2, quiz.choice3, quiz.choice4].map((choice, j) => (
+              <div
+                key={j}
+                className={`px-3 py-2 rounded-lg border-2 ${choice === quiz.answer
+                    ? "border-accent bg-accent/10 font-bold"
+                    : "border-gray-200 bg-white"
+                  }`}
+              >
+                {j + 1}. {choice}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-sm px-3 py-2 rounded-lg border-2 border-accent bg-accent/10 font-bold w-fit">
+            정답: {quiz.answer}
+          </div>
+        )}
       </div>
     );
   }
@@ -92,6 +133,98 @@ function QuizEditItem({
   return (
     <div className="bg-cream border-[3px] border-primary rounded-xl p-4">
       <p className="font-bold mb-3">Q{index + 1} 수정 중</p>
+      <div className="grid grid-cols-2 gap-4 mb-4">
+        <div>
+          <label className="block text-xs font-bold mb-1">문제 유형</label>
+          <select
+            value={form.questionType}
+            onChange={(e) => setForm({ ...form, questionType: e.target.value })}
+            className="w-full px-3 py-2 bg-white border-2 border-dark rounded-xl text-sm outline-none"
+          >
+            <option value="TEXT">텍스트</option>
+            <option value="IMAGE">이미지</option>
+            <option value="VIDEO">유튜브 영상</option>
+            <option value="AUDIO">유튜브 음성(소리만)</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs font-bold mb-1">정답 유형</label>
+          <select
+            value={form.answerType}
+            onChange={(e) => setForm({ ...form, answerType: e.target.value })}
+            className="w-full px-3 py-2 bg-white border-2 border-dark rounded-xl text-sm outline-none"
+          >
+            <option value="MULTIPLE_CHOICE">객관식</option>
+            <option value="SHORT_ANSWER">주관식</option>
+          </select>
+        </div>
+      </div>
+      {(form.questionType === "VIDEO" || form.questionType === "AUDIO") && (
+        <div className="mb-4 bg-gray-50 border-[2px] border-dashed border-gray-300 rounded-xl p-4">
+          <label className="block text-xs font-bold mb-1">유튜브 링크</label>
+          <input
+            type="text"
+            placeholder="유튜브 영상 주소"
+            value={form.videoUrl || ""}
+            onChange={(e) => setForm({ ...form, videoUrl: e.target.value })}
+            className="w-full px-3 py-2 bg-white border-2 border-gray-300 rounded-xl text-sm outline-none mb-3"
+          />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold mb-1">시작 시간 (초)</label>
+              <input
+                type="number"
+                value={form.startTime || ""}
+                onChange={(e) => setForm({ ...form, startTime: e.target.value ? Number(e.target.value) : undefined })}
+                className="w-full px-3 py-2 bg-white border-2 border-gray-300 rounded-xl text-sm outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold mb-1">종료 시간 (초)</label>
+              <input
+                type="number"
+                value={form.endTime || ""}
+                onChange={(e) => setForm({ ...form, endTime: e.target.value ? Number(e.target.value) : undefined })}
+                className="w-full px-3 py-2 bg-white border-2 border-gray-300 rounded-xl text-sm outline-none"
+              />
+            </div>
+          </div>
+
+          {/* 미리보기 영역 */}
+          {form.videoUrl && (
+            <div className="mt-4 pt-4 border-t-[2px] border-gray-300 border-dashed">
+              <p className="text-sm font-bold text-gray-500 mb-2">실제 화면 미리보기 테스트 (직접 재생해보세요)</p>
+              {getYoutubeId(form.videoUrl) ? (
+                <div className={`relative mx-auto ${form.questionType === "AUDIO" ? "w-0 h-0 overflow-hidden opacity-0" : "w-full max-w-sm bg-black rounded-xl border-[3px] border-dark overflow-hidden aspect-video"}`}>
+                  <YouTube
+                    videoId={getYoutubeId(form.videoUrl)!}
+                    opts={{
+                      width: "100%",
+                      height: "100%",
+                      playerVars: {
+                        autoplay: 0,
+                        controls: 1, // 테스트 가능하도록 컨트롤바 켜둠
+                        start: form.startTime || 0,
+                        ...(form.endTime ? { end: form.endTime } : {}),
+                      },
+                    }}
+                    className="w-full h-full"
+                  />
+                </div>
+              ) : (
+                <p className="text-sm text-red-500 font-bold mt-2">유효하지 않은 유튜브 링크입니다.</p>
+              )}
+              {form.questionType === "AUDIO" && getYoutubeId(form.videoUrl) && (
+                <div className="text-center p-4 bg-white border-[3px] border-dark border-dashed rounded-xl mt-2 mx-auto max-w-sm">
+                  <span className="text-3xl mb-2 block">🎶</span>
+                  <p className="font-title text-sm text-primary">미리보기 (오디오 모드)</p>
+                  <p className="text-xs text-gray-400 mt-1">※ 위 검은 화면(플레이어)을 클릭하여 오디오를 확인해보세요.</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
       <div className="mb-3">
         <label className="block text-xs font-bold mb-1">문제</label>
         <input
@@ -110,19 +243,21 @@ function QuizEditItem({
           className="w-full px-3 py-2 bg-white border-2 border-accent rounded-xl text-sm outline-none"
         />
       </div>
-      <div className="grid grid-cols-2 gap-2 mb-4">
-        {[1, 2, 3, 4].map((n) => (
-          <div key={n}>
-            <label className="block text-xs font-bold mb-1">보기 {n}</label>
-            <input
-              type="text"
-              value={form[`choice${n}` as keyof QuizItem] as string}
-              onChange={(e) => setForm({ ...form, [`choice${n}`]: e.target.value })}
-              className="w-full px-3 py-2 bg-white border-2 border-dark rounded-xl text-sm outline-none"
-            />
-          </div>
-        ))}
-      </div>
+      {form.answerType === "MULTIPLE_CHOICE" && (
+        <div className="grid grid-cols-2 gap-2 mb-4">
+          {[1, 2, 3, 4].map((n) => (
+            <div key={n}>
+              <label className="block text-xs font-bold mb-1">보기 {n}</label>
+              <input
+                type="text"
+                value={form[`choice${n}` as keyof QuizItem] as string}
+                onChange={(e) => setForm({ ...form, [`choice${n}`]: e.target.value })}
+                className="w-full px-3 py-2 bg-white border-2 border-dark rounded-xl text-sm outline-none"
+              />
+            </div>
+          ))}
+        </div>
+      )}
       <div className="flex gap-2">
         <button
           onClick={handleSave}
@@ -144,12 +279,17 @@ function QuizEditItem({
 
 interface QuizItem {
   id: number;
+  questionType: string;
+  answerType: string;
   content: string;
   answer: string;
   choice1: string;
   choice2: string;
   choice3: string;
   choice4: string;
+  videoUrl?: string;
+  startTime?: number;
+  endTime?: number;
 }
 
 interface QuizSetDetail {

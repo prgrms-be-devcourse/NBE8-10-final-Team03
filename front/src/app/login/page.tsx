@@ -36,6 +36,7 @@ export default function LoginPage() {
       localStorage.setItem("role", role);
       localStorage.setItem("nickname", nickname);
       localStorage.setItem("userId", String(userId));
+      localStorage.removeItem("oauth");
 
       router.push("/rooms");
     } catch (err: any) {

@@ -7,7 +7,7 @@ export default function Home() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
-    setIsLoggedIn(!!localStorage.getItem("accessToken"));
+    setIsLoggedIn(!!localStorage.getItem("nickname"));
   }, []);
 
   return (

@@ -53,6 +53,12 @@ custom:
     refreshTokenExpirationSeconds: 1209600  # 14일
   turnstile:
     secret-key: ${TURNSTILE_SECRET_KEY}
+  s3:
+    enabled: ${S3_ENABLED:false}
+    bucket: ${S3_BUCKET:dummy-bucket}
+    region: ${S3_REGION:ap-northeast-2}
+    access-key: ${S3_ACCESS_KEY:dummy}
+    secret-key: ${S3_SECRET_KEY:dummy}
 
 gemini:
   api:

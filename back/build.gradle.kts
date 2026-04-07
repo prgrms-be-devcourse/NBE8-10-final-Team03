@@ -65,6 +65,9 @@ dependencies {
 
     //STOMP
     implementation("org.springframework.boot:spring-boot-starter-websocket")
+
+    // AWS S3
+    implementation("software.amazon.awssdk:s3:2.31.19")
 }
 
 tasks.withType<Test> {

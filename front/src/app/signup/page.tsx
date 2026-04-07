@@ -12,10 +12,42 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [error, setError] = useState("");
+  const [nicknameError, setNicknameError] = useState("");
+  const [usernameError, setUsernameError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const handleNicknameChange = (value: string) => {
+    // 특수문자 포함 여부 확인
+    if (/[^가-힣a-zA-Z0-9]/.test(value)) {
+      setNicknameError("특수문자는 사용할 수 없습니다.");
+    } else {
+      setNicknameError("");
+    }
+    // 한글, 영문, 숫자만 입력 허용
+    const filtered = value.replace(/[^가-힣a-zA-Z0-9]/g, "");
+    setNickname(filtered);
+  };
+
+  const handleUsernameChange = (value: string) => {
+    // 특수문자 포함 여부 확인
+    if (/[^a-zA-Z0-9]/.test(value)) {
+      setUsernameError("특수문자는 사용할 수 없습니다.");
+    } else {
+      setUsernameError("");
+    }
+    // 영문, 숫자만 입력 허용
+    const filtered = value.replace(/[^a-zA-Z0-9]/g, "");
+    setUsername(filtered);
+  };
 
   const handleSignup = async () => {
     setError("");
+
+    // 닉네임 유효성 검사
+    if (!/^[가-힣a-zA-Z0-9]+$/.test(nickname)) {
+      setError("닉네임은 한글, 영문, 숫자만 사용 가능합니다.");
+      return;
+    }
 
     if (password !== passwordConfirm) {
       setError("비밀번호가 일치하지 않습니다.");
@@ -99,20 +131,26 @@ export default function SignupPage() {
               type="text"
               placeholder="영문, 숫자 4~20자"
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              onChange={(e) => handleUsernameChange(e.target.value)}
               className="w-full px-4 py-3 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none transition-colors"
             />
+            {usernameError && (
+              <p className="text-xs text-orange-500 font-bold mt-1">{usernameError}</p>
+            )}
           </div>
 
           <div className="mb-4">
             <label className="block text-sm font-bold mb-2">닉네임</label>
             <input
               type="text"
-              placeholder="2~20자"
+              placeholder="2~20자 (한글, 영문, 숫자만 가능)"
               value={nickname}
-              onChange={(e) => setNickname(e.target.value)}
+              onChange={(e) => handleNicknameChange(e.target.value)}
               className="w-full px-4 py-3 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none transition-colors"
             />
+            {nicknameError && (
+              <p className="text-xs text-orange-500 font-bold mt-1">{nicknameError}</p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3 mb-6">

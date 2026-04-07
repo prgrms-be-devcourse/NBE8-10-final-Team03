@@ -47,7 +47,7 @@ public enum AuthErrorCode implements ErrorCode {
     // 내 정보 수정 관련
     INVALID_NICKNAME(HttpStatus.BAD_REQUEST, "닉네임은 비어 있을 수 없습니다."),
     INVALID_PASSWORD(HttpStatus.BAD_REQUEST, "비밀번호는 비어 있을 수 없습니다."),
-    PASSWORD_MISMATCH(HttpStatus.UNAUTHORIZED, "현재 비밀번호가 일치하지 않습니다."),
+    PASSWORD_MISMATCH(HttpStatus.BAD_REQUEST, "현재 비밀번호가 일치하지 않습니다."),
     SAME_AS_CURRENT_PASSWORD(HttpStatus.BAD_REQUEST, "새 비밀번호는 현재 비밀번호와 달라야 합니다.");
 
     private final HttpStatus status;

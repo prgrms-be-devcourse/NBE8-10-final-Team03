@@ -2,18 +2,12 @@ package com.eof.back.domain.ranking.service;
 
 import com.eof.back.domain.ranking.dto.RankingResponse;
 import com.eof.back.domain.user.gamerecord.repository.GameRecordRepository;
-import com.eof.back.domain.user.user.entity.User;
 import com.eof.back.domain.user.user.repository.UserRepository;
+import com.eof.back.infrastructure.cache.RankingCacheService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.context.annotation.Lazy;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 
 /**

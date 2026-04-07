@@ -28,10 +28,13 @@ export default function MyPage() {
   const [newNickname, setNewNickname] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [updateError, setUpdateError] = useState("");
   const [updating, setUpdating] = useState(false);
   const [isOAuthUser, setIsOAuthUser] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
+  const [isWithdrawConfirming, setIsWithdrawConfirming] = useState(false);
+  const [withdrawKeyword, setWithdrawKeyword] = useState("");
 
   // OAuth 제공자 표시 함수
   const getDisplayUsername = (username: string) => {
@@ -74,6 +77,10 @@ export default function MyPage() {
       setUpdateError("현재 비밀번호를 입력하세요.");
       return;
     }
+    if (newPassword.trim() && newPassword !== confirmPassword) {
+      setUpdateError("새 비밀번호가 일치하지 않습니다.");
+      return;
+    }
     setUpdating(true);
     try {
       const body: any = {};
@@ -88,6 +95,7 @@ export default function MyPage() {
       setNewNickname("");
       setNewPassword("");
       setCurrentPassword("");
+      setConfirmPassword("");
       window.location.reload();
     } catch (err: any) {
       setUpdateError(err.response?.data?.message || "수정에 실패했습니다.");
@@ -97,16 +105,33 @@ export default function MyPage() {
   };
 
   const handleWithdraw = async () => {
-    if (!window.confirm("정말 탈퇴하시겠습니까? 모든 데이터가 삭제됩니다.")) return;
+    if (!isWithdrawConfirming) {
+      setIsWithdrawConfirming(true);
+      setWithdrawKeyword("");
+      return;
+    }
+    
+    if (withdrawKeyword !== "탈퇴") {
+      alert("'탈퇴'를 정확히 입력해주세요.");
+      return;
+    }
+
+    if (!window.confirm("정말 탈퇴하시겠습니까? 모든 데이터가 삭제됩니다.")) {
+      setIsWithdrawConfirming(false);
+      setWithdrawKeyword("");
+      return;
+    }
+
     setWithdrawing(true);
     try {
       await api.delete("/auth/withdraw");
       localStorage.clear();
-      window.location.href = "/";  // router.push 대신 이걸로
+      window.location.href = "/";
     } catch (err) {
       alert("탈퇴에 실패했습니다.");
-    } finally {
       setWithdrawing(false);
+      setIsWithdrawConfirming(false);
+      setWithdrawKeyword("");
     }
   };
 
@@ -208,6 +233,24 @@ export default function MyPage() {
                 className="w-full px-4 py-3 bg-white border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none"
               />
             )}
+            {!isOAuthUser && (
+              <>
+                <input
+                  type="password"
+                  placeholder="새 비밀번호 (변경 시에만 입력)"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full px-4 py-3 bg-white border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none"
+                />
+                <input
+                  type="password"
+                  placeholder="새 비밀번호 확인"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full px-4 py-3 bg-white border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none"
+                />
+              </>
+            )}
             <input
               type="text"
               placeholder="새 닉네임 (변경 시에만 입력)"
@@ -215,15 +258,6 @@ export default function MyPage() {
               onChange={(e) => setNewNickname(e.target.value)}
               className="w-full px-4 py-3 bg-white border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none"
             />
-            {!isOAuthUser && (
-              <input
-                type="password"
-                placeholder="새 비밀번호 (변경 시에만 입력)"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                className="w-full px-4 py-3 bg-white border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none"
-              />
-            )}
             <button
               onClick={handleUpdate}
               disabled={updating}
@@ -279,7 +313,7 @@ export default function MyPage() {
               <p className="text-xs text-gray-400">저장한 퀴즈셋 보기</p>
             </Link>
           </div>
-          {/* 회원 탈퇴 - 우측 하단 */}
+          {/* 회원 탈퇴 버튼 */}
           <div className="flex justify-end">
             <button
               onClick={handleWithdraw}
@@ -289,6 +323,44 @@ export default function MyPage() {
               {withdrawing ? "탈퇴 중..." : "회원 탈퇴"}
             </button>
           </div>
+
+          {/* 회원 탈퇴 확인 모달 */}
+          {isWithdrawConfirming && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+              <div className="bg-white border-[3px] border-dark rounded-2xl shadow-kitsch p-8 max-w-sm w-full mx-4">
+                <h3 className="font-title text-2xl mb-2 text-red-600">회원 탈퇴 확인</h3>
+                <p className="text-sm text-gray-600 mb-4">이 작업은 되돌릴 수 없습니다.</p>
+                <p className="text-sm text-gray-600 mb-6">계속하려면 "<span className="font-bold text-red-600">탈퇴</span>"를 입력하세요.</p>
+                
+                <input
+                  type="text"
+                  placeholder="탈퇴"
+                  value={withdrawKeyword}
+                  onChange={(e) => setWithdrawKeyword(e.target.value)}
+                  className="w-full px-4 py-3 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-red-400 outline-none mb-6"
+                />
+                
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      setIsWithdrawConfirming(false);
+                      setWithdrawKeyword("");
+                    }}
+                    className="flex-1 py-3 text-sm text-gray-700 bg-cream border-[3px] border-dark rounded-xl font-bold hover:shadow-kitsch transition-all"
+                  >
+                    취소
+                  </button>
+                  <button
+                    onClick={handleWithdraw}
+                    disabled={withdrawing || withdrawKeyword !== "탈퇴"}
+                    className="flex-1 py-3 text-sm text-white bg-red-500 border-[3px] border-red-600 rounded-xl font-bold hover:shadow-kitsch transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {withdrawing ? "탈퇴 중..." : "탈퇴"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>

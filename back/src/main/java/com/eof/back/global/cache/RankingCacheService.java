@@ -1,6 +1,8 @@
-package com.eof.back.domain.ranking.service;
+package com.eof.back.global.cache;
 
+import com.eof.back.domain.ranking.dto.RankingProjection;
 import com.eof.back.domain.ranking.dto.RankingResponse;
+import com.eof.back.domain.ranking.service.RankingServiceImpl;
 import com.eof.back.domain.user.gamerecord.repository.GameRecordRepository;
 import com.eof.back.domain.user.user.entity.User;
 import com.eof.back.domain.user.user.repository.UserRepository;
@@ -67,13 +69,11 @@ public class RankingCacheService {
     }
 
     private List<RankingResponse.RankingItem> getPeriodRankingItems(LocalDateTime since) {
-        List<Object[]> results = gameRecordRepository.findRankingByPeriod(since, PageRequest.of(0, 10));
+        List<RankingProjection> results = gameRecordRepository.findRankingByPeriod(since, PageRequest.of(0, 10));
         List<RankingResponse.RankingItem> rankings = new ArrayList<>();
         for (int i = 0; i < results.size(); i++) {
-            Object[] row = results.get(i);
-            String nickname = ((User) row[0]).getNickname();
-            Long score = (Long) row[1];
-            rankings.add(new RankingResponse.RankingItem(i + 1, nickname, score));
+            RankingProjection result = results.get(i);
+            rankings.add(new RankingResponse.RankingItem(i + 1, result.user().getNickname(), result.periodScore()));
         }
         return rankings;
     }

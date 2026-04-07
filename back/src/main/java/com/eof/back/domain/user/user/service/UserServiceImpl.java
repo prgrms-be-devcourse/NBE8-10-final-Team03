@@ -43,7 +43,8 @@ public class UserServiceImpl implements UserService {
                 user.getId(),
                 user.getUsername(),
                 user.getNickname(),
-                user.getRole().name()
+                user.getRole().name(),
+                user.getProfileImage()
         );
     }
 
@@ -56,6 +57,7 @@ public class UserServiceImpl implements UserService {
         verifyCurrentPasswordIfLocal(user, request.currentPassword());
         updateNicknameIfPresent(user, request.nickname());
         updatePasswordIfPresent(user, request.password());
+        updateProfileImageIfPresent(user, request.profileImage());  // 추가
 
         return new UserUpdateResponse(
                 user.getId(),
@@ -97,6 +99,13 @@ public class UserServiceImpl implements UserService {
         }
 
         user.updatePassword(passwordEncoder.encode(password));
+    }
+
+    private void updateProfileImageIfPresent(User user, Integer profileImage) {
+        if (profileImage == null) {
+            return;
+        }
+        user.updateProfileImage(profileImage);
     }
 }
 

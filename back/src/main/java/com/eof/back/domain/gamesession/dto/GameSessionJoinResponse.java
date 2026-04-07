@@ -47,7 +47,8 @@ public record GameSessionJoinResponse(
                 .map(player -> new PlayerInfo(
                         player.getId(),
                         player.getNickname(),
-                        player.getId().equals(session.getHost().getId()) // 방장 여부 판별
+                        player.getId().equals(session.getHost().getId()), // 방장 여부 판별
+                        player.getProfileImage()
                 ))
                 .toList();
 
@@ -67,7 +68,8 @@ public record GameSessionJoinResponse(
     public record PlayerInfo(
             Long userId,
             String nickname,
-            boolean isHost
+            boolean isHost,
+            Integer profileImage
     ) {
     }
 }

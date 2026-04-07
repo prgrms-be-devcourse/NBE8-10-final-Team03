@@ -86,6 +86,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         String redirectUrl = UriComponentsBuilder.fromUriString(redirectUri)
                 .queryParam("userId", customUser.getUserId())
                 .queryParam("nickname", customUser.getNickname())
+                .queryParam("profileImage", customUser.getProfileImage())
                 .build()
                 .encode()
                 .toUriString();

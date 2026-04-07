@@ -95,6 +95,13 @@ public class User extends BaseEntity {
     private LocalDateTime statusChangedAt;
 
     /**
+     * 프로필 이미지 번호 (1~4).
+     * 회원가입 시 랜덤 배정되며, 마이페이지에서 변경 가능합니다.
+     */
+    @Column(nullable = false)
+    private Integer profileImage = 1;
+
+    /**
      * 게임 결과에 따른 랭킹 점수를 누적 합산합니다.
      *
      * @param score 가산할 랭킹 점수
@@ -125,6 +132,7 @@ public class User extends BaseEntity {
         this.providerId = providerId;
         this.totalRankingScore = 0L;
         this.status = UserStatus.ACTIVE;
+        this.profileImage = (int) (Math.random() * 4) + 1;
     }
 
     /**
@@ -199,5 +207,9 @@ public class User extends BaseEntity {
 
     public boolean isDeleted() {
         return this.status == UserStatus.DELETED;
+    }
+
+    public void updateProfileImage(Integer profileImage) {
+        this.profileImage = profileImage;
     }
 }

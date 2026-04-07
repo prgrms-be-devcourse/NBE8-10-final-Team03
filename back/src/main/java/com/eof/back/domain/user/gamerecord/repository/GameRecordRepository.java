@@ -76,10 +76,10 @@ public interface GameRecordRepository extends JpaRepository<GameRecord, Long> {
      * @param pageable 페이징 정보
      * @return 유저별 기간 점수 집계 결과 목록
      */
-    @Query("SELECT new com.eof.back.domain.ranking.dto.RankingProjection(r.user, SUM(r.earnedRankingScore)) " +
-            "FROM GameRecord r JOIN r.user " +
+    @Query("SELECT new com.eof.back.domain.ranking.dto.RankingProjection(u, SUM(r.earnedRankingScore)) " +
+            "FROM GameRecord r JOIN r.user u " +
             "WHERE r.createdAt >= :since " +
-            "GROUP BY r.user ORDER BY SUM(r.earnedRankingScore) DESC")
+            "GROUP BY u ORDER BY SUM(r.earnedRankingScore) DESC")
     List<RankingProjection> findRankingByPeriod(@Param("since") LocalDateTime since, Pageable pageable);
 
     @Modifying(clearAutomatically = true)

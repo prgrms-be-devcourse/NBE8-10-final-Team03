@@ -36,12 +36,24 @@ public class GeminiClient {
             .baseUrl("https://generativelanguage.googleapis.com")
             .build();
 
-    public String call(String topic) {  // callGeminiApi → call로 이름 변경
+    public String call(String topic) {
         String prompt = """
-                주제: %s
-                위 주제로 객관식 퀴즈 5개를 만들어줘.
-                ...
-                """.formatted(topic);
+            주제: %s
+            위 주제로 객관식 퀴즈 5개를 만들어줘.
+            단, 폭력적이거나 선정적이거나 혐오적인 주제는 거부하고 빈 배열 []만 반환해.
+            반드시 아래 JSON 형식으로만 응답해:
+            [
+              {
+                "content": "문제 내용",
+                "answer": "정답",
+                "choice1": "선택지1",
+                "choice2": "선택지2",
+                "choice3": "선택지3",
+                "choice4": "선택지4"
+              }
+            ]
+            JSON 외에 다른 텍스트는 절대 포함하지 마.
+            """.formatted(topic);
 
         String requestBody = """
                 {

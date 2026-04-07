@@ -15,9 +15,9 @@ permissions:
   packages: write
 
 env:
-  IMAGE_NAME: devcos-team3-backend
+  IMAGE_NAME: devcos-team03-backend
   REGISTRY: ghcr.io
-  EC2_INSTANCE_TAG_NAME: devcos-team3-ec2-1
+  EC2_INSTANCE_TAG_NAME: devcos-team03-ec2-1
 
 concurrency:
   group: deploy

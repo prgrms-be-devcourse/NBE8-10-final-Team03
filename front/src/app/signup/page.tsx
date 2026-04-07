@@ -33,6 +33,7 @@ export default function SignupPage() {
 
       localStorage.setItem("nickname", nick);
       localStorage.setItem("userId", String(userId));
+      localStorage.removeItem("oauth");
 
       router.push("/rooms");
     } catch (err: any) {

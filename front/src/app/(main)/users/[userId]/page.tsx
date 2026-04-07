@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 interface UserInfo {
   nickname: string;
   username: string;
+  oauthProvider?: string;
 }
 
 interface RecordsStats {
@@ -26,8 +27,10 @@ export default function MyPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [newNickname, setNewNickname] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
   const [updateError, setUpdateError] = useState("");
   const [updating, setUpdating] = useState(false);
+  const [isOAuthUser, setIsOAuthUser] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
 
   useEffect(() => {
@@ -37,6 +40,7 @@ export default function MyPage() {
         if (!userId) throw new Error("userId 없음");
         setMyUserId(userId);
         setIsAdmin(localStorage.getItem("role") === "ADMIN");
+        setIsOAuthUser(localStorage.getItem("oauth") === "true");
         const [userRes, recordsRes] = await Promise.all([
           api.get(`/users/${userId}`),
           api.get(`/users/${userId}/records?page=0&size=1`),
@@ -58,15 +62,24 @@ export default function MyPage() {
       setUpdateError("닉네임 또는 비밀번호를 입력하세요.");
       return;
     }
+    if (!isOAuthUser && !currentPassword.trim()) {
+      setUpdateError("현재 비밀번호를 입력하세요.");
+      return;
+    }
     setUpdating(true);
     try {
       const body: any = {};
+      if (!isOAuthUser) body.currentPassword = currentPassword;
       if (newNickname.trim()) body.nickname = newNickname;
       if (newPassword.trim()) body.password = newPassword;
       await api.patch(`/users/${myUserId}`, body);
       if (newNickname.trim()) {
         localStorage.setItem("nickname", newNickname);
       }
+      setIsEditing(false);
+      setNewNickname("");
+      setNewPassword("");
+      setCurrentPassword("");
       window.location.reload();
     } catch (err: any) {
       setUpdateError(err.response?.data?.message || "수정에 실패했습니다.");
@@ -122,7 +135,7 @@ export default function MyPage() {
             </div>
             <div>
               <h2 className="font-title text-2xl mb-1">{user.nickname}</h2>
-              <p className="text-sm text-gray-400">@{user.username}</p>
+              {!isOAuthUser && <p className="text-sm text-gray-400">@{user.username}</p>}
               {isAdmin && (
                 <span className="inline-block mt-1 px-2 py-0.5 bg-primary text-white text-xs font-bold rounded-full border border-dark">
                   ADMIN
@@ -145,6 +158,15 @@ export default function MyPage() {
         {isEditing && (
           <div className="flex flex-col gap-3 mb-6 p-4 bg-cream border-[3px] border-dark rounded-xl">
             {updateError && <p className="text-sm text-red-500 font-bold">{updateError}</p>}
+            {!isOAuthUser && (
+              <input
+                type="password"
+                placeholder="현재 비밀번호"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                className="w-full px-4 py-3 bg-white border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none"
+              />
+            )}
             <input
               type="text"
               placeholder="새 닉네임 (변경 시에만 입력)"
@@ -152,13 +174,15 @@ export default function MyPage() {
               onChange={(e) => setNewNickname(e.target.value)}
               className="w-full px-4 py-3 bg-white border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none"
             />
-            <input
-              type="password"
-              placeholder="새 비밀번호 (변경 시에만 입력)"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full px-4 py-3 bg-white border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none"
-            />
+            {!isOAuthUser && (
+              <input
+                type="password"
+                placeholder="새 비밀번호 (변경 시에만 입력)"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="w-full px-4 py-3 bg-white border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none"
+              />
+            )}
             <button
               onClick={handleUpdate}
               disabled={updating}

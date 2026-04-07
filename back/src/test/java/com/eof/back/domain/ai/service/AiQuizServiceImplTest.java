@@ -1,7 +1,6 @@
 package com.eof.back.domain.ai.service;
 
 import com.eof.back.domain.ai.dto.AiQuizGenerateResponse;
-import com.eof.back.domain.quiz.entity.Quiz;
 import com.eof.back.domain.quiz.repository.QuizRepository;
 import com.eof.back.domain.quizset.entity.QuizSet;
 import com.eof.back.domain.quizset.repository.QuizSetRepository;
@@ -10,12 +9,12 @@ import com.eof.back.domain.user.user.entity.Role;
 import com.eof.back.domain.user.user.entity.User;
 import com.eof.back.domain.user.user.repository.UserRepository;
 import com.eof.back.global.exception.exceptions.QuizSetException;
+import com.eof.back.infrastructure.gemini.GeminiClient;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -26,15 +25,16 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.doReturn;
 
 @ExtendWith(MockitoExtension.class)
 @ActiveProfiles("test")
 class AiQuizServiceImplTest {
 
     @InjectMocks
-    @Spy
-    private AiQuizServiceImpl aiQuizService;
+    private AiQuizServiceImpl aiQuizService;  // @Spy 제거
+
+    @Mock
+    private GeminiClient geminiClient;  // 추가
 
     @Mock
     private UserRepository userRepository;
@@ -44,16 +44,6 @@ class AiQuizServiceImplTest {
 
     @Mock
     private QuizRepository quizRepository;
-
-    private User createUser() {
-        return User.builder()
-                .username("testuser")
-                .password("test1234")
-                .nickname("테스트맨")
-                .role(Role.USER)
-                .provider(AuthProvider.LOCAL)
-                .build();
-    }
 
     @Test
     @DisplayName("AI 퀴즈 생성 - 정상")
@@ -73,12 +63,11 @@ class AiQuizServiceImplTest {
         User user = createUser();
         QuizSet quizSet = QuizSet.of("[AI] 한국사", "AI가 생성한 한국사 퀴즈", user);
 
-        doReturn(geminiResponse).when(aiQuizService).callGeminiApi(anyString());
+        given(geminiClient.call(anyString())).willReturn(geminiResponse);  // 변경
         given(userRepository.findById(any())).willReturn(Optional.of(user));
         given(quizSetRepository.save(any())).willReturn(quizSet);
 
         AiQuizGenerateResponse response = aiQuizService.generateQuiz("한국사", 1L);
-
         assertThat(response).isNotNull();
     }
 
@@ -97,9 +86,20 @@ class AiQuizServiceImplTest {
                 }
                 """;
 
-        doReturn(geminiResponse).when(aiQuizService).callGeminiApi(anyString());
+        given(geminiClient.call(anyString())).willReturn(geminiResponse);  // 변경
 
         assertThatThrownBy(() -> aiQuizService.generateQuiz("부적절한주제", 1L))
                 .isInstanceOf(QuizSetException.class);
     }
+
+    private User createUser() {
+        return User.builder()
+                .username("testuser")
+                .password("test1234")
+                .nickname("테스트맨")
+                .role(Role.USER)
+                .provider(AuthProvider.LOCAL)
+                .build();
+    }
 }
+

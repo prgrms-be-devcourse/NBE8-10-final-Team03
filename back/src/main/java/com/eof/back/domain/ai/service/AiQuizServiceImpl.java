@@ -12,16 +12,14 @@ import com.eof.back.global.exception.errorCode.AuthErrorCode;
 import com.eof.back.global.exception.errorCode.QuizSetErrorCode;
 import com.eof.back.global.exception.exceptions.AuthException;
 import com.eof.back.global.exception.exceptions.QuizSetException;
+import com.eof.back.infrastructure.gemini.GeminiClient;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.reactive.function.client.WebClient;
 
-import java.time.Duration;
 import java.util.List;
 
 /**
@@ -48,22 +46,18 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AiQuizServiceImpl implements AiQuizService {
 
-    @Value("${gemini.api.key}")
-    private String apiKey;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final UserRepository userRepository;
     private final QuizSetRepository quizSetRepository;
     private final QuizRepository quizRepository;
+    private final GeminiClient geminiClient;
 
-    private final WebClient webClient = WebClient.builder()
-            .baseUrl("https://generativelanguage.googleapis.com")
-            .build();
 
     @Override
     @Transactional
     public AiQuizGenerateResponse generateQuiz(String topic, Long userId) {
-        String response = callGeminiApi(topic);
+        String response = geminiClient.call(topic);
         List<AiQuizResponse> quizzes = parseQuizzes(response);
 
         if (quizzes.isEmpty()) {
@@ -102,43 +96,6 @@ public class AiQuizServiceImpl implements AiQuizService {
         return quizSet.getId();
     }
 
-    // 테스트를 위해 private 제거
-    String callGeminiApi(String topic) {
-        String prompt = """
-                        주제: %s
-                        위 주제로 객관식 퀴즈 5개를 만들어줘.
-                단, 폭력적이거나 선정적이거나 혐오적인 주제는 거부하고 빈 배열 []만 반환해.
-                반드시 아래 JSON 형식으로만 응답해:
-                [
-                  {
-                    "content": "문제 내용",
-                    "answer": "정답",
-                    "choice1": "선택지1",
-                    "choice2": "선택지2",
-                    "choice3": "선택지3",
-                    "choice4": "선택지4"
-                  }
-                ]
-                JSON 외에 다른 텍스트는 절대 포함하지 마.
-                """.formatted(topic);
-
-        String requestBody = """
-                {
-                  "contents": [{
-                    "parts": [{"text": "%s"}]
-                  }]
-                }
-                """.formatted(prompt.replace("\"", "\\\"").replace("\n", "\\n"));
-
-        return webClient.post()
-                .uri("/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=" + apiKey)
-                .header("Content-Type", "application/json")
-                .bodyValue(requestBody)
-                .retrieve()
-                .bodyToMono(String.class)
-                .timeout(Duration.ofSeconds(10))
-                .block();
-    }
 
     private List<AiQuizResponse> parseQuizzes(String response) {
         try {

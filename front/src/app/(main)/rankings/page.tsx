@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from "react";
 import api from "@/lib/api";
+import ProfileAvatar from "@/components/common/ProfileAvatar";
 
 interface RankingItem {
   rank: number;
   nickname: string;
   score: number;
+  profileImage: number;
 }
 
 interface RankingResponse {
@@ -49,9 +51,8 @@ export default function RankingsPage() {
             <button
               key={p}
               onClick={() => setPeriod(p)}
-              className={`px-5 py-2 border-[3px] border-dark rounded-full font-bold text-sm shadow-kitsch-sm transition-colors ${
-                period === p ? "bg-secondary" : "bg-white hover:bg-gray-50"
-              }`}
+              className={`px-5 py-2 border-[3px] border-dark rounded-full font-bold text-sm shadow-kitsch-sm transition-colors ${period === p ? "bg-secondary" : "bg-white hover:bg-gray-50"
+                }`}
             >
               {p === "all" ? "전체" : p === "weekly" ? "주간" : "월간"}
             </button>
@@ -79,69 +80,70 @@ export default function RankingsPage() {
         </div>
       ) : (
         <>
-{/* 포디움 - 3명 미만이면 그냥 목록으로 */}
-{top3.length >= 3 ? (
-  <div className="flex items-end justify-center gap-6 mb-14">
-    {/* 2등 */}
-    <div className="text-center">
-      <div className="w-24 h-24 mx-auto mb-3 rounded-full border-[4px] border-accent bg-white flex items-center justify-center">
-        <span className="font-title text-3xl text-accent">2</span>
-      </div>
-      <p className="font-bold text-sm mb-1">{top3[1].nickname}</p>
-      <span className="inline-block px-3 py-1 bg-accent/10 border-2 border-accent rounded-full text-xs font-bold text-accent">
-        {top3[1].score.toLocaleString()}P
-      </span>
-    </div>
+          {/* 포디움 - 3명 미만이면 그냥 목록으로 */}
+          {top3.length >= 3 ? (
+            <div className="flex items-end justify-center gap-6 mb-14">
+              {/* 2등 */}
+              <div className="text-center">
+                <div className="mx-auto mb-3">
+                  <ProfileAvatar profileImage={top3[1].profileImage || 1} size={96} />
+                </div>
+                <p className="font-bold text-sm mb-1">{top3[1].nickname}</p>
+                <span className="inline-block px-3 py-1 bg-accent/10 border-2 border-accent rounded-full text-xs font-bold text-accent">
+                  {top3[1].score.toLocaleString()}P
+                </span>
+              </div>
 
-    {/* 1등 */}
-    <div className="text-center -mt-6">
-      <div className="text-3xl mb-1">👑</div>
-      <div className="w-32 h-32 mx-auto mb-3 rounded-full border-[4px] border-primary bg-white flex items-center justify-center shadow-kitsch">
-        <span className="font-title text-4xl text-primary">1</span>
-      </div>
-      <p className="font-bold mb-1">{top3[0].nickname}</p>
-      <span className="inline-block px-4 py-1.5 bg-primary/10 border-2 border-primary rounded-full text-sm font-bold text-primary">
-        {top3[0].score.toLocaleString()}P
-      </span>
-    </div>
+              {/* 1등 - 왕관 */}
+              <div className="text-center -mt-6">
+                <div className="text-3xl mb-1">👑</div>
+                <div className="mx-auto mb-3">
+                  <ProfileAvatar profileImage={top3[0].profileImage || 1} size={128} />
+                </div>
+                <p className="font-bold mb-1">{top3[0].nickname}</p>
+                <span className="inline-block px-4 py-1.5 bg-primary/10 border-2 border-primary rounded-full text-sm font-bold text-primary">
+                  {top3[0].score.toLocaleString()}P
+                </span>
+              </div>
 
-    {/* 3등 */}
-    <div className="text-center">
-      <div className="w-24 h-24 mx-auto mb-3 rounded-full border-[4px] border-secondary bg-white flex items-center justify-center">
-        <span className="font-title text-3xl text-secondary">3</span>
-      </div>
-      <p className="font-bold text-sm mb-1">{top3[2].nickname}</p>
-      <span className="inline-block px-3 py-1 bg-secondary/10 border-2 border-secondary rounded-full text-xs font-bold text-secondary">
-        {top3[2].score.toLocaleString()}P
-      </span>
-    </div>
-  </div>
-) : (
-  <div className="bg-white border-[3px] border-dark rounded-2xl shadow-kitsch overflow-hidden mb-6">
-    {data.rankings.map((r) => (
-      <div
-        key={r.rank}
-        className={`flex items-center px-6 py-4 border-b-2 border-dashed border-gray-200 last:border-b-0 hover:bg-cream/50 transition-colors ${
-          r.nickname === myNickname ? "bg-secondary/20" : ""
-        }`}
-      >
-        <span className="font-title text-2xl w-12 text-center">{r.rank}</span>
-        <div className="w-10 h-10 rounded-full bg-cream border-2 border-dark flex items-center justify-center text-sm font-bold mr-4">
-          {r.nickname.charAt(0)}
-        </div>
-        <div className="flex-1">
-          <p className="font-bold text-sm">
-            {r.nickname}
-            {r.nickname === myNickname && (
-              <span className="ml-2 px-2 py-0.5 bg-secondary border border-dark rounded text-xs font-bold">나</span>
-            )}
-          </p>
-        </div>
-        <p className="font-title text-lg text-primary">{r.score.toLocaleString()}P</p>
-      </div>
-    ))}
-  </div>
-)}
+              {/* 3등 */}
+              <div className="text-center">
+                <div className="mx-auto mb-3">
+                  <ProfileAvatar profileImage={top3[2].profileImage || 1} size={96} />
+                </div>
+                <p className="font-bold text-sm mb-1">{top3[2].nickname}</p>
+                <span className="inline-block px-3 py-1 bg-secondary/10 border-2 border-secondary rounded-full text-xs font-bold text-secondary">
+                  {top3[2].score.toLocaleString()}P
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white border-[3px] border-dark rounded-2xl shadow-kitsch overflow-hidden mb-6">
+              {data.rankings.map((r) => (
+                <div
+                  key={r.rank}
+                  className={`flex items-center px-6 py-4 border-b-2 border-dashed border-gray-200 last:border-b-0 hover:bg-cream/50 transition-colors ${r.nickname === myNickname ? "bg-secondary/20" : ""
+                    }`}
+                >
+                  <span className="font-title text-2xl w-12 text-center">{r.rank}</span>
+                  <img
+                    src={`/images/profile/${r.profileImage || 1}.png`}
+                    alt="프로필"
+                    className="w-10 h-10 rounded-full border-2 border-dark object-cover mr-4"
+                  />
+                  <div className="flex-1">
+                    <p className="font-bold text-sm">
+                      {r.nickname}
+                      {r.nickname === myNickname && (
+                        <span className="ml-2 px-2 py-0.5 bg-secondary border border-dark rounded text-xs font-bold">나</span>
+                      )}
+                    </p>
+                  </div>
+                  <p className="font-title text-lg text-primary">{r.score.toLocaleString()}P</p>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* 4위부터 테이블 */}
           {rest.length > 0 && (
@@ -149,14 +151,10 @@ export default function RankingsPage() {
               {rest.map((r) => (
                 <div
                   key={r.rank}
-                  className={`flex items-center px-6 py-4 border-b-2 border-dashed border-gray-200 last:border-b-0 hover:bg-cream/50 transition-colors ${
-                    r.nickname === myNickname ? "bg-secondary/20" : ""
-                  }`}
+                  className={`flex items-center px-6 py-4 border-b-2 border-dashed border-gray-200 last:border-b-0 hover:bg-cream/50 transition-colors ${r.nickname === myNickname ? "bg-secondary/20" : ""
+                    }`}
                 >
                   <span className="font-title text-2xl w-12 text-center">{r.rank}</span>
-                  <div className="w-10 h-10 rounded-full bg-cream border-2 border-dark flex items-center justify-center text-sm font-bold mr-4">
-                    {r.nickname.charAt(0)}
-                  </div>
                   <div className="flex-1">
                     <p className="font-bold text-sm">
                       {r.nickname}

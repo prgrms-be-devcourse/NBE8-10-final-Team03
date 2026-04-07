@@ -19,7 +19,7 @@ export default function SignupPage() {
 
   const handleNicknameChange = (value: string) => {
     // 특수문자 포함 여부 확인
-    if (/[^가-힣a-zA-Z0-9]/.test(value)) {
+    if (/[^ㄱ-힣a-zA-Z0-9]/.test(value)) {
       setNicknameError("특수문자는 사용할 수 없습니다.");
     } else {
       setNicknameError("");
@@ -66,10 +66,12 @@ export default function SignupPage() {
 
       // 2. 바로 로그인
       const res = await api.post("/auth/login", { username, password });
-      const { nickname: nick, userId } = res.data.data;
+      const { nickname: nick, userId, role, profileImage } = res.data.data;
 
       localStorage.setItem("nickname", nick);
       localStorage.setItem("userId", String(userId));
+      localStorage.setItem("role", role);
+      localStorage.setItem("profileImage", String(profileImage || 1));
       localStorage.removeItem("oauth");
 
       router.push("/rooms");

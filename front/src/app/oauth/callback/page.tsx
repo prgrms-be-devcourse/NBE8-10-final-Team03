@@ -10,6 +10,8 @@ function OAuthCallbackContent() {
   useEffect(() => {
     const userId = searchParams.get("userId");
     const nickname = searchParams.get("nickname");
+    const role = searchParams.get("role");
+    const profileImage = searchParams.get("profileImage");
 
     if (!userId || !nickname) {
       router.push("/login");
@@ -19,6 +21,9 @@ function OAuthCallbackContent() {
     localStorage.setItem("userId", userId);
     localStorage.setItem("nickname", nickname);
     localStorage.setItem("oauth", "true");
+    if (role) localStorage.setItem("role", role);
+    if (profileImage) localStorage.setItem("profileImage", profileImage);  // 추가
+    else localStorage.setItem("profileImage", "1");
     router.push("/rooms");
   }, []);
 

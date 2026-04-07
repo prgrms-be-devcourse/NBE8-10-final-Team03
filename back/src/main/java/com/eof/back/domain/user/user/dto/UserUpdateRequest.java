@@ -12,6 +12,8 @@ import jakarta.validation.constraints.Size;
  * @since 2026-03-24
  */
 public record UserUpdateRequest(
+        String currentPassword,
+
         @Size(min = 2, max = 20, message = "닉네임은 2자 이상 20자 이하로 입력해주세요.")
         String nickname,
 

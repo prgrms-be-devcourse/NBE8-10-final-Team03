@@ -1,4 +1,4 @@
-package com.eof.back.infrastructure.cache;
+package com.eof.back.global.cache;
 
 import com.eof.back.domain.ranking.dto.RankingProjection;
 import com.eof.back.domain.ranking.dto.RankingResponse;

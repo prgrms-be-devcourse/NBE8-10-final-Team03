@@ -9,7 +9,7 @@ import com.eof.back.domain.user.user.entity.Role;
 import com.eof.back.domain.user.user.entity.User;
 import com.eof.back.domain.user.user.repository.UserRepository;
 import com.eof.back.global.exception.exceptions.QuizSetException;
-import com.eof.back.infrastructure.gemini.GeminiClient;
+import com.eof.back.global.gemini.GeminiClient;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

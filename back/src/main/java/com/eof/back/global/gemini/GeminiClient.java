@@ -1,4 +1,4 @@
-package com.eof.back.infrastructure.gemini;
+package com.eof.back.global.gemini;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;

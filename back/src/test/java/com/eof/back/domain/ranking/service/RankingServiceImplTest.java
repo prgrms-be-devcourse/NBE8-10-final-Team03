@@ -3,7 +3,7 @@ package com.eof.back.domain.ranking.service;
 import com.eof.back.domain.ranking.dto.RankingResponse;
 import com.eof.back.domain.user.gamerecord.repository.GameRecordRepository;
 import com.eof.back.domain.user.user.repository.UserRepository;
-import com.eof.back.infrastructure.cache.RankingCacheService;
+import com.eof.back.global.cache.RankingCacheService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

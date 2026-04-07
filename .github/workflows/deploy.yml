@@ -11,7 +11,7 @@ env:
   EC2_INSTANCE_TAG_NAME: devcos-team03-ec2-1 # 배포 대상 EC2 Name 태그
   DOCKER_NETWORK: common # 도커 네트워크
   BACK_DIR: back # Dockerfile 위치
-  NPM_BASE_URL: https://127.0.0.1:81 # NPMplus 관리 API 베이스 URL
+  NPM_BASE_URL: http://127.0.0.1:81 # NPMplus 관리 API 베이스 URL
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }} # 커밋이 짧은 시간안에 몰려도 최신 커밋에 대해서만 액션이 수행되도록

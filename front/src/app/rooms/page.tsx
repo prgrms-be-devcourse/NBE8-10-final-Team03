@@ -50,6 +50,7 @@ interface QuizBroadcastResponse {
   choice3: string;
   choice4: string;
   videoUrl?: string;
+  imageUrl?: string;
   startTime?: number;
   endTime?: number;
   timeLimit: number;
@@ -684,6 +685,15 @@ function RoomsContent() {
 
                 <div className="bg-white border-[3px] border-dark rounded-2xl shadow-kitsch p-10 mb-6 text-center">
                   <h2 className="font-title text-3xl">{currentQuestion.content}</h2>
+                  
+                  {currentQuestion.questionType === "IMAGE" && currentQuestion.imageUrl && (
+                    <div className="mt-6 flex flex-col justify-center items-center">
+                      <div className="relative w-full max-w-2xl rounded-xl border-[3px] border-dark overflow-hidden flex justify-center items-center h-80 bg-gray-50">
+                        <img src={currentQuestion.imageUrl} alt="quiz" className="max-h-full max-w-full object-contain" />
+                      </div>
+                    </div>
+                  )}
+
                   {(currentQuestion.questionType === "VIDEO" || currentQuestion.questionType === "AUDIO") && currentQuestion.videoUrl && (
                     <div className="mt-6 flex flex-col justify-center items-center">
                       {getYoutubeId(currentQuestion.videoUrl) ? (

@@ -18,6 +18,7 @@ function OAuthCallbackContent() {
 
     localStorage.setItem("userId", userId);
     localStorage.setItem("nickname", nickname);
+    localStorage.setItem("oauth", "true");
     router.push("/rooms");
   }, []);
 

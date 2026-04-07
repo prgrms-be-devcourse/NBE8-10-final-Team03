@@ -71,6 +71,8 @@ dependencies {
 
     // Actuator
     implementation("org.springframework.boot:spring-boot-starter-actuator")
+    
+    implementation("software.amazon.awssdk:auth:2.31.19")
 }
 
 tasks.withType<Test> {

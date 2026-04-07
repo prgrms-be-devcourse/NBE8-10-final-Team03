@@ -1,5 +1,6 @@
 package com.eof.back.domain.user.gamerecord.repository;
 
+import com.eof.back.domain.ranking.dto.RankingProjection;
 import com.eof.back.domain.user.gamerecord.entity.GameRecord;
 import org.springframework.data.repository.query.Param;
 import org.springframework.data.domain.Page;
@@ -73,14 +74,13 @@ public interface GameRecordRepository extends JpaRepository<GameRecord, Long> {
      *
      * @param since 집계 시작 시각 (주간: 7일 전, 월간: 30일 전)
      * @param pageable 페이징 정보
-     * @return [User, periodScore] 형태의 집계 결과 목록
+     * @return 유저별 기간 점수 집계 결과 목록
      */
-    @Query("SELECT r.user, SUM(r.earnedRankingScore) as periodScore " +
-            "FROM GameRecord r JOIN r.user " +
+    @Query("SELECT new com.eof.back.domain.ranking.dto.RankingProjection(u, SUM(r.earnedRankingScore)) " +
+            "FROM GameRecord r JOIN r.user u " +
             "WHERE r.createdAt >= :since " +
-            "GROUP BY r.user ORDER BY periodScore DESC")
-    List<Object[]> findRankingByPeriod(@Param("since") LocalDateTime since, Pageable pageable);
-
+            "GROUP BY u ORDER BY SUM(r.earnedRankingScore) DESC")
+    List<RankingProjection> findRankingByPeriod(@Param("since") LocalDateTime since, Pageable pageable);
 
     @Modifying(clearAutomatically = true)
     @Query("DELETE FROM GameRecord r WHERE r.gameSession.id IN (SELECT gs.id FROM GameSession gs WHERE gs.quizSet.id = :quizSetId)")

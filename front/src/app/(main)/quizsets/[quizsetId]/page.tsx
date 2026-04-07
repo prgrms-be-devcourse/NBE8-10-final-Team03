@@ -46,6 +46,12 @@ function QuizEditItem({
         return;
       }
     }
+    if (form.questionType === "IMAGE") {
+      if (!form.imageUrl) {
+        alert("이미지를 업로드하세요.");
+        return;
+      }
+    }
     if (form.answerType === "MULTIPLE_CHOICE") {
       const choices = [form.choice1, form.choice2, form.choice3, form.choice4];
       if (choices.some((c) => !c)) {
@@ -74,6 +80,7 @@ function QuizEditItem({
         choice3: form.choice3,
         choice4: form.choice4,
         videoUrl: form.videoUrl,
+        imageUrl: form.imageUrl,
         startTime: form.startTime,
         endTime: form.endTime,
       });
@@ -225,6 +232,45 @@ function QuizEditItem({
           )}
         </div>
       )}
+
+      {form.questionType === "IMAGE" && (
+        <div className="mb-4 bg-gray-50 border-[2px] border-dashed border-gray-300 rounded-xl p-4">
+          <label className="block text-xs font-bold mb-1">이미지 업로드</label>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              try {
+                const formData = new FormData();
+                formData.append("file", file);
+                const res = await api.post("/images", formData, {
+                  headers: { "Content-Type": "multipart/form-data" }
+                });
+                setForm({ ...form, imageUrl: res.data.data.accessUrl });
+              } catch(err) {
+                alert("이미지 업로드에 실패했습니다.");
+              }
+            }}
+            className="w-full block text-sm text-gray-500
+              file:mr-4 file:py-2 file:px-4
+              file:rounded-xl file:border-[2px] file:border-dark
+              file:text-xs file:font-bold
+              file:bg-cream file:text-dark
+              hover:file:bg-primary/20
+              transition-all outline-none mb-3"
+          />
+          {form.imageUrl && (
+            <div className="mt-4 pt-4 border-t-[2px] border-gray-300 border-dashed">
+              <p className="text-xs font-bold text-gray-500 mb-2">미리보기</p>
+              <div className="relative mx-auto bg-gray-100 rounded-xl border-[3px] border-dark overflow-hidden flex justify-center items-center h-40">
+                <img src={form.imageUrl} alt="preview" className="max-h-full max-w-full object-contain" />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
       <div className="mb-3">
         <label className="block text-xs font-bold mb-1">문제</label>
         <input
@@ -288,6 +334,7 @@ interface QuizItem {
   choice3: string;
   choice4: string;
   videoUrl?: string;
+  imageUrl?: string;
   startTime?: number;
   endTime?: number;
 }

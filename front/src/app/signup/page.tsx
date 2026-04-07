@@ -29,10 +29,8 @@ export default function SignupPage() {
 
       // 2. 바로 로그인
       const res = await api.post("/auth/login", { username, password });
-      const { accessToken, refreshToken, nickname: nick, userId } = res.data.data;
+      const { nickname: nick, userId } = res.data.data;
 
-      localStorage.setItem("accessToken", accessToken);
-      localStorage.setItem("refreshToken", refreshToken);
       localStorage.setItem("nickname", nick);
       localStorage.setItem("userId", String(userId));
 

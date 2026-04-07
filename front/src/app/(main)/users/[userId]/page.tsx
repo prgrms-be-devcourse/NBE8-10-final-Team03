@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, type KeyboardEvent } from "react";
 import Link from "next/link";
 import api from "@/lib/api";
 import { useRouter } from "next/navigation";
@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 interface UserInfo {
   nickname: string;
   username: string;
+  oauthProvider?: string;
 }
 
 interface RecordsStats {
@@ -26,9 +27,23 @@ export default function MyPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [newNickname, setNewNickname] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [updateError, setUpdateError] = useState("");
   const [updating, setUpdating] = useState(false);
+  const [isOAuthUser, setIsOAuthUser] = useState(false);
+  const [isCapsLockOn, setIsCapsLockOn] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
+  const [isWithdrawConfirming, setIsWithdrawConfirming] = useState(false);
+  const [withdrawKeyword, setWithdrawKeyword] = useState("");
+
+  // OAuth 제공자 표시 함수
+  const getDisplayUsername = (username: string) => {
+    if (username.startsWith("GOOGLE_")) return "google";
+    if (username.startsWith("KAKAO_")) return "kakao";
+    if (username.startsWith("NAVER_")) return "naver";
+    return username;
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -37,6 +52,7 @@ export default function MyPage() {
         if (!userId) throw new Error("userId 없음");
         setMyUserId(userId);
         setIsAdmin(localStorage.getItem("role") === "ADMIN");
+        setIsOAuthUser(localStorage.getItem("oauth") === "true");
         const [userRes, recordsRes] = await Promise.all([
           api.get(`/users/${userId}`),
           api.get(`/users/${userId}/records?page=0&size=1`),
@@ -52,21 +68,39 @@ export default function MyPage() {
     fetchData();
   }, []);
 
+  const handleCapsLock = (e: KeyboardEvent<HTMLInputElement>) => {
+    setIsCapsLockOn(e.getModifierState("CapsLock"));
+  };
+
   const handleUpdate = async () => {
     setUpdateError("");
     if (!newNickname.trim() && !newPassword.trim()) {
       setUpdateError("닉네임 또는 비밀번호를 입력하세요.");
       return;
     }
+    if (!isOAuthUser && !currentPassword.trim()) {
+      setUpdateError("현재 비밀번호를 입력하세요.");
+      return;
+    }
+    if (newPassword.trim() && newPassword !== confirmPassword) {
+      setUpdateError("새 비밀번호가 일치하지 않습니다.");
+      return;
+    }
     setUpdating(true);
     try {
       const body: any = {};
+      if (!isOAuthUser) body.currentPassword = currentPassword;
       if (newNickname.trim()) body.nickname = newNickname;
       if (newPassword.trim()) body.password = newPassword;
       await api.patch(`/users/${myUserId}`, body);
       if (newNickname.trim()) {
         localStorage.setItem("nickname", newNickname);
       }
+      setIsEditing(false);
+      setNewNickname("");
+      setNewPassword("");
+      setCurrentPassword("");
+      setConfirmPassword("");
       window.location.reload();
     } catch (err: any) {
       setUpdateError(err.response?.data?.message || "수정에 실패했습니다.");
@@ -76,16 +110,33 @@ export default function MyPage() {
   };
 
   const handleWithdraw = async () => {
-    if (!window.confirm("정말 탈퇴하시겠습니까? 모든 데이터가 삭제됩니다.")) return;
+    if (!isWithdrawConfirming) {
+      setIsWithdrawConfirming(true);
+      setWithdrawKeyword("");
+      return;
+    }
+    
+    if (withdrawKeyword !== "탈퇴") {
+      alert("'탈퇴'를 정확히 입력해주세요.");
+      return;
+    }
+
+    if (!window.confirm("정말 탈퇴하시겠습니까? 모든 데이터가 삭제됩니다.")) {
+      setIsWithdrawConfirming(false);
+      setWithdrawKeyword("");
+      return;
+    }
+
     setWithdrawing(true);
     try {
       await api.delete("/auth/withdraw");
       localStorage.clear();
-      window.location.href = "/";  // router.push 대신 이걸로
+      window.location.href = "/";
     } catch (err) {
       alert("탈퇴에 실패했습니다.");
-    } finally {
       setWithdrawing(false);
+      setIsWithdrawConfirming(false);
+      setWithdrawKeyword("");
     }
   };
 
@@ -121,13 +172,46 @@ export default function MyPage() {
               <span className="font-title text-4xl text-white">{user.nickname.charAt(0)}</span>
             </div>
             <div>
-              <h2 className="font-title text-2xl mb-1">{user.nickname}</h2>
-              <p className="text-sm text-gray-400">@{user.username}</p>
-              {isAdmin && (
-                <span className="inline-block mt-1 px-2 py-0.5 bg-primary text-white text-xs font-bold rounded-full border border-dark">
-                  ADMIN
-                </span>
-              )}
+              <h2 className="font-title text-2xl mb-2">{user.nickname}</h2>
+              <div className="flex items-center gap-2">
+                {isOAuthUser ? (
+                  <>
+                    {getDisplayUsername(user.username) === "google" && (
+                      <span className="px-2 py-1 bg-gradient-to-r from-red-50 to-blue-50 text-gray-700 text-xs font-bold rounded-full border border-gray-200 flex items-center gap-1">
+                        <svg width="14" height="14" viewBox="0 0 18 18">
+                          <path d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 01-1.8 2.72v2.26h2.92a8.78 8.78 0 002.68-6.62z" fill="#4285F4"/>
+                          <path d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.8.54-1.83.86-3.04.86-2.34 0-4.32-1.58-5.03-3.71H.96v2.33A9 9 0 009 18z" fill="#34A853"/>
+                          <path d="M3.97 10.71A5.41 5.41 0 013.68 9c0-.6.1-1.17.29-1.71V4.96H.96A9 9 0 000 9c0 1.45.35 2.82.96 4.04l3.01-2.33z" fill="#FBBC05"/>
+                          <path d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.59C13.46.89 11.43 0 9 0A9 9 0 00.96 4.96l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58z" fill="#EA4335"/>
+                        </svg>
+                        Google
+                      </span>
+                    )}
+                    {getDisplayUsername(user.username) === "kakao" && (
+                      <span className="px-2 py-1 bg-yellow-50 text-gray-700 text-xs font-bold rounded-full border border-yellow-200 flex items-center gap-1">
+                        <svg width="14" height="14" viewBox="0 0 18 18">
+                          <path d="M9 1C4.58 1 1 3.79 1 7.21c0 2.17 1.45 4.08 3.63 5.17l-.93 3.42c-.08.3.26.54.52.37l4.1-2.72c.22.02.44.03.68.03 4.42 0 8-2.79 8-6.27S13.42 1 9 1z" fill="#3C1E1E"/>
+                        </svg>
+                        Kakao
+                      </span>
+                    )}
+                    {getDisplayUsername(user.username) === "naver" && (
+                      <span className="px-2 py-1 bg-green-50 text-gray-700 text-xs font-bold rounded-full border border-green-200">
+                        🏠 Naver
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  <span className="px-2 py-1 bg-gray-50 text-gray-700 text-xs font-bold rounded-full border border-gray-200">
+                    @{user.username}
+                  </span>
+                )}
+                {isAdmin && (
+                  <span className="px-2 py-1 bg-primary text-white text-xs font-bold rounded-full border border-dark">
+                    👑 ADMIN
+                  </span>
+                )}
+              </div>
             </div>
           </div>
           {/* 수정하기 버튼 - 우측 상단 */}
@@ -145,18 +229,50 @@ export default function MyPage() {
         {isEditing && (
           <div className="flex flex-col gap-3 mb-6 p-4 bg-cream border-[3px] border-dark rounded-xl">
             {updateError && <p className="text-sm text-red-500 font-bold">{updateError}</p>}
+            {!isOAuthUser && (
+              <input
+                type="password"
+                placeholder="현재 비밀번호"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                onKeyDown={handleCapsLock}
+                onKeyUp={handleCapsLock}
+                onBlur={() => setIsCapsLockOn(false)}
+                className="w-full px-4 py-3 bg-white border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none"
+              />
+            )}
+            {!isOAuthUser && (
+              <>
+                <input
+                  type="password"
+                  placeholder="새 비밀번호 (변경 시에만 입력)"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  onKeyDown={handleCapsLock}
+                  onKeyUp={handleCapsLock}
+                  onBlur={() => setIsCapsLockOn(false)}
+                  className="w-full px-4 py-3 bg-white border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none"
+                />
+                <input
+                  type="password"
+                  placeholder="새 비밀번호 확인"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  onKeyDown={handleCapsLock}
+                  onKeyUp={handleCapsLock}
+                  onBlur={() => setIsCapsLockOn(false)}
+                  className="w-full px-4 py-3 bg-white border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none"
+                />
+              </>
+            )}
+            {isCapsLockOn && (
+              <p className="text-xs text-orange-500 font-bold">Caps Lock이 켜져 있습니다. 비밀번호 입력 시 주의하세요.</p>
+            )}
             <input
               type="text"
               placeholder="새 닉네임 (변경 시에만 입력)"
               value={newNickname}
               onChange={(e) => setNewNickname(e.target.value)}
-              className="w-full px-4 py-3 bg-white border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none"
-            />
-            <input
-              type="password"
-              placeholder="새 비밀번호 (변경 시에만 입력)"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
               className="w-full px-4 py-3 bg-white border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none"
             />
             <button
@@ -214,7 +330,7 @@ export default function MyPage() {
               <p className="text-xs text-gray-400">저장한 퀴즈셋 보기</p>
             </Link>
           </div>
-          {/* 회원 탈퇴 - 우측 하단 */}
+          {/* 회원 탈퇴 버튼 */}
           <div className="flex justify-end">
             <button
               onClick={handleWithdraw}
@@ -224,6 +340,44 @@ export default function MyPage() {
               {withdrawing ? "탈퇴 중..." : "회원 탈퇴"}
             </button>
           </div>
+
+          {/* 회원 탈퇴 확인 모달 */}
+          {isWithdrawConfirming && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+              <div className="bg-white border-[3px] border-dark rounded-2xl shadow-kitsch p-8 max-w-sm w-full mx-4">
+                <h3 className="font-title text-2xl mb-2 text-red-600">회원 탈퇴 확인</h3>
+                <p className="text-sm text-gray-600 mb-4">이 작업은 되돌릴 수 없습니다.</p>
+                <p className="text-sm text-gray-600 mb-6">계속하려면 "<span className="font-bold text-red-600">탈퇴</span>"를 입력하세요.</p>
+                
+                <input
+                  type="text"
+                  placeholder="탈퇴"
+                  value={withdrawKeyword}
+                  onChange={(e) => setWithdrawKeyword(e.target.value)}
+                  className="w-full px-4 py-3 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-red-400 outline-none mb-6"
+                />
+                
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      setIsWithdrawConfirming(false);
+                      setWithdrawKeyword("");
+                    }}
+                    className="flex-1 py-3 text-sm text-gray-700 bg-cream border-[3px] border-dark rounded-xl font-bold hover:shadow-kitsch transition-all"
+                  >
+                    취소
+                  </button>
+                  <button
+                    onClick={handleWithdraw}
+                    disabled={withdrawing || withdrawKeyword !== "탈퇴"}
+                    className="flex-1 py-3 text-sm text-white bg-red-500 border-[3px] border-red-600 rounded-xl font-bold hover:shadow-kitsch transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {withdrawing ? "탈퇴 중..." : "탈퇴"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>

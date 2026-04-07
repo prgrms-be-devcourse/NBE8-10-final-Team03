@@ -1,8 +1,7 @@
 package com.eof.back.domain.ranking.service;
 
 import com.eof.back.domain.ranking.dto.RankingResponse;
-
-import java.util.List;
+import com.eof.back.global.cache.RankingCacheService;
 
 /**
  * 랭킹 조회 기능을 정의하는 서비스 인터페이스입니다.

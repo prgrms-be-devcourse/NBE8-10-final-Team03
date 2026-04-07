@@ -50,6 +50,7 @@ interface QuizBroadcastResponse {
   choice3: string;
   choice4: string;
   videoUrl?: string;
+  imageUrl?: string;
   startTime?: number;
   endTime?: number;
   timeLimit: number;
@@ -73,7 +74,7 @@ interface QuizResultResponse {
   scoreboard: ScoreboardItem[];
 }
 
-type GameState = "waiting" | "playing" | "roundResult" | "result";
+type GameState = "waiting" | "playing" | "grading" | "roundResult" | "result";
 type ViewMode = "lobby" | "room";
 
 function RoomsContent() {
@@ -117,6 +118,7 @@ function RoomsContent() {
   // 게임 state
   const [gameState, setGameState] = useState<GameState>("waiting");
   const [currentQuestion, setCurrentQuestion] = useState<QuizBroadcastResponse | null>(null);
+  const currentQuestionRef = useRef<QuizBroadcastResponse | null>(null);
   const [roundResult, setRoundResult] = useState<QuizResultResponse | null>(null);
   const [scoreboard, setScoreboard] = useState<ScoreboardItem[]>([]);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
@@ -171,11 +173,15 @@ function RoomsContent() {
 
   // 타이머
   useEffect(() => {
-    if (gameState === "playing" && timeLeft > 0) {
-      timerRef.current = setTimeout(() => setTimeLeft((t) => t - 1), 1000);
+    if (gameState === "playing") {
+      if (timeLeft > 0) {
+        timerRef.current = setTimeout(() => setTimeLeft((t) => t - 1), 1000);
+      } else if (currentQuestion?.answerType === "SHORT_ANSWER") {
+        setGameState("grading");
+      }
     }
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
-  }, [gameState, timeLeft]);
+  }, [gameState, timeLeft, currentQuestion]);
 
   useEffect(() => {
     if (gameState !== "playing" && gameState !== "roundResult") {
@@ -302,6 +308,7 @@ function RoomsContent() {
 
               case "QUIZ":
                 setCurrentQuestion(data.data);
+                currentQuestionRef.current = data.data;
                 setCurrentRound((prev) => prev + 1);
                 setSelectedAnswer(null);
                 setShortAnswerInput("");
@@ -318,14 +325,28 @@ function RoomsContent() {
                 break;
 
               case "RESULT":
-                setRoundResult(data.data);
-                setScoreboard(data.data.scoreboard);
-                setGameState("roundResult");
-                setChatMessages((prev) => [...prev, {
-                  sender: "SYSTEM",
-                  message: `정답: ${data.data.correctAnswer}`,
-                  type: "SYSTEM",
-                }]);
+                if (currentQuestionRef.current?.answerType === "SHORT_ANSWER") {
+                  setGameState("grading");
+                  setTimeout(() => {
+                    setRoundResult(data.data);
+                    setScoreboard(data.data.scoreboard);
+                    setGameState("roundResult");
+                    setChatMessages((prev) => [...prev, {
+                      sender: "SYSTEM",
+                      message: `정답: ${data.data.correctAnswer}`,
+                      type: "SYSTEM",
+                    }]);
+                  }, 3000);
+                } else {
+                  setRoundResult(data.data);
+                  setScoreboard(data.data.scoreboard);
+                  setGameState("roundResult");
+                  setChatMessages((prev) => [...prev, {
+                    sender: "SYSTEM",
+                    message: `정답: ${data.data.correctAnswer}`,
+                    type: "SYSTEM",
+                  }]);
+                }
                 break;
 
               case "QUIZ_END":
@@ -397,12 +418,13 @@ function RoomsContent() {
   };
 
   const handleSubmitAnswer = (answer: string) => {
+    const trimmed = answer.trim();
     if (answerSubmitted || !stompClientRef.current?.connected || !currentRoom) return;
-    setSelectedAnswer(answer);
+    setSelectedAnswer(trimmed);
     setAnswerSubmitted(true);
     stompClientRef.current.publish({
       destination: `/app/rooms/${currentRoom.gameSessionId}/answer`,
-      body: JSON.stringify({ answer }),
+      body: JSON.stringify({ answer: trimmed }),
     });
   };
 
@@ -684,6 +706,15 @@ function RoomsContent() {
 
                 <div className="bg-white border-[3px] border-dark rounded-2xl shadow-kitsch p-10 mb-6 text-center">
                   <h2 className="font-title text-3xl">{currentQuestion.content}</h2>
+                  
+                  {currentQuestion.questionType === "IMAGE" && currentQuestion.imageUrl && (
+                    <div className="mt-6 flex flex-col justify-center items-center">
+                      <div className="relative w-full max-w-2xl rounded-xl border-[3px] border-dark overflow-hidden flex justify-center items-center h-80 bg-gray-50">
+                        <img src={currentQuestion.imageUrl} alt="quiz" className="max-h-full max-w-full object-contain" />
+                      </div>
+                    </div>
+                  )}
+
                   {(currentQuestion.questionType === "VIDEO" || currentQuestion.questionType === "AUDIO") && currentQuestion.videoUrl && (
                     <div className="mt-6 flex flex-col justify-center items-center">
                       {getYoutubeId(currentQuestion.videoUrl) ? (
@@ -821,6 +852,21 @@ function RoomsContent() {
             </div>
           )}
 
+          {/* ========== 채점 로딩 화면 ========== */}
+          {gameState === "grading" && (
+            <div className="max-w-2xl mx-auto flex flex-col justify-center items-center py-20 bg-white border-[3px] border-dark rounded-2xl shadow-kitsch">
+              <span className="text-6xl mb-6 block animate-bounce">🤖</span>
+              <h2 className="font-title text-3xl mb-4">AI가 정답의 의미를 분석 중입니다...</h2>
+              <p className="text-gray-500 font-bold mb-8">잠시만 기다려주세요</p>
+              
+              <div className="flex gap-4">
+                <div className="w-5 h-5 rounded-full bg-primary animate-ping" style={{ animationDelay: '0s' }}></div>
+                <div className="w-5 h-5 rounded-full bg-accent animate-ping" style={{ animationDelay: '0.2s' }}></div>
+                <div className="w-5 h-5 rounded-full bg-secondary animate-ping" style={{ animationDelay: '0.4s' }}></div>
+              </div>
+            </div>
+          )}
+
           {/* ========== 라운드 결과 ========== */}
           {gameState === "roundResult" && roundResult && (
             <div className="max-w-2xl mx-auto">
@@ -828,7 +874,17 @@ function RoomsContent() {
                 <h2 className="font-title text-2xl mb-2">라운드 결과</h2>
                 <p className="font-hand text-lg text-gray-400 mb-4">정답: <span className="text-accent font-bold">{roundResult.correctAnswer}</span></p>
                 {roundResult.correctUsernames.length > 0 ? (
-                  <p className="text-sm font-bold text-primary">{roundResult.correctUsernames.join(", ")}님이 맞추셨습니다! 🎉</p>
+                  <div className="flex justify-center flex-wrap gap-2 text-sm font-bold text-primary items-center">
+                    {roundResult.correctUsernames.map((u, idx) => (
+                      <span key={idx} className="bg-primary/10 px-3 py-1 rounded-full flex items-center gap-1">
+                        {u}
+                        {currentQuestion?.answerType === "SHORT_ANSWER" && (
+                          <span className="text-[10px] bg-accent text-white px-1.5 py-0.5 rounded-md shadow-sm ml-1">AI 인증 ✨</span>
+                        )}
+                      </span>
+                    ))}
+                    <span className="ml-2 py-1">님이 맞추셨습니다! 🎉</span>
+                  </div>
                 ) : (
                   <p className="text-sm font-bold text-gray-400">아무도 맞추지 못했습니다.</p>
                 )}
@@ -840,9 +896,14 @@ function RoomsContent() {
                   {roundResult.scoreboard.map((p, i) => (
                     <div key={p.username} className={`flex items-center gap-3 p-3 rounded-xl ${p.username === myNickname ? "bg-secondary/20 border-2 border-secondary" : "bg-cream"}`}>
                       <span className={`font-title text-xl w-8 ${i === 0 ? "text-primary" : i === 1 ? "text-accent" : i === 2 ? "text-secondary" : "text-gray-400"}`}>{i + 1}</span>
-                      <div className="w-8 h-8 rounded-full bg-white border-2 border-dark flex items-center justify-center text-xs font-bold">{p.username.charAt(0)}</div>
-                      <p className="flex-1 font-bold text-sm">{p.username}</p>
-                      <span className="font-title text-lg">{p.score.toLocaleString()}</span>
+                      <div className="w-8 h-8 rounded-full bg-white border-2 border-dark flex items-center justify-center text-xs font-bold shrink-0">{p.username.charAt(0)}</div>
+                      <div className="flex-1 flex items-center gap-2">
+                        <p className="font-bold text-sm">{p.username}</p>
+                        {currentQuestion?.answerType === "SHORT_ANSWER" && roundResult.correctUsernames.includes(p.username) && (
+                          <span className="text-[10px] bg-accent text-white px-1.5 py-0.5 rounded-md shadow-sm whitespace-nowrap">AI 인증 ✨</span>
+                        )}
+                      </div>
+                      <span className="font-title text-lg shrink-0">{p.score.toLocaleString()}</span>
                     </div>
                   ))}
                 </div>

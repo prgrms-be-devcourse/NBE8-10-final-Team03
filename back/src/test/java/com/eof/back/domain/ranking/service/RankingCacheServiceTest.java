@@ -1,10 +1,12 @@
 package com.eof.back.domain.ranking.service;
 
+import com.eof.back.domain.ranking.dto.RankingProjection;
 import com.eof.back.domain.ranking.dto.RankingResponse;
 import com.eof.back.domain.user.gamerecord.repository.GameRecordRepository;
 import com.eof.back.domain.user.user.entity.Role;
 import com.eof.back.domain.user.user.entity.User;
 import com.eof.back.domain.user.user.repository.UserRepository;
+import com.eof.back.global.cache.RankingCacheService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,7 +16,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Pageable;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -66,9 +67,9 @@ class RankingCacheServiceTest {
     @Test
     @DisplayName("주간 랭킹 TOP10 조회 - 정상")
     void getWeeklyRankingItems_success() {
-        List<Object[]> mockResults = List.of(
-                new Object[]{createUser(1L, "유저1", 5000L), 5000L},
-                new Object[]{createUser(2L, "유저2", 3000L), 3000L}
+        List<RankingProjection> mockResults = List.of(
+                new RankingProjection(createUser(1L, "유저1", 5000L), 5000L),
+                new RankingProjection(createUser(2L, "유저2", 3000L), 3000L)
         );
         given(gameRecordRepository.findRankingByPeriod(any(), any(Pageable.class)))
                 .willReturn(mockResults);
@@ -95,9 +96,9 @@ class RankingCacheServiceTest {
     @Test
     @DisplayName("월간 랭킹 TOP10 조회 - 정상")
     void getMonthlyRankingItems_success() {
-        List<Object[]> mockResults = new ArrayList<Object[]>();
-        mockResults.add(new Object[]{createUser(1L, "유저1", 8000L), 8000L});
-
+        List<RankingProjection> mockResults = List.of(
+                new RankingProjection(createUser(1L, "유저1", 8000L), 8000L)
+        );
         given(gameRecordRepository.findRankingByPeriod(any(), any(Pageable.class)))
                 .willReturn(mockResults);
 

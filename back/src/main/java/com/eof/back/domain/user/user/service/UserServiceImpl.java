@@ -3,6 +3,7 @@ package com.eof.back.domain.user.user.service;
 import com.eof.back.domain.user.user.dto.UserInfoResponse;
 import com.eof.back.domain.user.user.dto.UserUpdateRequest;
 import com.eof.back.domain.user.user.dto.UserUpdateResponse;
+import com.eof.back.domain.user.user.entity.AuthProvider;
 import com.eof.back.domain.user.user.entity.User;
 import com.eof.back.domain.user.user.repository.UserRepository;
 import com.eof.back.global.exception.errorCode.AuthErrorCode;
@@ -52,6 +53,7 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND));
 
+        verifyCurrentPasswordIfLocal(user, request.currentPassword());
         updateNicknameIfPresent(user, request.nickname());
         updatePasswordIfPresent(user, request.password());
 
@@ -60,6 +62,18 @@ public class UserServiceImpl implements UserService {
                 user.getNickname()
         );
     }
+    private void verifyCurrentPasswordIfLocal(User user, String currentPassword) {
+        if (user.getProvider() != AuthProvider.LOCAL) {   //OAuth는 비밀번호가 없기때문에 검증하지 않음
+            return;
+        }
+        if (currentPassword == null || currentPassword.isBlank()) {
+            throw new AuthException(AuthErrorCode.INVALID_PASSWORD);
+        }
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            throw new AuthException(AuthErrorCode.PASSWORD_MISMATCH);
+        }
+    }
+
     private void updateNicknameIfPresent(User user, String nickname) {
         if (nickname == null) {
             return;
@@ -76,6 +90,10 @@ public class UserServiceImpl implements UserService {
     private void updatePasswordIfPresent(User user, String password) {
         if (password == null) {
             return;
+        }
+
+        if (passwordEncoder.matches(password, user.getPassword())) {
+            throw new AuthException(AuthErrorCode.SAME_AS_CURRENT_PASSWORD);
         }
 
         user.updatePassword(passwordEncoder.encode(password));

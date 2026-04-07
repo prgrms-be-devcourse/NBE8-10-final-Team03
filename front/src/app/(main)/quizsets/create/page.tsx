@@ -22,6 +22,7 @@ interface QuizInput {
   choice3: string;
   choice4: string;
   videoUrl?: string;
+  imageUrl?: string;
   startTime?: number;
   endTime?: number;
 }
@@ -92,6 +93,12 @@ export default function QuizSetCreatePage() {
           return;
         }
       }
+      if (q.questionType === "IMAGE") {
+        if (!q.imageUrl) {
+          setErrorAndScroll(`${num}번 문제의 이미지를 업로드하세요.`);
+          return;
+        }
+      }
       if (q.answerType === "MULTIPLE_CHOICE") {
         if (!q.choice1 || !q.choice2 || !q.choice3 || !q.choice4) {
           setErrorAndScroll(`${num}번 문제의 4개 보기를 모두 입력하세요.`);
@@ -129,6 +136,7 @@ export default function QuizSetCreatePage() {
           choice3: quiz.choice3,
           choice4: quiz.choice4,
           videoUrl: quiz.videoUrl,
+          imageUrl: quiz.imageUrl,
           startTime: quiz.startTime,
           endTime: quiz.endTime,
         });
@@ -300,6 +308,46 @@ export default function QuizSetCreatePage() {
                         <p className="text-xs text-gray-400 mt-1">※ 위 플레이어를 직접 조작해 가장 완벽한 컷(초)을 찾아보세요!</p>
                       </div>
                     )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {quiz.questionType === "IMAGE" && (
+              <div className="mb-4 bg-gray-50 border-[2px] border-dashed border-gray-300 rounded-xl p-4">
+                <label className="block text-sm font-bold mb-2">이미지 업로드</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    try {
+                      const formData = new FormData();
+                      formData.append("file", file);
+                      // uploading file
+                      const res = await api.post("/images", formData, {
+                        headers: { "Content-Type": "multipart/form-data" }
+                      });
+                      updateQuiz(index, "imageUrl", res.data.data.accessUrl);
+                    } catch(err) {
+                      alert("이미지 업로드에 실패했습니다.");
+                    }
+                  }}
+                  className="w-full block text-sm text-gray-500
+                    file:mr-4 file:py-2 file:px-4
+                    file:rounded-xl file:border-[2px] file:border-dark
+                    file:text-sm file:font-bold
+                    file:bg-cream file:text-dark
+                    hover:file:bg-primary/20
+                    transition-all outline-none"
+                />
+                {quiz.imageUrl && (
+                  <div className="mt-4 pt-4 border-t-[2px] border-gray-300 border-dashed">
+                    <p className="text-sm font-bold text-gray-500 mb-2">미리보기</p>
+                    <div className="relative mx-auto bg-gray-100 rounded-xl border-[3px] border-dark overflow-hidden flex justify-center items-center h-48">
+                      <img src={quiz.imageUrl} alt="preview" className="max-h-full max-w-full object-contain" />
+                    </div>
                   </div>
                 )}
               </div>

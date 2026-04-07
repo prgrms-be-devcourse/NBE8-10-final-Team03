@@ -68,6 +68,10 @@ dependencies {
 
     // AWS S3
     implementation("software.amazon.awssdk:s3:2.31.19")
+
+    // Actuator
+    implementation("org.springframework.boot:spring-boot-starter-actuator")
+    
     implementation("software.amazon.awssdk:auth:2.31.19")
 }
 

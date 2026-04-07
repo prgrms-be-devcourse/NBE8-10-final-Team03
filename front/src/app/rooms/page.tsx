@@ -894,7 +894,6 @@ function RoomsContent() {
                   {roundResult.scoreboard.map((p, i) => (
                     <div key={p.username} className={`flex items-center gap-3 p-3 rounded-xl ${p.username === myNickname ? "bg-secondary/20 border-2 border-secondary" : "bg-cream"}`}>
                       <span className={`font-title text-xl w-8 ${i === 0 ? "text-primary" : i === 1 ? "text-accent" : i === 2 ? "text-secondary" : "text-gray-400"}`}>{i + 1}</span>
-                      <div className="w-8 h-8 rounded-full bg-white border-2 border-dark flex items-center justify-center text-xs font-bold shrink-0">{p.username.charAt(0)}</div>
                       <div className="flex-1 flex items-center gap-2">
                         <p className="font-bold text-sm">{p.username}</p>
                         {currentQuestion?.answerType === "SHORT_ANSWER" && roundResult.correctUsernames.includes(p.username) && (
@@ -902,8 +901,6 @@ function RoomsContent() {
                         )}
                       </div>
                       <span className="font-title text-lg shrink-0">{p.score.toLocaleString()}</span>
-                      <p className="flex-1 font-bold text-sm">{p.username}</p>
-                      <span className="font-title text-lg">{p.score.toLocaleString()}</span>
                     </div>
                   ))}
                 </div>
@@ -942,7 +939,6 @@ function RoomsContent() {
                     {scoreboard.slice(1).map((p, i) => (
                       <div key={p.username} className={`flex items-center px-6 py-5 border-b-2 border-dashed border-gray-200 last:border-b-0 ${p.username === myNickname ? "bg-secondary/20" : ""}`}>
                         <span className={`font-title text-2xl w-10 ${i + 2 === 2 ? "text-accent" : i + 2 === 3 ? "text-secondary" : "text-gray-400"}`}>{i + 2}</span>
-                        <div className="w-12 h-12 rounded-full bg-cream border-2 border-dark flex items-center justify-center font-bold mr-4">{p.username.charAt(0)}</div>
                         <p className="flex-1 font-bold">{p.username}</p>
                         <p className="font-title text-xl">{p.score.toLocaleString()}점</p>
                       </div>

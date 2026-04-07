@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import api from "@/lib/api";
@@ -14,6 +14,7 @@ export default function SignupPage() {
   const [error, setError] = useState("");
   const [nicknameError, setNicknameError] = useState("");
   const [usernameError, setUsernameError] = useState("");
+  const [isCapsLockOn, setIsCapsLockOn] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleNicknameChange = (value: string) => {
@@ -38,6 +39,10 @@ export default function SignupPage() {
     // 영문, 숫자만 입력 허용
     const filtered = value.replace(/[^a-zA-Z0-9]/g, "");
     setUsername(filtered);
+  };
+
+  const handleCapsLock = (e: KeyboardEvent<HTMLInputElement>) => {
+    setIsCapsLockOn(e.getModifierState("CapsLock"));
   };
 
   const handleSignup = async () => {
@@ -161,6 +166,9 @@ export default function SignupPage() {
                 placeholder="영문+숫자 8~20자"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={handleCapsLock}
+                onKeyUp={handleCapsLock}
+                onBlur={() => setIsCapsLockOn(false)}
                 className="w-full px-4 py-3 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none transition-colors"
               />
             </div>
@@ -171,11 +179,19 @@ export default function SignupPage() {
                 placeholder="비밀번호 재입력"
                 value={passwordConfirm}
                 onChange={(e) => setPasswordConfirm(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSignup()}
+                onKeyDown={(e) => {
+                  handleCapsLock(e);
+                  if (e.key === "Enter") handleSignup();
+                }}
+                onKeyUp={handleCapsLock}
+                onBlur={() => setIsCapsLockOn(false)}
                 className="w-full px-4 py-3 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none transition-colors"
               />
             </div>
           </div>
+          {isCapsLockOn && (
+            <p className="text-xs text-orange-500 font-bold mb-4">Caps Lock이 켜져 있습니다. 비밀번호 입력 시 주의하세요.</p>
+          )}
 
           <button
             onClick={handleSignup}

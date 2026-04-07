@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, type KeyboardEvent } from "react";
 import Link from "next/link";
 import api from "@/lib/api";
 import { useRouter } from "next/navigation";
@@ -32,6 +32,7 @@ export default function MyPage() {
   const [updateError, setUpdateError] = useState("");
   const [updating, setUpdating] = useState(false);
   const [isOAuthUser, setIsOAuthUser] = useState(false);
+  const [isCapsLockOn, setIsCapsLockOn] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
   const [isWithdrawConfirming, setIsWithdrawConfirming] = useState(false);
   const [withdrawKeyword, setWithdrawKeyword] = useState("");
@@ -66,6 +67,10 @@ export default function MyPage() {
     };
     fetchData();
   }, []);
+
+  const handleCapsLock = (e: KeyboardEvent<HTMLInputElement>) => {
+    setIsCapsLockOn(e.getModifierState("CapsLock"));
+  };
 
   const handleUpdate = async () => {
     setUpdateError("");
@@ -230,6 +235,9 @@ export default function MyPage() {
                 placeholder="현재 비밀번호"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
+                onKeyDown={handleCapsLock}
+                onKeyUp={handleCapsLock}
+                onBlur={() => setIsCapsLockOn(false)}
                 className="w-full px-4 py-3 bg-white border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none"
               />
             )}
@@ -240,6 +248,9 @@ export default function MyPage() {
                   placeholder="새 비밀번호 (변경 시에만 입력)"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
+                  onKeyDown={handleCapsLock}
+                  onKeyUp={handleCapsLock}
+                  onBlur={() => setIsCapsLockOn(false)}
                   className="w-full px-4 py-3 bg-white border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none"
                 />
                 <input
@@ -247,9 +258,15 @@ export default function MyPage() {
                   placeholder="새 비밀번호 확인"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
+                  onKeyDown={handleCapsLock}
+                  onKeyUp={handleCapsLock}
+                  onBlur={() => setIsCapsLockOn(false)}
                   className="w-full px-4 py-3 bg-white border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none"
                 />
               </>
+            )}
+            {isCapsLockOn && (
+              <p className="text-xs text-orange-500 font-bold">Caps Lock이 켜져 있습니다. 비밀번호 입력 시 주의하세요.</p>
             )}
             <input
               type="text"

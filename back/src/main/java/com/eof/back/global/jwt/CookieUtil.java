@@ -124,9 +124,9 @@ public class CookieUtil {
                 .httpOnly(true)     // JS 접근 차단 (XSS 방어)
                 .path("/")          // 모든 경로에서 쿠키 전송
                 .maxAge(maxAge)
-                .sameSite("Lax")    // CSRF 방어
+                .sameSite("None")    // CSRF 방어
                 // TODO: 운영 환경에서는 HTTPS 전용으로 secure(true) 활성화 필요
-                // .secure(true)
+                .secure(true)
                 .build();
         response.addHeader("Set-Cookie", cookie.toString());
     }
@@ -140,7 +140,8 @@ public class CookieUtil {
                 .httpOnly(true)
                 .path("/")
                 .maxAge(0)
-                .sameSite("Lax")
+                .sameSite("None")
+                .secure(true)
                 .build();
         response.addHeader("Set-Cookie", cookie.toString());
     }

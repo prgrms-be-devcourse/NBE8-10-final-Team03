@@ -5,7 +5,7 @@ variable "region" {
 
 variable "prefix" {
   description = "Prefix for all resources"
-  default     = "devcos-team3"
+  default     = "devcos-team03"
 }
 //도메인은 바꿔야함
 variable "team03_domain" {

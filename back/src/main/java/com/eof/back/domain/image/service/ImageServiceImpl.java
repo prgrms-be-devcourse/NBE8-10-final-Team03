@@ -54,7 +54,12 @@ public class ImageServiceImpl implements ImageService {
     public ImageUploadResponse uploadImage(MultipartFile file, Long userId) {
         validateFile(file);
 
-        User uploader = userRepository.getReferenceById(userId);
+        User uploader = userRepository.findById(userId)
+                .orElseThrow(() -> new AuthException(
+                        AuthErrorCode.USER_NOT_FOUND,
+                        "[ImageServiceImpl#uploadImage] user not found. userId=" + userId,
+                        "사용자를 찾을 수 없습니다."
+                ));
 
         String originalName = file.getOriginalFilename();
         String storedName = createStoredName(originalName);
@@ -87,7 +92,7 @@ public class ImageServiceImpl implements ImageService {
             return;
         }
 
-        Image image = imageRepository.findByAccessUrl(imageUrl)
+        Image image = imageRepository.findByAccessUrlWithUploader(imageUrl)
                 .orElseThrow(() -> new ImageException(
                         ImageErrorCode.IMAGE_NOT_FOUND,
                         "[ImageServiceImpl#deleteImage] image not found in DB. url=" + imageUrl,
@@ -120,8 +125,8 @@ public class ImageServiceImpl implements ImageService {
                     "이미지 삭제 중 오류가 발생했습니다."
             );
         }
-        objectStorage.delete(key);
         imageRepository.delete(image);
+        objectStorage.delete(key);
     }
 
     /**
@@ -155,6 +160,7 @@ public class ImageServiceImpl implements ImageService {
      * @return 허용된 확장자면 true
      */
     private boolean isValidExtension(String filename) {
+        if (filename == null) return false;
         String lower = filename.toLowerCase();
         return ALLOWED_EXTENSIONS.stream().anyMatch(lower::endsWith);
     }

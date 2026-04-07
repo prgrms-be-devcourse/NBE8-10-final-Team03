@@ -31,6 +31,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.*;
+import org.mockito.InOrder;
 
 /**
  * ImageServiceImpl의 단위 테스트입니다.
@@ -60,7 +61,7 @@ class ImageServiceImplTest {
             // given
             MockMultipartFile file = new MockMultipartFile("file", "test.jpg", "image/jpeg", new byte[100]);
             User uploader = mock(User.class);
-            given(userRepository.getReferenceById(1L)).willReturn(uploader);
+            given(userRepository.findById(1L)).willReturn(Optional.of(uploader));
             given(objectStorage.upload(any(), anyString())).willReturn("https://s3.../uuid.jpg");
 
             // when
@@ -94,12 +95,24 @@ class ImageServiceImplTest {
         }
 
         @Test
+        @DisplayName("실패 - 존재하지 않는 userId면 USER_NOT_FOUND 예외가 발생한다")
+        void fail_userNotFound() {
+            MockMultipartFile file = new MockMultipartFile("file", "test.jpg", "image/jpeg", new byte[100]);
+            given(userRepository.findById(1L)).willReturn(Optional.empty());
+
+            assertThatThrownBy(() -> imageService.uploadImage(file, 1L))
+                    .isInstanceOf(AuthException.class)
+                    .satisfies(e -> assertThat(((AuthException) e).getErrorCode())
+                            .isEqualTo(AuthErrorCode.USER_NOT_FOUND));
+        }
+
+        @Test
         @DisplayName("실패 - DB 저장 실패 시 S3 파일을 롤백하고 IMAGE_UPLOAD_FAILED 예외가 발생한다")
         void fail_dbSaveFails_rollbackS3() {
             // given
             MockMultipartFile file = new MockMultipartFile("file", "test.jpg", "image/jpeg", new byte[100]);
             User uploader = mock(User.class);
-            given(userRepository.getReferenceById(1L)).willReturn(uploader);
+            given(userRepository.findById(1L)).willReturn(Optional.of(uploader));
             given(objectStorage.upload(any(), anyString())).willReturn("https://s3.../uuid.jpg");
             willThrow(new RuntimeException("DB error")).given(imageRepository).saveAndFlush(any());
 
@@ -130,16 +143,17 @@ class ImageServiceImplTest {
             User requester = mock(User.class);
             given(requester.getRole()).willReturn(Role.USER);
 
-            given(imageRepository.findByAccessUrl(anyString())).willReturn(Optional.of(image));
+            given(imageRepository.findByAccessUrlWithUploader(anyString())).willReturn(Optional.of(image));
             given(userRepository.findById(1L)).willReturn(Optional.of(requester));
             given(objectStorage.parsePath(anyString())).willReturn("uuid.jpg");
 
             // when
             imageService.deleteImage("https://s3.../uuid.jpg", 1L);
 
-            // then
-            verify(objectStorage).delete("uuid.jpg");
-            verify(imageRepository).delete(image);
+            // then: DB 삭제 후 S3 삭제 순서 검증
+            InOrder inOrder = inOrder(imageRepository, objectStorage);
+            inOrder.verify(imageRepository).delete(image);
+            inOrder.verify(objectStorage).delete("uuid.jpg");
         }
 
         @Test
@@ -155,16 +169,17 @@ class ImageServiceImplTest {
             User admin = mock(User.class);
             given(admin.getRole()).willReturn(Role.ADMIN);
 
-            given(imageRepository.findByAccessUrl(anyString())).willReturn(Optional.of(image));
+            given(imageRepository.findByAccessUrlWithUploader(anyString())).willReturn(Optional.of(image));
             given(userRepository.findById(1L)).willReturn(Optional.of(admin));
             given(objectStorage.parsePath(anyString())).willReturn("uuid.jpg");
 
             // when
             imageService.deleteImage("https://s3.../uuid.jpg", 1L);
 
-            // then
-            verify(objectStorage).delete("uuid.jpg");
-            verify(imageRepository).delete(image);
+            // then: DB 삭제 후 S3 삭제 순서 검증
+            InOrder inOrder = inOrder(imageRepository, objectStorage);
+            inOrder.verify(imageRepository).delete(image);
+            inOrder.verify(objectStorage).delete("uuid.jpg");
         }
 
         @Test
@@ -184,7 +199,7 @@ class ImageServiceImplTest {
         @Test
         @DisplayName("실패 - DB에 이미지가 없으면 IMAGE_NOT_FOUND 예외가 발생한다")
         void fail_imageNotFound() {
-            given(imageRepository.findByAccessUrl(anyString())).willReturn(Optional.empty());
+            given(imageRepository.findByAccessUrlWithUploader(anyString())).willReturn(Optional.empty());
 
             assertThatThrownBy(() -> imageService.deleteImage("https://s3.../uuid.jpg", 1L))
                     .isInstanceOf(ImageException.class)
@@ -197,7 +212,7 @@ class ImageServiceImplTest {
         void fail_userNotFound() {
             // given
             Image image = mock(Image.class);
-            given(imageRepository.findByAccessUrl(anyString())).willReturn(Optional.of(image));
+            given(imageRepository.findByAccessUrlWithUploader(anyString())).willReturn(Optional.of(image));
             given(userRepository.findById(anyLong())).willReturn(Optional.empty());
 
             // when & then
@@ -220,7 +235,7 @@ class ImageServiceImplTest {
             User requester = mock(User.class);
             given(requester.getRole()).willReturn(Role.USER);
 
-            given(imageRepository.findByAccessUrl(anyString())).willReturn(Optional.of(image));
+            given(imageRepository.findByAccessUrlWithUploader(anyString())).willReturn(Optional.of(image));
             given(userRepository.findById(1L)).willReturn(Optional.of(requester));
 
             // when & then
@@ -243,7 +258,7 @@ class ImageServiceImplTest {
             User requester = mock(User.class);
             given(requester.getRole()).willReturn(Role.USER);
 
-            given(imageRepository.findByAccessUrl(anyString())).willReturn(Optional.of(image));
+            given(imageRepository.findByAccessUrlWithUploader(anyString())).willReturn(Optional.of(image));
             given(userRepository.findById(1L)).willReturn(Optional.of(requester));
             given(objectStorage.parsePath(anyString())).willReturn("");
 

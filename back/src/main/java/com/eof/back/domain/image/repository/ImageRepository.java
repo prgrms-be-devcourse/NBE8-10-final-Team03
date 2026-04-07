@@ -2,6 +2,8 @@ package com.eof.back.domain.image.repository;
 
 import com.eof.back.domain.image.entity.Image;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
@@ -25,10 +27,19 @@ public interface ImageRepository extends JpaRepository<Image, Long> {
 
     /**
      * 접근 URL로 이미지를 조회합니다.
-     * 이미지 삭제 시 URL을 기준으로 Image 레코드를 찾는 데 사용됩니다.
      *
      * @param accessUrl S3 접근 URL
      * @return 해당 URL의 Image, 없으면 empty
      */
     Optional<Image> findByAccessUrl(String accessUrl);
+
+    /**
+     * 접근 URL로 이미지를 uploader와 함께 조회합니다.
+     * 삭제 권한 검증 시 uploader 프록시 초기화로 인한 추가 쿼리를 방지합니다.
+     *
+     * @param accessUrl S3 접근 URL
+     * @return uploader가 즉시 로딩된 Image, 없으면 empty
+     */
+    @Query("SELECT i FROM Image i JOIN FETCH i.uploader WHERE i.accessUrl = :accessUrl")
+    Optional<Image> findByAccessUrlWithUploader(@Param("accessUrl") String accessUrl);
 }

@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
+import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
@@ -65,7 +66,7 @@ public class S3Storage implements ObjectStorage {
 
             return "https://" + bucket + ".s3." + region + ".amazonaws.com/" + destination;
 
-        } catch (IOException e) {
+        } catch (IOException | SdkException e) {
             throw new ImageException(ImageErrorCode.IMAGE_UPLOAD_FAILED,
                     "[S3Storage#upload] failed. dest=" + destination + ", cause=" + e.getMessage(),
                     "이미지 업로드 중 오류가 발생했습니다.");
@@ -81,7 +82,7 @@ public class S3Storage implements ObjectStorage {
                             .key(destination)
                             .build()
             );
-        } catch (Exception e) {
+        } catch (SdkException e) {
             throw new ImageException(ImageErrorCode.IMAGE_DELETE_FAILED,
                     "[S3Storage#delete] failed. dest=" + destination + ", cause=" + e.getMessage(),
                     "이미지 삭제 중 오류가 발생했습니다.");

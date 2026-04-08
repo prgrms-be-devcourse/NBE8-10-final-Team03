@@ -4,6 +4,7 @@ import com.eof.back.domain.gamesession.dto.GameSessionCreateRequest;
 import com.eof.back.domain.gamesession.dto.GameSessionCreateResponse;
 import com.eof.back.domain.gamesession.dto.GameSessionJoinResponse;
 import com.eof.back.domain.gamesession.dto.GameSessionListResponse;
+import com.eof.back.domain.gamesession.dto.GameSessionUpdateRequest;
 
 import java.util.List;
 
@@ -65,4 +66,14 @@ public interface GameSessionService {
      * @param gameSessionId 게임 세션의 아이디
      */
     void leaveRoom(Long userId, Long gameSessionId);
+
+    /**
+     * 게임 세션의 설정을 수정합니다.
+     *
+     * @param userId        수정 요청을 보낸 유저의 아이디
+     * @param gameSessionId 게임 세션의 아이디
+     * @param request       수정할 정보 DTO
+     * @return 수정된 게임 세션의 정보 DTO
+     */
+    GameSessionJoinResponse updateGameSession(Long userId, Long gameSessionId, GameSessionUpdateRequest request);
 }

@@ -165,4 +165,51 @@ public class GameSession extends BaseEntity {
     public void endGame() {
         this.status = GameSessionStatus.END;
     }
+
+    /**
+     * 방의 설정을 변경합니다. (방 이름, 퀴즈 세트, 최대 문제 수, 최대 인원수)
+     * 대기 중인 상태에서만 변경 가능하며, 방장 권한 체크는 서비스 계층에서 수행합니다.
+     */
+    public void updateRoom(String roomName, QuizSet quizSet, Integer maxQuizzes, Integer maxPlayers) {
+        if (this.status != GameSessionStatus.WAIT) {
+            throw new GameSessionException(GameSessionErrorCode.INVALID_GAME_STATUS, "대기 중인 방만 수정할 수 있습니다.");
+        }
+
+        if (roomName != null && !roomName.isBlank()) {
+            this.roomName = roomName;
+        }
+
+        if (quizSet != null) {
+            this.quizSet = quizSet;
+        }
+
+        // maxQuizzes가 변경되었거나, QuizSet이 변경된 경우 검증
+        if (maxQuizzes != null) {
+            if (maxQuizzes > this.quizSet.getTotalQuizCount()) {
+                throw new GameSessionException(GameSessionErrorCode.MAX_QUIZZES_EXCEEDED, "최대 문제 수는 퀴즈 세트의 총 문제 수(" + this.quizSet.getTotalQuizCount() + "개)보다 많을 수 없습니다.");
+            }
+            this.maxQuizzes = maxQuizzes;
+        } else if (quizSet != null && this.maxQuizzes > quizSet.getTotalQuizCount()) {
+            // 퀴즈 세트만 바뀌었는데 기존 maxQuizzes가 더 큰 경우, 퀴즈 세트의 전체 개수로 강제 조정
+            this.maxQuizzes = quizSet.getTotalQuizCount();
+        }
+
+        if (maxPlayers != null) {
+            if (maxPlayers < 2) {
+                throw new GameSessionException(GameSessionErrorCode.INVALID_MAX_PLAYERS, "최대 인원수는 최소 2명 이상이어야 합니다.");
+            }
+            if (maxPlayers < this.currentPlayersCount) {
+                throw new GameSessionException(GameSessionErrorCode.PLAYERS_COUNT_EXCEEDED, "현재 참여 중인 인원(" + this.currentPlayersCount + "명)보다 적게 설정할 수 없습니다.");
+            }
+            this.maxPlayers = maxPlayers;
+        }
+    }
+
+    /**
+     * 게임 세션의 상태를 변경합니다.
+     * @param status 변경할 상태
+     */
+    public void updateStatus(GameSessionStatus status) {
+        this.status = status;
+    }
 }

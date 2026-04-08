@@ -164,4 +164,40 @@ public class GameSessionServiceImpl implements GameSessionService {
             messagingTemplate.convertAndSend(destination, response);
         }
     }
+
+    @Override
+    @Transactional
+    public GameSessionJoinResponse updateGameSession(Long userId, Long gameSessionId, GameSessionUpdateRequest request) {
+        // 1. 방 조회
+        GameSession gameSession = gameSessionRepository.findByIdWithPlayers(gameSessionId)
+                .orElseThrow(() -> new GameSessionException(GameSessionErrorCode.GAME_SESSION_NOT_FOUND, "방을 찾을 수 없습니다."));
+
+        // 2. 방장 권한 체크
+        if (!gameSession.getHost().getId().equals(userId)) {
+            throw new GameSessionException(GameSessionErrorCode.UNAUTHORIZED_HOST_ACTION, "방장만 설정을 수정할 수 있습니다.");
+        }
+
+        // 3. 퀴즈 세트 조회 (전달된 경우)
+        QuizSet quizSet = null;
+        if (request.quizSetId() != null) {
+            quizSet = quizSetRepository.findById(request.quizSetId())
+                    .orElseThrow(() -> new QuizSetException(QuizSetErrorCode.QUIZ_SET_NOT_FOUND, "해당 퀴즈 세트를 찾을 수 없습니다. ID: " + request.quizSetId()));
+        }
+
+        // 4. 세션 정보 업데이트
+        gameSession.updateRoom(request.roomName(), quizSet, request.maxQuizzes(), request.maxPlayers());
+
+        // 5. 수정된 방 정보 응답 생성
+        GameSessionJoinResponse responseData = GameSessionJoinResponse.from(gameSession);
+
+        // 6. WebSocket을 통해 방 내의 모든 유저에게 설정 변경 알림
+        GameMessageResponse<GameSessionJoinResponse> response = GameMessageResponse.enter(
+                "SYSTEM",
+                "방 설정이 변경되었습니다.",
+                responseData
+        );
+        messagingTemplate.convertAndSend("/topic/rooms/" + gameSessionId + "/chat", response);
+
+        return responseData;
+    }
 }

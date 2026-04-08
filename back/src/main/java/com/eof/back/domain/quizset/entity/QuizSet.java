@@ -27,7 +27,7 @@ import lombok.NoArgsConstructor;
  * {@link BaseEntity}를 상속받아 생성 및 수정 시간을 자동으로 관리합니다.
  *
  * <p><b>주요 생성자:</b><br>
- * {@link #QuizSet(String, String, User, Integer, List)} <br>
+ * {@link #QuizSet(String, String, String, User, Integer, List)} <br>
  * 빌더 패턴을 통해 제목, 설명, 제작자, 총 퀴즈 수를 입력받아 인스턴스를 생성합니다. <br>
  *
  * @author MintyU

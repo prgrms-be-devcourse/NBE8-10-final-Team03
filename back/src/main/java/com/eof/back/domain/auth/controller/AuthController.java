@@ -86,7 +86,7 @@ public class AuthController {
 
         return ResponseEntity.ok(
                 CommonResponse.success(
-                        new LoginResponse(result.userId(), result.nickname(), result.role()),
+                        new LoginResponse(result.userId(), result.nickname(), result.role(),result.profileImage()),
                         "로그인에 성공했습니다."
                 )
         );

@@ -27,7 +27,8 @@ public record RankingResponse(
     public record RankingItem(
             int rank,
             String nickname,
-            long score
+            long score,
+            Integer profileImage
     ) implements Serializable {
         private static final long serialVersionUID = 1L;}
 }

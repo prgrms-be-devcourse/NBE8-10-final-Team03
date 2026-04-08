@@ -63,7 +63,7 @@ class UserControllerTest {
             Long userId = 1L;
 
             given(userService.getInfo(userId))
-                    .willReturn(new UserInfoResponse(userId, "testuser", "테스트닉네임", "USER"));
+                    .willReturn(new UserInfoResponse(userId, "testuser", "테스트닉네임", "USER",1));
 
             mockMvc.perform(get("/api/v1/users/1"))
                     .andExpect(status().isOk())

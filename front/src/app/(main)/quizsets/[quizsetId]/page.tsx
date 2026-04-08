@@ -343,6 +343,7 @@ interface QuizSetDetail {
   id: number;
   title: string;
   description: string;
+  thumbnailUrl?: string;
   creatorNickname: string;
   totalQuizCount: number;
   quizzes: QuizItem[];
@@ -357,6 +358,7 @@ export default function QuizSetDetailPage({ params }: { params: Promise<{ quizse
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
+  const [editThumbnailUrl, setEditThumbnailUrl] = useState("");
   const [editError, setEditError] = useState("");
   const [updating, setUpdating] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
@@ -370,9 +372,14 @@ export default function QuizSetDetailPage({ params }: { params: Promise<{ quizse
   useEffect(() => {
     const fetchQuizSet = async () => {
       try {
-        const res = await api.get(`/quizsets/${quizsetId}/info`);
-        console.log("퀴즈셋 조회 시도:", quizsetId);
-        setQuizSet(res.data.data);
+        const [infoRes, quizzesRes] = await Promise.all([
+          api.get(`/quizsets/${quizsetId}/info`),
+          api.get(`/quizsets/${quizsetId}/quizzes`),
+        ]);
+        setQuizSet({
+          ...infoRes.data.data,
+          quizzes: quizzesRes.data.data,
+        });
       } catch (err) {
         console.error("퀴즈셋 조회 실패", err);
       } finally {
@@ -404,6 +411,7 @@ export default function QuizSetDetailPage({ params }: { params: Promise<{ quizse
     if (!quizSet) return;
     setEditTitle(quizSet.title);
     setEditDescription(quizSet.description || "");
+    setEditThumbnailUrl(quizSet.thumbnailUrl || "");
     setEditError("");
     setIsEditing(true);
   };
@@ -418,8 +426,9 @@ export default function QuizSetDetailPage({ params }: { params: Promise<{ quizse
       await api.patch(`/quizsets/${quizsetId}`, {
         title: editTitle,
         description: editDescription,
+        thumbnailUrl: editThumbnailUrl || undefined,
       });
-      setQuizSet((prev) => prev ? { ...prev, title: editTitle, description: editDescription } : prev);
+      setQuizSet((prev) => prev ? { ...prev, title: editTitle, description: editDescription, thumbnailUrl: editThumbnailUrl || undefined } : prev);
       setIsEditing(false);
     } catch (err) {
       console.error("수정 실패", err);
@@ -482,7 +491,7 @@ export default function QuizSetDetailPage({ params }: { params: Promise<{ quizse
                 className="w-full px-4 py-3 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none transition-colors"
               />
             </div>
-            <div className="mb-6">
+            <div className="mb-4">
               <label className="block text-sm font-bold mb-2">설명</label>
               <textarea
                 value={editDescription}
@@ -490,6 +499,51 @@ export default function QuizSetDetailPage({ params }: { params: Promise<{ quizse
                 rows={3}
                 className="w-full px-4 py-3 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none transition-colors resize-none"
               />
+            </div>
+            <div className="mb-6">
+              <label className="block text-sm font-bold mb-2">썸네일 이미지 (선택)</label>
+              <div className="bg-gray-50 border-[2px] border-dashed border-gray-300 rounded-xl p-4">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    try {
+                      const formData = new FormData();
+                      formData.append("file", file);
+                      const res = await api.post("/images", formData, {
+                        headers: { "Content-Type": "multipart/form-data" }
+                      });
+                      setEditThumbnailUrl(res.data.data.accessUrl);
+                    } catch {
+                      alert("이미지 업로드에 실패했습니다.");
+                    }
+                  }}
+                  className="w-full block text-sm text-gray-500
+                    file:mr-4 file:py-2 file:px-4
+                    file:rounded-xl file:border-[2px] file:border-dark
+                    file:text-sm file:font-bold
+                    file:bg-cream file:text-dark
+                    hover:file:bg-primary/20
+                    transition-all outline-none"
+                />
+                {editThumbnailUrl && (
+                  <div className="mt-4 pt-4 border-t-[2px] border-gray-300 border-dashed">
+                    <p className="text-sm font-bold text-gray-500 mb-2">미리보기</p>
+                    <div className="relative mx-auto bg-gray-100 rounded-xl border-[3px] border-dark overflow-hidden flex justify-center items-center h-48">
+                      <img src={editThumbnailUrl} alt="thumbnail preview" className="max-h-full max-w-full object-contain" />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setEditThumbnailUrl("")}
+                      className="mt-2 text-xs text-red-500 font-bold hover:text-red-700"
+                    >
+                      썸네일 제거
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* 수정 모드에서만 퀴즈 목록 표시 */}
@@ -531,11 +585,18 @@ export default function QuizSetDetailPage({ params }: { params: Promise<{ quizse
           </>
         ) : (
           <>
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <h1 className="font-title text-3xl mb-2">{quizSet.title}</h1>
-                <p className="text-sm text-gray-400 mb-4">{quizSet.creatorNickname}</p>
-                <p className="text-sm text-gray-600">{quizSet.description}</p>
+            <div className="flex items-start justify-between mb-4 gap-4">
+              <div className="flex items-start gap-4 flex-1 min-w-0">
+                {quizSet.thumbnailUrl && (
+                  <div className="w-36 h-36 shrink-0 rounded-xl overflow-hidden border-[3px] border-dark bg-gray-50 flex items-center justify-center">
+                    <img src={quizSet.thumbnailUrl} alt="thumbnail" className="h-full w-auto object-contain" />
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <h1 className="font-title text-3xl mb-2">{quizSet.title}</h1>
+                  <p className="text-sm text-gray-400 mb-4">{quizSet.creatorNickname}</p>
+                  <p className="text-sm text-gray-600">{quizSet.description}</p>
+                </div>
               </div>
               <div className="flex gap-2 shrink-0">
                 {isOwner ? (

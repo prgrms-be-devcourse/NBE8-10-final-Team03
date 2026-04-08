@@ -3,23 +3,27 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import ProfileAvatar from "@/components/common/ProfileAvatar";
 
 export default function Header() {
   const router = useRouter();
   const [nickname, setNickname] = useState<string | null>(null);
   const [myUserId, setMyUserId] = useState<string | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false); // ← 추가
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [profileImage, setProfileImage] = useState<number>(1);
 
   useEffect(() => {
     setNickname(localStorage.getItem("nickname"));
     setMyUserId(localStorage.getItem("userId"));
-    setIsAdmin(localStorage.getItem("role") === "ADMIN"); // ← 추가
+    setIsAdmin(localStorage.getItem("role") === "ADMIN");
+    setProfileImage(Number(localStorage.getItem("profileImage")) || 1);
   }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("nickname");
     localStorage.removeItem("userId");
-    localStorage.removeItem("role"); // ← 추가
+    localStorage.removeItem("role");
+    localStorage.removeItem("profileImage");
     router.push("/login");
   };
 
@@ -34,7 +38,7 @@ export default function Header() {
         <Link href="/rooms" className="hover:text-primary">로비</Link>
         <Link href="/quizsets" className="hover:text-primary">퀴즈셋</Link>
         <Link href="/rankings" className="hover:text-primary">랭킹</Link>
-        {isAdmin && ( // ← 추가
+        {isAdmin && (
           <Link href="/admin/reports" className="hover:text-red-500 text-red-400">관리자</Link>
         )}
       </div>
@@ -45,9 +49,7 @@ export default function Header() {
               href={`/users/${myUserId}`}
               className="flex items-center gap-2 px-5 py-2.5 border-[3px] border-dark rounded-xl font-bold text-sm bg-cream shadow-kitsch-sm hover:shadow-kitsch hover:-translate-y-0.5 transition-all"
             >
-              <span className="w-7 h-7 bg-primary text-white rounded-full flex items-center justify-center text-xs font-title">
-                {nickname.charAt(0)}
-              </span>
+              <ProfileAvatar profileImage={profileImage} size={28} />
               {nickname}
             </Link>
             <button

@@ -167,7 +167,7 @@ public class AuthServiceImpl implements AuthService {
         LocalDateTime refreshTokenExpiredAt = LocalDateTime.now().plusSeconds(refreshTokenExpireSeconds);
         refreshTokenStore.save(userId, newRefreshToken, refreshTokenExpiredAt);
 
-        return new LoginResult(newAccessToken, newRefreshToken, userId, nickname, role);
+        return new LoginResult(newAccessToken, newRefreshToken, userId, nickname, role,null);
     }
 
     @Override
@@ -218,7 +218,7 @@ public class AuthServiceImpl implements AuthService {
         LocalDateTime refreshTokenExpiredAt = LocalDateTime.now().plusSeconds(refreshTokenExpireSeconds);
         refreshTokenStore.save(user.getId(), refreshToken, refreshTokenExpiredAt);
 
-        return new LoginResult(accessToken, refreshToken, user.getId(), user.getNickname(), user.getRole().name());
+        return new LoginResult(accessToken, refreshToken, user.getId(), user.getNickname(), user.getRole().name(), user.getProfileImage());
     }
 
     private RefreshToken validateAndGetRefreshToken(String refreshToken) {

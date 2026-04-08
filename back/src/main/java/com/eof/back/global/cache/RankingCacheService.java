@@ -49,7 +49,7 @@ public class RankingCacheService {
         List<RankingResponse.RankingItem> rankings = new ArrayList<>();
         for (int i = 0; i < topUsers.size(); i++) {
             User user = topUsers.get(i);
-            rankings.add(new RankingResponse.RankingItem(i + 1, user.getNickname(), user.getTotalRankingScore()));
+            rankings.add(new RankingResponse.RankingItem(i + 1, user.getNickname(), user.getTotalRankingScore(), user.getProfileImage()));
         }
         return rankings;
     }
@@ -73,7 +73,7 @@ public class RankingCacheService {
         List<RankingResponse.RankingItem> rankings = new ArrayList<>();
         for (int i = 0; i < results.size(); i++) {
             RankingProjection result = results.get(i);
-            rankings.add(new RankingResponse.RankingItem(i + 1, result.user().getNickname(), result.periodScore()));
+            rankings.add(new RankingResponse.RankingItem(i + 1, result.user().getNickname(), result.periodScore(), result.user().getProfileImage()));
         }
         return rankings;
     }

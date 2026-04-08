@@ -72,7 +72,7 @@ public class AdminServiceImpl implements AdminService {
     public Long updateQuizSet(Long id, QuizSetUpdateRequest request, Long adminId) {
         validateAdminRole(adminId);
         QuizSet quizSet = findQuizSetById(id);
-        quizSet.update(request.title(), request.description());
+        quizSet.update(request.title(), request.description(), request.thumbnailUrl());
         return quizSet.getId();
     }
 

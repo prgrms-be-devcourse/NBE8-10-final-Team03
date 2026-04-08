@@ -19,6 +19,7 @@ public record LoginResult(
         String refreshToken,
         Long userId,
         String nickname,
-        String role
+        String role,
+        Integer profileImage
 ) {
 }

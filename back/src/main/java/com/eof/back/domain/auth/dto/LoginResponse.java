@@ -18,6 +18,7 @@ package com.eof.back.domain.auth.dto;
 public record LoginResponse(
         Long userId,
         String nickname,
-        String role
+        String role,
+        Integer profileImage
 ) {
 }

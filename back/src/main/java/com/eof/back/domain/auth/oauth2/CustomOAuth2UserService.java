@@ -60,7 +60,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         User user = findOrCreateUser(attributes);
 
         // 5. User 정보를 담은 CustomOAuth2User 반환 (SuccessHandler에서 DB 재조회 불필요)
-        return new CustomOAuth2User(oAuth2User, user.getId(), user.getUsername(), user.getRole(), user.getNickname(), user.isActive());
+        return new CustomOAuth2User(oAuth2User, user.getId(), user.getUsername(), user.getRole(), user.getNickname(), user.isActive(), user.getProfileImage());
     }
 
     /**

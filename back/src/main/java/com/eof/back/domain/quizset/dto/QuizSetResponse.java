@@ -18,6 +18,7 @@ public record QuizSetResponse(
         Long id,
         String title,
         String description,
+        String thumbnailUrl,
         String creatorNickname,
         Integer totalQuizCount,
         List<QuizResponse> quizzes
@@ -39,6 +40,7 @@ public record QuizSetResponse(
                 .id(quizSet.getId())
                 .title(quizSet.getTitle())
                 .description(quizSet.getDescription())
+                .thumbnailUrl(quizSet.getThumbnailUrl())
                 .creatorNickname(quizSet.getCreator().getNickname())
                 .totalQuizCount(quizSet.getTotalQuizCount())
                 .quizzes(quizSet.getQuizzes().stream()

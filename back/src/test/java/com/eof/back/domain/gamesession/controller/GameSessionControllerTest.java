@@ -144,7 +144,7 @@ public class GameSessionControllerTest {
                 gameSessionId, "테스트 방", 100L, "WAIT",
                 4,    // ← maxPlayers 추가
                 10,   // ← maxQuizzes 추가
-                List.of(new GameSessionJoinResponse.PlayerInfo(1L, "테스터", true))
+                List.of(new GameSessionJoinResponse.PlayerInfo(1L, "테스터", true,1))
         );
 
         given(gameSessionService.joinRoom(eq(1L), eq(gameSessionId))).willReturn(mockResponse);
@@ -171,6 +171,33 @@ public class GameSessionControllerTest {
                 .andExpect(status().isNoContent());
 
         verify(gameSessionService, times(1)).leaveRoom(eq(1L), eq(gameSessionId));
+    }
+
+    @Test
+    @WithMockUser
+    @DisplayName("게임 세션 설정 수정 API 테스트")
+    void updateGameSession_Success() throws Exception {
+        Long gameSessionId = 10L;
+        GameSessionUpdateRequest request = new GameSessionUpdateRequest("새로운 방", 20L, 5, 15);
+
+        GameSessionJoinResponse mockResponse = new GameSessionJoinResponse(
+                gameSessionId, "새로운 방", 20L, "WAIT",
+                5, 15,
+                List.of(new GameSessionJoinResponse.PlayerInfo(1L, "테스터", true, 1))
+        );
+
+        given(gameSessionService.updateGameSession(eq(1L), eq(gameSessionId), any(GameSessionUpdateRequest.class)))
+                .willReturn(mockResponse);
+
+        mockMvc.perform(patch("/api/v1/rooms/{gameSessionId}", gameSessionId)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("방 설정이 수정되었습니다."))
+                .andExpect(jsonPath("$.data.title").value("새로운 방"))
+                .andExpect(jsonPath("$.data.quizSetId").value(20L));
     }
 
     @org.springframework.boot.test.context.TestConfiguration

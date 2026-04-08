@@ -42,9 +42,24 @@ export default function QuizSetCreatePage() {
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [thumbnailUrl, setThumbnailUrl] = useState("");
+  const [thumbnailDragging, setThumbnailDragging] = useState(false);
   const [quizzes, setQuizzes] = useState<QuizInput[]>([{ ...emptyQuiz }]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const uploadThumbnail = async (file: File) => {
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await api.post("/images", formData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+      setThumbnailUrl(res.data.data.accessUrl);
+    } catch {
+      alert("이미지 업로드에 실패했습니다.");
+    }
+  };
 
   const setErrorAndScroll = (msg: string) => {
     setError(msg);
@@ -119,7 +134,7 @@ export default function QuizSetCreatePage() {
 
     setLoading(true);
     try {
-      const quizSetRes = await api.post("/quizsets", { title, description });
+      const quizSetRes = await api.post("/quizsets", { title, description, thumbnailUrl: thumbnailUrl || undefined });
       const location = quizSetRes.headers["location"];
       const quizSetId = location?.split("/").pop();
 
@@ -173,7 +188,7 @@ export default function QuizSetCreatePage() {
             className="w-full px-4 py-3 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none transition-colors"
           />
         </div>
-        <div>
+        <div className="mb-4">
           <label className="block text-sm font-bold mb-2">설명</label>
           <textarea
             placeholder="퀴즈셋에 대한 설명을 입력하세요 (선택)"
@@ -182,6 +197,44 @@ export default function QuizSetCreatePage() {
             rows={3}
             className="w-full px-4 py-3 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none transition-colors resize-none"
           />
+        </div>
+        <div className="bg-gray-50 border-[2px] border-dashed border-gray-300 rounded-xl p-4">
+          <label className="block text-sm font-bold mb-2">썸네일 이미지 (선택)</label>
+          <div
+            onDragOver={(e) => { e.preventDefault(); setThumbnailDragging(true); }}
+            onDragLeave={() => setThumbnailDragging(false)}
+            onDrop={async (e) => {
+              e.preventDefault();
+              setThumbnailDragging(false);
+              const file = e.dataTransfer.files?.[0];
+              if (file && file.type.startsWith("image/")) await uploadThumbnail(file);
+            }}
+            className={`transition-colors rounded-lg ${thumbnailDragging ? "bg-primary/10" : ""}`}
+          >
+            <input
+              type="file"
+              accept="image/*"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (file) await uploadThumbnail(file);
+              }}
+              className="w-full block text-sm text-gray-500
+                file:mr-4 file:py-2 file:px-4
+                file:rounded-xl file:border-[2px] file:border-dark
+                file:text-sm file:font-bold
+                file:bg-cream file:text-dark
+                hover:file:bg-primary/20
+                transition-all outline-none"
+            />
+          </div>
+          {thumbnailUrl && (
+            <div className="mt-4 pt-4 border-t-[2px] border-gray-300 border-dashed">
+              <p className="text-sm font-bold text-gray-500 mb-2">미리보기</p>
+              <div className="relative mx-auto bg-gray-100 rounded-xl border-[3px] border-dark overflow-hidden flex justify-center items-center h-48">
+                <img src={thumbnailUrl} alt="thumbnail preview" className="max-h-full max-w-full object-contain" />
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

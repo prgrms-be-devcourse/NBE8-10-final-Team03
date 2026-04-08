@@ -253,7 +253,7 @@ class QuizSetControllerTest {
     void updateQuizSet_ApiSuccess() throws Exception {
         // given
         Long quizSetId = 1L;
-        QuizSetUpdateRequest request = new QuizSetUpdateRequest("수정된 제목", "수정된 설명");
+        QuizSetUpdateRequest request = new QuizSetUpdateRequest("수정된 제목", "수정된 설명", null);
 
         given(quizSetService.updateQuizSet(anyLong(), any(), anyLong())).willReturn(quizSetId);
 

@@ -17,6 +17,7 @@ public record QuizSetUpdateRequest(
         @Size(max = 30, message = "퀴즈 세트 제목은 30자 이하이어야 합니다.")
         String title,
         @Size(max = 255, message = "퀴즈 세트 설명은 255자를 초과할 수 없습니다.")
-        String description
+        String description,
+        String thumbnailUrl
 ) {
 }

@@ -19,6 +19,7 @@ public class QuizSetListResponse {
     private Long id;
     private String title;
     private String description;
+    private String thumbnailUrl;
     private String creatorNickname;
     private Integer totalQuizCount;
 
@@ -33,6 +34,7 @@ public class QuizSetListResponse {
                 .id(quizSet.getId())
                 .title(quizSet.getTitle())
                 .description(quizSet.getDescription())
+                .thumbnailUrl(quizSet.getThumbnailUrl())
                 .creatorNickname(quizSet.getCreator().getNickname())
                 .totalQuizCount(quizSet.getTotalQuizCount())
                 .build();

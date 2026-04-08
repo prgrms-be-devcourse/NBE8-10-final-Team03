@@ -9,6 +9,7 @@ interface QuizSet {
   id: number;
   title: string;
   description: string;
+  thumbnailUrl?: string;
   creatorNickname: string;
   totalQuizCount: number;
 }
@@ -155,8 +156,12 @@ export default function QuizSetsPage() {
               className="relative bg-white border-[3px] border-dark rounded-2xl shadow-kitsch hover:shadow-kitsch-lg hover:-translate-y-1 transition-all cursor-pointer overflow-hidden"
             >
               {/* 썸네일 */}
-              <div className="relative bg-cream h-40 flex items-center justify-center">
-                <span className="text-6xl">📝</span>
+              <div className="relative bg-cream h-40 flex items-center justify-center overflow-hidden">
+                {quiz.thumbnailUrl ? (
+                  <img src={quiz.thumbnailUrl} alt="thumbnail" className="h-full w-auto object-contain" />
+                ) : (
+                  <span className="text-6xl">📝</span>
+                )}
 
                 {/* 북마크 버튼 */}
                 {userId && (

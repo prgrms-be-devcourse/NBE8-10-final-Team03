@@ -67,7 +67,7 @@ class OAuth2SuccessHandlerTest {
 
     private OAuth2AuthenticationToken buildAuthToken(boolean isActive) {
         CustomOAuth2User customUser = new CustomOAuth2User(
-                mock(OAuth2User.class), USER_ID, "GOOGLE_google_123", Role.USER, "홍길동", isActive
+                mock(OAuth2User.class), USER_ID, "GOOGLE_google_123", Role.USER, "홍길동", isActive,1
         );
         OAuth2AuthenticationToken authToken = mock(OAuth2AuthenticationToken.class);
         given(authToken.getPrincipal()).willReturn(customUser);
@@ -96,6 +96,7 @@ class OAuth2SuccessHandlerTest {
             String expectedUrl = UriComponentsBuilder.fromUriString(REDIRECT_URI)
                     .queryParam("userId", USER_ID)
                     .queryParam("nickname", "홍길동")
+                    .queryParam("profileImage", 1)
                     .build()
                     .encode()
                     .toUriString();

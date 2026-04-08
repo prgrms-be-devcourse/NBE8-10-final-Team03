@@ -18,6 +18,7 @@ public record UserInfoResponse(
         Long id,
         String username,
         String nickname,
-        String role
+        String role,
+        Integer profileImage
 ) {
 }

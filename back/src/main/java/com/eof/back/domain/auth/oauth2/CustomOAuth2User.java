@@ -31,6 +31,7 @@ public class CustomOAuth2User implements OAuth2User {
     private final Role role;
     private final String nickname;
     private final boolean active;
+    private final Integer profileImage;
 
     @Override
     public Map<String, Object> getAttributes() { return delegate.getAttributes(); }

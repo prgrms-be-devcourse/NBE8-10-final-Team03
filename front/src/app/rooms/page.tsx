@@ -9,6 +9,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import YouTube, { YouTubePlayer } from "react-youtube";
 import { useRouter } from "next/navigation";
+import ProfileAvatar from "@/components/common/ProfileAvatar";
 
 interface Room {
   gameSessionId: number;
@@ -596,9 +597,7 @@ function RoomsContent() {
                       key={`player-${p.nickname || i}`}
                       className={`flex flex-col items-center p-5 border-[3px] rounded-2xl text-center ${p.isHost ? "border-primary bg-primary/5 shadow-kitsch" : "border-dark bg-white shadow-kitsch-sm"}`}
                     >
-                      <div className={`w-14 h-14 rounded-full border-[3px] flex items-center justify-center font-title text-xl mb-2 ${p.isHost ? "bg-primary text-white border-dark" : "bg-cream border-dark"}`}>
-                        {p.nickname.charAt(0)}
-                      </div>
+                      <ProfileAvatar profileImage={p.profileImage || 1} size={56} />
                       <p className="font-bold text-sm mb-1">{p.nickname}</p>
                       {p.isHost && <span className="text-sm text-primary font-bold">방장</span>}
                       {p.nickname === myNickname && <span className="text-sm text-accent font-bold">나</span>}
@@ -706,7 +705,7 @@ function RoomsContent() {
 
                 <div className="bg-white border-[3px] border-dark rounded-2xl shadow-kitsch p-10 mb-6 text-center">
                   <h2 className="font-title text-3xl">{currentQuestion.content}</h2>
-                  
+
                   {currentQuestion.questionType === "IMAGE" && currentQuestion.imageUrl && (
                     <div className="mt-6 flex flex-col justify-center items-center">
                       <div className="relative w-full max-w-2xl rounded-xl border-[3px] border-dark overflow-hidden flex justify-center items-center h-80 bg-gray-50">
@@ -751,40 +750,40 @@ function RoomsContent() {
                               iframeClassName="w-full h-full pointer-events-none"
                             />
                           </div>
-                      
-                      {/* 자동재생이 차단되었을 때 띄워주는 직접 재생 UI */}
-                      {!isPlayingMedia && (
-                        <div className="mt-4 p-6 bg-cream border-[3px] border-dark border-dashed rounded-2xl shadow-kitsch-sm flex flex-col items-center">
-                          <p className="font-title text-lg text-primary mb-3">
-                            브라우저 정책으로 미디어 자동 재생이 정지되었습니다.
-                          </p>
-                          <button
-                            onClick={() => {
-                              if (playerRef.current) {
-                                playerRef.current.playVideo();
-                                setIsPlayingMedia(true);
-                              }
-                            }}
-                            className="px-6 py-3 bg-accent text-white font-bold text-lg border-[3px] border-dark rounded-xl shadow-kitsch-sm hover:-translate-y-0.5 hover:shadow-kitsch transition-all"
-                          >
-                            ▶ 수동 재생하기
-                          </button>
-                        </div>
-                      )}
 
-                      {currentQuestion.questionType === "AUDIO" && isPlayingMedia && (
-                        <div className="text-center p-8 bg-cream border-[3px] border-dark border-dashed rounded-2xl shadow-kitsch-sm mt-4">
-                          <span className="text-6xl mb-4 block animate-bounce">🎶</span>
-                          <p className="font-title text-xl text-primary">소리를 듣고 정답을 맞춰주세요!</p>
+                          {/* 자동재생이 차단되었을 때 띄워주는 직접 재생 UI */}
+                          {!isPlayingMedia && (
+                            <div className="mt-4 p-6 bg-cream border-[3px] border-dark border-dashed rounded-2xl shadow-kitsch-sm flex flex-col items-center">
+                              <p className="font-title text-lg text-primary mb-3">
+                                브라우저 정책으로 미디어 자동 재생이 정지되었습니다.
+                              </p>
+                              <button
+                                onClick={() => {
+                                  if (playerRef.current) {
+                                    playerRef.current.playVideo();
+                                    setIsPlayingMedia(true);
+                                  }
+                                }}
+                                className="px-6 py-3 bg-accent text-white font-bold text-lg border-[3px] border-dark rounded-xl shadow-kitsch-sm hover:-translate-y-0.5 hover:shadow-kitsch transition-all"
+                              >
+                                ▶ 수동 재생하기
+                              </button>
+                            </div>
+                          )}
+
+                          {currentQuestion.questionType === "AUDIO" && isPlayingMedia && (
+                            <div className="text-center p-8 bg-cream border-[3px] border-dark border-dashed rounded-2xl shadow-kitsch-sm mt-4">
+                              <span className="text-6xl mb-4 block animate-bounce">🎶</span>
+                              <p className="font-title text-xl text-primary">소리를 듣고 정답을 맞춰주세요!</p>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <div className="mt-6 p-6 bg-cream border-[3px] border-red-400 border-dashed rounded-2xl flex flex-col items-center">
+                          <p className="font-title text-lg text-red-500">유효하지 않은 유튜브 링크입니다.</p>
+                          <p className="text-sm text-gray-500 mt-2">({currentQuestion.videoUrl})</p>
                         </div>
                       )}
-                    </>
-                  ) : (
-                    <div className="mt-6 p-6 bg-cream border-[3px] border-red-400 border-dashed rounded-2xl flex flex-col items-center">
-                      <p className="font-title text-lg text-red-500">유효하지 않은 유튜브 링크입니다.</p>
-                      <p className="text-sm text-gray-500 mt-2">({currentQuestion.videoUrl})</p>
-                    </div>
-                  )}
                     </div>
                   )}
                 </div>
@@ -839,7 +838,6 @@ function RoomsContent() {
                     {scoreboard.map((p, i) => (
                       <div key={p.username} className={`flex items-center gap-3 p-3 rounded-xl ${i === 0 ? "bg-primary/10 border-2 border-primary" : "bg-cream"}`}>
                         <span className={`font-title text-xl w-6 ${i === 0 ? "text-primary" : i === 1 ? "text-accent" : i === 2 ? "text-secondary" : "text-gray-400"}`}>{i + 1}</span>
-                        <div className="w-8 h-8 rounded-full bg-cream border-2 border-dark flex items-center justify-center text-xs font-bold">{p.username.charAt(0)}</div>
                         <div className="flex-1">
                           <p className="font-bold text-sm">{p.username}</p>
                         </div>
@@ -858,7 +856,7 @@ function RoomsContent() {
               <span className="text-6xl mb-6 block animate-bounce">🤖</span>
               <h2 className="font-title text-3xl mb-4">AI가 정답의 의미를 분석 중입니다...</h2>
               <p className="text-gray-500 font-bold mb-8">잠시만 기다려주세요</p>
-              
+
               <div className="flex gap-4">
                 <div className="w-5 h-5 rounded-full bg-primary animate-ping" style={{ animationDelay: '0s' }}></div>
                 <div className="w-5 h-5 rounded-full bg-accent animate-ping" style={{ animationDelay: '0.2s' }}></div>
@@ -896,7 +894,6 @@ function RoomsContent() {
                   {roundResult.scoreboard.map((p, i) => (
                     <div key={p.username} className={`flex items-center gap-3 p-3 rounded-xl ${p.username === myNickname ? "bg-secondary/20 border-2 border-secondary" : "bg-cream"}`}>
                       <span className={`font-title text-xl w-8 ${i === 0 ? "text-primary" : i === 1 ? "text-accent" : i === 2 ? "text-secondary" : "text-gray-400"}`}>{i + 1}</span>
-                      <div className="w-8 h-8 rounded-full bg-white border-2 border-dark flex items-center justify-center text-xs font-bold shrink-0">{p.username.charAt(0)}</div>
                       <div className="flex-1 flex items-center gap-2">
                         <p className="font-bold text-sm">{p.username}</p>
                         {currentQuestion?.answerType === "SHORT_ANSWER" && roundResult.correctUsernames.includes(p.username) && (
@@ -934,9 +931,6 @@ function RoomsContent() {
                 <>
                   <div className="bg-white border-[3px] border-primary rounded-2xl shadow-kitsch p-8 mb-6 text-center">
                     <div className="text-4xl mb-2">👑</div>
-                    <div className="w-20 h-20 mx-auto rounded-full border-[4px] border-primary bg-primary/10 flex items-center justify-center mb-3">
-                      <span className="font-title text-3xl text-primary">{scoreboard[0].username.charAt(0)}</span>
-                    </div>
                     <h2 className="font-title text-2xl mb-1">{scoreboard[0].username}</h2>
                     <p className="font-title text-4xl text-primary">{scoreboard[0].score.toLocaleString()}점</p>
                   </div>
@@ -945,7 +939,6 @@ function RoomsContent() {
                     {scoreboard.slice(1).map((p, i) => (
                       <div key={p.username} className={`flex items-center px-6 py-5 border-b-2 border-dashed border-gray-200 last:border-b-0 ${p.username === myNickname ? "bg-secondary/20" : ""}`}>
                         <span className={`font-title text-2xl w-10 ${i + 2 === 2 ? "text-accent" : i + 2 === 3 ? "text-secondary" : "text-gray-400"}`}>{i + 2}</span>
-                        <div className="w-12 h-12 rounded-full bg-cream border-2 border-dark flex items-center justify-center font-bold mr-4">{p.username.charAt(0)}</div>
                         <p className="flex-1 font-bold">{p.username}</p>
                         <p className="font-title text-xl">{p.score.toLocaleString()}점</p>
                       </div>

@@ -95,7 +95,7 @@ public class UserServiceTest {
             when(passwordEncoder.matches("currentPass", "encodedPassword")).thenReturn(true);
             when(userRepository.existsByNickname("newNick")).thenReturn(false);
 
-            UserUpdateRequest request = new UserUpdateRequest("currentPass", "newNick", null);
+            UserUpdateRequest request = new UserUpdateRequest("currentPass", "newNick", null,1);
 
             UserUpdateResponse result = userService.updateInfo(1L, request);
 
@@ -114,7 +114,7 @@ public class UserServiceTest {
             when(passwordEncoder.matches("newPass1234", "oldEncodedPassword")).thenReturn(false);
             when(passwordEncoder.encode("newPass1234")).thenReturn("newEncodedPassword");
 
-            UserUpdateRequest request = new UserUpdateRequest("currentPass", null, "newPass1234");
+            UserUpdateRequest request = new UserUpdateRequest("currentPass", null, "newPass1234",1);
 
             userService.updateInfo(1L, request);
 
@@ -133,7 +133,7 @@ public class UserServiceTest {
             when(passwordEncoder.encode("newPass1234")).thenReturn("newEncodedPassword");
             when(userRepository.existsByNickname("newNick")).thenReturn(false);
 
-            UserUpdateRequest request = new UserUpdateRequest("currentPass", "newNick", "newPass1234");
+            UserUpdateRequest request = new UserUpdateRequest("currentPass", "newNick", "newPass1234",1);
 
             UserUpdateResponse result = userService.updateInfo(1L, request);
 
@@ -150,7 +150,7 @@ public class UserServiceTest {
             when(userRepository.findById(1L)).thenReturn(Optional.of(user));
             when(passwordEncoder.matches("currentPass", "encodedPassword")).thenReturn(true);
 
-            UserUpdateRequest request = new UserUpdateRequest("currentPass", "tester", null);
+            UserUpdateRequest request = new UserUpdateRequest("currentPass", "tester", null,1);
 
             UserUpdateResponse result = userService.updateInfo(1L, request);
 
@@ -167,7 +167,7 @@ public class UserServiceTest {
             when(userRepository.findById(1L)).thenReturn(Optional.of(oauthUser));
             when(userRepository.existsByNickname("newNick")).thenReturn(false);
 
-            UserUpdateRequest request = new UserUpdateRequest(null, "newNick", null);
+            UserUpdateRequest request = new UserUpdateRequest(null, "newNick", null,1);
 
             UserUpdateResponse result = userService.updateInfo(1L, request);
 
@@ -183,7 +183,7 @@ public class UserServiceTest {
 
             when(userRepository.findById(1L)).thenReturn(Optional.of(user));
 
-            UserUpdateRequest request = new UserUpdateRequest(null, "newNick", null);
+            UserUpdateRequest request = new UserUpdateRequest(null, "newNick", null,1);
 
             assertThatThrownBy(() -> userService.updateInfo(1L, request))
                     .isInstanceOf(AuthException.class)
@@ -200,7 +200,7 @@ public class UserServiceTest {
             when(userRepository.findById(1L)).thenReturn(Optional.of(user));
             when(passwordEncoder.matches("wrongPass", "encodedPassword")).thenReturn(false);
 
-            UserUpdateRequest request = new UserUpdateRequest("wrongPass", "newNick", null);
+            UserUpdateRequest request = new UserUpdateRequest("wrongPass", "newNick", null,1);
 
             assertThatThrownBy(() -> userService.updateInfo(1L, request))
                     .isInstanceOf(AuthException.class)
@@ -218,7 +218,7 @@ public class UserServiceTest {
             when(passwordEncoder.matches("currentPass", "encodedPassword")).thenReturn(true);
             when(passwordEncoder.matches("currentPass", "encodedPassword")).thenReturn(true); // 새 비밀번호도 같음
 
-            UserUpdateRequest request = new UserUpdateRequest("currentPass", null, "currentPass");
+            UserUpdateRequest request = new UserUpdateRequest("currentPass", null, "currentPass",1);
 
             assertThatThrownBy(() -> userService.updateInfo(1L, request))
                     .isInstanceOf(AuthException.class)
@@ -236,7 +236,7 @@ public class UserServiceTest {
             when(passwordEncoder.matches("currentPass", "encodedPassword")).thenReturn(true);
             when(userRepository.existsByNickname("takenNick")).thenReturn(true);
 
-            UserUpdateRequest request = new UserUpdateRequest("currentPass", "takenNick", null);
+            UserUpdateRequest request = new UserUpdateRequest("currentPass", "takenNick", null,1);
 
             assertThatThrownBy(() -> userService.updateInfo(1L, request))
                     .isInstanceOf(AuthException.class)
@@ -249,7 +249,7 @@ public class UserServiceTest {
         void fail_userNotFound() {
             when(userRepository.findById(1L)).thenReturn(Optional.empty());
 
-            UserUpdateRequest request = new UserUpdateRequest("currentPass", "newNick", null);
+            UserUpdateRequest request = new UserUpdateRequest("currentPass", "newNick", null,1);
 
             assertThatThrownBy(() -> userService.updateInfo(1L, request))
                     .isInstanceOf(AuthException.class)

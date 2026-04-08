@@ -144,7 +144,7 @@ public class GameSessionControllerTest {
                 gameSessionId, "테스트 방", 100L, "WAIT",
                 4,    // ← maxPlayers 추가
                 10,   // ← maxQuizzes 추가
-                List.of(new GameSessionJoinResponse.PlayerInfo(1L, "테스터", true))
+                List.of(new GameSessionJoinResponse.PlayerInfo(1L, "테스터", true,1))
         );
 
         given(gameSessionService.joinRoom(eq(1L), eq(gameSessionId))).willReturn(mockResponse);

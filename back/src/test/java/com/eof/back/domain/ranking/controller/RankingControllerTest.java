@@ -67,8 +67,8 @@ class RankingControllerTest {
         RankingResponse response = new RankingResponse(
                 3L,
                 List.of(
-                        new RankingResponse.RankingItem(1, "유저1", 5000L),
-                        new RankingResponse.RankingItem(2, "유저2", 3000L)
+                        new RankingResponse.RankingItem(1, "유저1", 5000L,1),
+                        new RankingResponse.RankingItem(2, "유저2", 3000L,1)
                 )
         );
         given(rankingService.getTopRankings(any())).willReturn(response);
@@ -101,7 +101,7 @@ class RankingControllerTest {
         RankingResponse response = new RankingResponse(
                 2L,
                 List.of(
-                        new RankingResponse.RankingItem(1, "유저1", 1500L)
+                        new RankingResponse.RankingItem(1, "유저1", 1500L,1)
                 )
         );
         given(rankingService.getWeeklyRankings(any())).willReturn(response);
@@ -119,7 +119,7 @@ class RankingControllerTest {
         RankingResponse response = new RankingResponse(
                 5L,
                 List.of(
-                        new RankingResponse.RankingItem(1, "유저1", 8000L)
+                        new RankingResponse.RankingItem(1, "유저1", 8000L,1)
                 )
         );
         given(rankingService.getMonthlyRankings(any())).willReturn(response);
@@ -136,7 +136,7 @@ class RankingControllerTest {
         SecurityContextHolder.clearContext(); // 비로그인 상태
         given(rankingService.getTopRankings(null))
                 .willReturn(new RankingResponse(null, List.of(
-                        new RankingResponse.RankingItem(1, "유저1", 5000L)
+                        new RankingResponse.RankingItem(1, "유저1", 5000L,1)
                 )));
 
         mockMvc.perform(get("/api/v1/rankings"))

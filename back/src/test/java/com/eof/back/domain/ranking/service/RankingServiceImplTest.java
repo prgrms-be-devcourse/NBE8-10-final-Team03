@@ -39,9 +39,9 @@ class RankingServiceImplTest {
     @DisplayName("상위 랭킹 조회 - 정상")
     void getTopRankings_success() {
         List<RankingResponse.RankingItem> items = List.of(
-                new RankingResponse.RankingItem(1, "유저1", 5000L),
-                new RankingResponse.RankingItem(2, "유저2", 3000L),
-                new RankingResponse.RankingItem(3, "유저3", 1000L)
+                new RankingResponse.RankingItem(1, "유저1", 5000L,1),
+                new RankingResponse.RankingItem(2, "유저2", 3000L,1),
+                new RankingResponse.RankingItem(3, "유저3", 1000L,1)
         );
         given(rankingCacheService.getTopRankingItems()).willReturn(items);
         given(userRepository.findMyRankByUserId(any(Long.class))).willReturn(1L);

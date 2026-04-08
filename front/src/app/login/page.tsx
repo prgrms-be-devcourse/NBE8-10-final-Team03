@@ -32,10 +32,11 @@ export default function LoginPage() {
         password,
         captchaToken,
       });
-      const { userId, nickname, role } = res.data.data;
+      const { userId, nickname, role, profileImage } = res.data.data;
       localStorage.setItem("role", role);
       localStorage.setItem("nickname", nickname);
       localStorage.setItem("userId", String(userId));
+      localStorage.setItem("profileImage", String(profileImage || 1));
       localStorage.removeItem("oauth");
 
       router.push("/rooms");

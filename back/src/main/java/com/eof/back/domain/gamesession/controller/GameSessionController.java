@@ -4,6 +4,7 @@ import com.eof.back.domain.gamesession.dto.GameSessionCreateRequest;
 import com.eof.back.domain.gamesession.dto.GameSessionCreateResponse;
 import com.eof.back.domain.gamesession.dto.GameSessionJoinResponse;
 import com.eof.back.domain.gamesession.dto.GameSessionListResponse;
+import com.eof.back.domain.gamesession.dto.GameSessionUpdateRequest;
 import com.eof.back.domain.gamesession.service.GameSessionService;
 import com.eof.back.global.jwt.UserPrincipal;
 import com.eof.back.global.response.CommonResponse;
@@ -145,5 +146,24 @@ public class GameSessionController {
 
         // 퇴장 성공 시 204 No Content 반환
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * 게임 세션(방)의 설정을 수정합니다.
+     *
+     * @param userPrincipal 호스트 유저 (방장)
+     * @param gameSessionId 수정하려는 게임 세션의 ID
+     * @param request       수정할 설정 정보 DTO
+     * @return 수정된 방의 최신 상태 DTO
+     */
+    @PatchMapping("/{gameSessionId}")
+    public ResponseEntity<Response<GameSessionJoinResponse>> updateGameSession(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable Long gameSessionId,
+            @Valid @RequestBody GameSessionUpdateRequest request
+    ) {
+        GameSessionJoinResponse response = gameSessionService.updateGameSession(userPrincipal.id(), gameSessionId, request);
+
+        return ResponseEntity.ok(CommonResponse.success(response, "방 설정이 수정되었습니다."));
     }
 }

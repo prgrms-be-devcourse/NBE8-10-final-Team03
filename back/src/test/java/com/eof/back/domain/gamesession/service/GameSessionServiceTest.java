@@ -277,6 +277,36 @@ public class GameSessionServiceTest {
         verify(mockSession, never()).leave(any()); // 일반 퇴장 로직은 실행되지 않아야 함
     }
 
+    @Test
+    @DisplayName("방 설정 수정 성공 테스트")
+    void updateGameSession_Success() {
+        Long userId = 1L;
+        Long gameSessionId = 100L;
+        Long newQuizSetId = 20L;
+        com.eof.back.domain.gamesession.dto.GameSessionUpdateRequest updateRequest = new com.eof.back.domain.gamesession.dto.GameSessionUpdateRequest(
+                "새로운 방 이름", newQuizSetId, 5, 15
+        );
+
+        User mockHost = mock(User.class);
+        given(mockHost.getId()).willReturn(userId);
+
+        QuizSet mockOldQuizSet = mock(QuizSet.class);
+        QuizSet mockNewQuizSet = mock(QuizSet.class);
+
+        GameSession mockSession = mock(GameSession.class);
+        given(mockSession.getHost()).willReturn(mockHost);
+        given(mockSession.getQuizSet()).willReturn(mockNewQuizSet);
+        given(mockSession.getStatus()).willReturn(GameSessionStatus.WAIT);
+
+        given(gameSessionRepository.findByIdWithPlayers(gameSessionId)).willReturn(Optional.of(mockSession));
+        given(quizSetRepository.findById(newQuizSetId)).willReturn(Optional.of(mockNewQuizSet));
+
+        gameSessionService.updateGameSession(userId, gameSessionId, updateRequest);
+
+        verify(mockSession, times(1)).updateRoom("새로운 방 이름", mockNewQuizSet, 15, 5);
+        verify(messagingTemplate, times(1)).convertAndSend(any(String.class), any(Object.class));
+    }
+
     private void setupMockSession(GameSession session, Long id, String roomName, String hostName, Long quizId, String quizTitle) {
         User host = mock(User.class);
         QuizSet quizSet = mock(QuizSet.class);

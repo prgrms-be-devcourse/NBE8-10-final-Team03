@@ -131,5 +131,8 @@ public class RecordServiceImpl implements RecordService {
 
         // 4. 일괄 저장
         gameRecordRepository.saveAll(records);
+
+        // 5. 게임 세션 상태를 WAIT으로 변경하여 다음 게임 준비 및 설정 변경이 가능하도록 함
+        session.updateStatus(com.eof.back.domain.gamesession.entity.GameSessionStatus.WAIT);
     }
 }

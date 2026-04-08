@@ -42,4 +42,11 @@ public interface GamePlayService {
      * @param answer        유저가 제출한 정답 내용
      */
     void submitAnswer(Long gameSessionId, String nickname, String answer);
+
+    /**
+     * 게임을 종료하고 결과를 저장하며 세션 상태를 WAIT으로 변경합니다.
+     *
+     * @param gameSessionId 종료할 게임 세션의 아이디
+     */
+    void endGame(Long gameSessionId);
 }

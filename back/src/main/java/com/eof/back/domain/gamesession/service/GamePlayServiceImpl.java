@@ -17,6 +17,7 @@ import com.eof.back.global.exception.exceptions.GameSessionException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -34,7 +35,6 @@ import java.util.stream.Stream;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class GamePlayServiceImpl implements GamePlayService {
 
     private static final int GAME_START_DELAY_SEC = 5;
@@ -55,9 +55,28 @@ public class GamePlayServiceImpl implements GamePlayService {
     private final RecordService recordService;
     private final com.eof.back.global.gemini.GeminiClient geminiClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final GamePlayService self;
 
     // 게임 방마다 실행 중인 스케줄러를 보관 (방 폭파나 게임 종료 시 멈추기 위함)
     private final Map<Long, ScheduledFuture<?>> roomTimers = new ConcurrentHashMap<>();
+
+    public GamePlayServiceImpl(
+            StringRedisTemplate redisTemplate,
+            SimpMessagingTemplate messagingTemplate,
+            ThreadPoolTaskScheduler gameTaskScheduler,
+            GameSessionRepository gameSessionRepository,
+            RecordService recordService,
+            com.eof.back.global.gemini.GeminiClient geminiClient,
+            @Lazy GamePlayService self
+    ) {
+        this.redisTemplate = redisTemplate;
+        this.messagingTemplate = messagingTemplate;
+        this.gameTaskScheduler = gameTaskScheduler;
+        this.gameSessionRepository = gameSessionRepository;
+        this.recordService = recordService;
+        this.geminiClient = geminiClient;
+        this.self = self;
+    }
 
     /**
      * 공통 유틸리티 메서드: Redis Key 생성기
@@ -185,8 +204,8 @@ public class GamePlayServiceImpl implements GamePlayService {
             if (currentRound >= maxRound) {
                 log.info("방 {} 의 모든 문제({}개)가 출제되어 게임이 종료됩니다.", gameSessionId, maxRound);
 
-                // 게임 결과 저장
-                endGame(gameSessionId);
+                // 게임 결과 저장 (프록시를 통해 트랜잭션 보장)
+                self.endGame(gameSessionId);
 
                 broadcastToRoom(gameSessionId, GameMessageResponse.quizEnd());
                 stopGameTimer(gameSessionId);
@@ -267,7 +286,9 @@ public class GamePlayServiceImpl implements GamePlayService {
         log.info("방 {} - [{}] 님의 정답 제출: {}", gameSessionId, nickname, answer);
     }
 
-    private void endGame(Long gameSessionId) {
+    @Override
+    @Transactional
+    public void endGame(Long gameSessionId) {
         String scoresKey = getRedisKey(gameSessionId, "scores");
         String userMappingKey = getRedisKey(gameSessionId, "user_mapping");
 
@@ -277,6 +298,8 @@ public class GamePlayServiceImpl implements GamePlayService {
 
         if (scoreTuples == null || scoreTuples.isEmpty()) {
             log.warn("방 {} - 저장할 게임 결과(점수)가 없습니다.", gameSessionId);
+            // 점수가 없더라도 상태는 WAIT으로 돌려줌
+            gameSessionRepository.findById(gameSessionId).ifPresent(session -> session.updateStatus(com.eof.back.domain.gamesession.entity.GameSessionStatus.WAIT));
             return;
         }
 
@@ -301,12 +324,18 @@ public class GamePlayServiceImpl implements GamePlayService {
             }
         }
 
-        // 4. 게임 결과 일괄 저장 (recordService 내부에서 @Transactional 시작됨)
+        // 4. 게임 결과 일괄 저장
         if (!playerResults.isEmpty()) {
             GameResultRequest gameResultRequest = new GameResultRequest(gameSessionId, playerResults);
             recordService.saveGameResult(gameResultRequest);
             log.info("방 {} - 게임 결과 저장 완료", gameSessionId);
         }
+
+        // 5. 방 상태를 다시 WAIT으로 변경하여 다음 게임 준비 및 설정 변경(퀴즈셋 변경 등)이 가능하게 함
+        gameSessionRepository.findById(gameSessionId).ifPresent(session -> {
+            session.updateStatus(com.eof.back.domain.gamesession.entity.GameSessionStatus.WAIT);
+            log.info("방 {} - 상태가 WAIT으로 변경되었습니다.", gameSessionId);
+        });
     }
 
     private void gradeRound(Long gameSessionId) {

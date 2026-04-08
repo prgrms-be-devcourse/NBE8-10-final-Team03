@@ -137,30 +137,26 @@ jobs:
             set -Eeuo pipefail
 
             # ---------------------------------------------------------
-            # 0) 실행 로그(라인 타임스탬프 부착)
+            # 0) 실행 로그
             # ---------------------------------------------------------
             SCRIPT_TS="$(date +%Y%m%d_%H%M%S)"
             LOG="/tmp/ssm-${SCRIPT_TS}.log"
             exec > >(awk '{ fflush(); print strftime("[%Y-%m-%d %H:%M:%S]"), $0 }' | tee -a "$LOG")
             exec 2> >(awk '{ fflush(); print strftime("[%Y-%m-%d %H:%M:%S]"), $0 }' | tee -a "$LOG" >&2)
 
-            # 스크립트 자체를 /tmp에 보관 (재실행 및 이력 확인용)
             cp "$0" "/tmp/blue_green.${SCRIPT_TS}.sh"
-            cp "$0" "/tmp/blue_green.sh"
-            chmod 755 "/tmp/blue_green.${SCRIPT_TS}.sh" "/tmp/blue_green.sh"
+            chmod 755 "/tmp/blue_green.${SCRIPT_TS}.sh"
 
             # ---------------------------------------------------------
             # 1) 변수 정의
-            #    - 슬롯 이름은 고정(두 개의 컨테이너 이름)
-            #    - blue/green은 "역할"이며 매 배포마다 바뀜
             # ---------------------------------------------------------
-            # /etc/environment를 안전하게 로드 (특수문자 보호)
             set -a
             while IFS='=' read -r key value; do
               [[ -z "$key" || "$key" =~ ^# ]] && continue
               printf -v "$key" '%s' "$value"
             done < /etc/environment
             set +a
+          
             OWNER_LC="${{ github.repository_owner }}"
             OWNER_LC="${OWNER_LC,,}"
             IMAGE_TAG="${{ needs.calculateTag.outputs.tag_name }}"
@@ -171,43 +167,40 @@ jobs:
             PORT_IN="${{ env.CONTAINER_PORT }}"
             NET="${{ env.DOCKER_NETWORK }}"
             NPM_BASE_URL="${{ env.NPM_BASE_URL }}"
+            APP_1_DOMAIN="${TEAM03_DOMAIN:-}"
 
             echo "🔹 Use image: ${IMAGE}"
             docker pull "${IMAGE}"
 
-            # ---------------------------------------------------------
-            # 1-1) .env 파일 기록 (/tmp/.env + 타임스탬프 백업)
-            # ---------------------------------------------------------
             printf '%s' "${{ env.DOT_ENV_B64 }}" | base64 -d > /tmp/.env
-            cp /tmp/.env "/tmp/.env.$(date +%Y_%m_%d__%H%M%S)"
             chmod 600 /tmp/.env
 
             # ---------------------------------------------------------
-            # 2) NPMplus API 로그인 (쿠키 기반 인증)
-            #     - /etc/environment 등에 설정된 PASSWORD_1, APP_1_DOMAIN 사용 가정
+            # 2) NPM API 로그인 (표준 Bearer Token 방식 적용)
             # ---------------------------------------------------------
-            COOKIE_JAR="/tmp/npm_cookies.txt"
-            LOGIN_CODE=$(curl -sk -o /dev/null -w "%{http_code}" -c "${COOKIE_JAR}" \
-              -X POST ${NPM_BASE_URL}/api/tokens \
+            echo "🔑 Authenticating with standard NPM..."
+            TOKEN=$(curl -sk -X POST "${NPM_BASE_URL}/api/tokens" \
               -H "Content-Type: application/json" \
-              -d "$(jq -nc --arg id "admin@npm.com" --arg pw "${PASSWORD_1:-}" '{identity:$id, secret:$pw}')")
+              -d "$(jq -nc --arg id "admin@npm.com" --arg pw "${PASSWORD_1:-}" '{identity:$id, secret:$pw}')" | jq -r '.token')
 
-            # 로그인 검증(200이 아니면 실패)
-            [[ "${LOGIN_CODE}" == "200" ]] || { echo "NPM login failed (HTTP ${LOGIN_CODE})"; exit 1; }
-            [[ -n "${TEAM03_DOMAIN:-}" ]] || { echo "TEAM03_DOMAIN is empty"; exit 1; }
+            [[ -n "${TOKEN}" && "${TOKEN}" != "null" ]] || { echo "❌ NPM login failed (Token not received)"; exit 1; }
+            [[ -n "${APP_1_DOMAIN:-}" ]] || { echo "❌ TEAM03_DOMAIN is empty in /etc/environment"; exit 1; }
 
-            # 대상 프록시 호스트 ID 조회(도메인 매칭), 없으면 자동 등록
-            PROXY_ID=$(curl -sk -b "${COOKIE_JAR}" -X GET "${NPM_BASE_URL}/api/nginx/proxy-hosts" \
-              | jq ".[] | select(.domain_names[]==\"${TEAM03_DOMAIN}\") | .id")
+            # 앞으로의 모든 요청에 사용할 인증 헤더
+            AUTH_HEADER="Authorization: Bearer ${TOKEN}"
+
+            # ---------------------------------------------------------
+            # 3) 프록시 호스트 조회 및 생성
+            # ---------------------------------------------------------
+            PROXY_ID=$(curl -sk -H "${AUTH_HEADER}" -X GET "${NPM_BASE_URL}/api/nginx/proxy-hosts" \
+              | jq -r ".[]? | select(.domain_names[]?==\"${APP_1_DOMAIN}\") | .id")
 
             if [[ -z "${PROXY_ID}" || "${PROXY_ID}" == "null" ]]; then
-              echo "📝 Proxy host not found for ${TEAM03_DOMAIN}, creating..."
-              # ⚠️ 오해하지 말 것:
-              # npmplus_proxy_response_buffering는 이름상 'Disable' 이지만 실제 동작은 true면 proxy_buffering off다.
-              PROXY_ID=$(curl -sk -b "${COOKIE_JAR}" -X POST "${NPM_BASE_URL}/api/nginx/proxy-hosts" \
+              echo "📝 Proxy host not found for ${APP_1_DOMAIN}, creating..."
+              PROXY_ID=$(curl -sk -H "${AUTH_HEADER}" -X POST "${NPM_BASE_URL}/api/nginx/proxy-hosts" \
                 -H "Content-Type: application/json" \
                 -d "$(jq -nc \
-                    --arg domain "${TEAM03_DOMAIN}" \
+                  --arg domain "${APP_1_DOMAIN}" \
                   --arg host "${SLOT1}" \
                   --argjson port ${PORT_IN} \
                   '{
@@ -225,48 +218,30 @@ jobs:
                     caching_enabled: false,
                     allow_websocket_upgrade: true,
                     advanced_config: "",
-                    locations: [
-                    {
-                        path: "/sse/",
-                        forward_scheme: "http",
-                        forward_host: $host,
-                        forward_port: $port,
-                        npmplus_proxy_response_buffering: true
-                      }
-                    ],
+                    locations: [],
                     meta: {letsencrypt_agree: false, dns_challenge: false}
-                  }')" | jq '.id')
+                  }')" | jq -r '.id')
               [[ -n "${PROXY_ID}" && "${PROXY_ID}" != "null" ]] || { echo "❌ Failed to create proxy host"; exit 1; }
               echo "✅ Created proxy host ID: ${PROXY_ID}"
             fi
 
-            # 현재 프록시가 바라보는 업스트림(컨테이너명) 조회
-            CURRENT_HOST=$(curl -sk -b "${COOKIE_JAR}" -X GET "${NPM_BASE_URL}/api/nginx/proxy-hosts/${PROXY_ID}" \
+            # ---------------------------------------------------------
+            # 4) 업스트림 스위칭 로직
+            # ---------------------------------------------------------
+            CURRENT_HOST=$(curl -sk -H "${AUTH_HEADER}" -X GET "${NPM_BASE_URL}/api/nginx/proxy-hosts/${PROXY_ID}" \
               | jq -r '.forward_host')
 
             echo "🔎 CURRENT_HOST: ${CURRENT_HOST:-none}"
 
-            # ---------------------------------------------------------
-            # 3) 역할(blue/green) 판정
-            #    - blue : 현재 운영 중(CURRENT_HOST)
-            #    - green: 다음 운영(교체 대상)
-            # ---------------------------------------------------------
             if [[ "${CURRENT_HOST:-}" == "${SLOT1}" ]]; then
-              BLUE="${SLOT1}"
-              GREEN="${SLOT2}"
+              BLUE="${SLOT1}"; GREEN="${SLOT2}"
             elif [[ "${CURRENT_HOST:-}" == "${SLOT2}" ]]; then
-              BLUE="${SLOT2}"
-              GREEN="${SLOT1}"
+              BLUE="${SLOT2}"; GREEN="${SLOT1}"
             else
-              BLUE="none"   # 초기 배포
-              GREEN="${SLOT1}"
+              BLUE="none"; GREEN="${SLOT1}"
             fi
             echo "🎨 role -> blue(now): ${BLUE}, green(next): ${GREEN}"
 
-            # ---------------------------------------------------------
-            # 4) green 역할 컨테이너 재기동
-            #    - 같은 네트워크 상에서 NPMplus가 컨테이너명:PORT로 프록시하므로 -p 불필요
-            # ---------------------------------------------------------
             docker rm -f "${GREEN}" >/dev/null 2>&1 || true
             echo "🚀 run new container → ${GREEN}"
             docker run -d --name "${GREEN}" \
@@ -276,14 +251,11 @@ jobs:
               -v /tmp/.env:/app/.env:ro \
               "${IMAGE}"
 
-            # ---------------------------------------------------------
-            # 5) 헬스체크 (/actuator/health 200 OK까지 대기)
-            # ---------------------------------------------------------
             echo "⏱ health-check: ${GREEN}"
             TIMEOUT=120
             INTERVAL=3
             ELAPSED=8
-            sleep 8  # 초기 부팅 여유
+            sleep 8
 
             CONTAINER_IP=$(docker inspect --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "${GREEN}")
             while (( ELAPSED < TIMEOUT )); do
@@ -294,71 +266,30 @@ jobs:
             done
             [[ "${CODE:-000}" == "200" ]] || { echo "❌ ${GREEN} health failed"; docker logs --tail=200 "${GREEN}" || true; docker rm -f "${GREEN}" || true; exit 1; }
 
-            # ---------------------------------------------------------
-            # 6) 업스트림 전환 (기존 설정 조회 후 forward_host/locations만 덮어씀)
-            # ---------------------------------------------------------
-            # ⚠️ 오해하지 말 것:
-            # true는 '사용'을 뜻하지 않고, NPMplus 템플릿에서 proxy_buffering off(버퍼링 OFF)의 의미로 쓰인다.
-            CURRENT_CFG=$(curl -sk -b "${COOKIE_JAR}" -X GET "${NPM_BASE_URL}/api/nginx/proxy-hosts/${PROXY_ID}")
+            CURRENT_CFG=$(curl -sk -H "${AUTH_HEADER}" -X GET "${NPM_BASE_URL}/api/nginx/proxy-hosts/${PROXY_ID}")
             NEW_CFG=$(echo "${CURRENT_CFG}" | jq \
               --arg host "${GREEN}" \
               --argjson port ${PORT_IN} \
               '{
-                access_list_id,
-                advanced_config,
-                allow_websocket_upgrade,
-                block_exploits,
-                caching_enabled,
-                certificate_id,
-                domain_names,
-                forward_host: $host,
-                forward_port: $port,
-                forward_scheme,
-                hsts_enabled,
-                hsts_subdomains,
-                http2_support,
-                locations: [
-                  {
-                    path: "/sse/",
-                    forward_scheme: "http",
-                    forward_host: $host,
-                    forward_port: $port,
-                    npmplus_proxy_response_buffering: true
-                  }
-                ],
-                meta,
-                npmplus_auth_request,
-                npmplus_crowdsec_appsec,
-                npmplus_fancyindex,
-                npmplus_http3_support,
-                npmplus_noindex,
-                npmplus_proxy_request_buffering,
-                npmplus_proxy_response_buffering,
-                npmplus_upstream_compression,
-                npmplus_x_frame_options,
-                ssl_forced,
-                trust_forwarded_proto
+                access_list_id, advanced_config, allow_websocket_upgrade,
+                block_exploits, caching_enabled, certificate_id, domain_names,
+                forward_host: $host, forward_port: $port, forward_scheme,
+                hsts_enabled, hsts_subdomains, http2_support, locations,
+                meta, ssl_forced
               }')
-            SWITCH_CODE=$(curl -sk -b "${COOKIE_JAR}" -o /dev/null -w "%{http_code}" \
+            SWITCH_CODE=$(curl -sk -H "${AUTH_HEADER}" -o /dev/null -w "%{http_code}" \
               -X PUT "${NPM_BASE_URL}/api/nginx/proxy-hosts/${PROXY_ID}" \
               -H "Content-Type: application/json" \
               -d "${NEW_CFG}")
             [[ "${SWITCH_CODE}" == "200" ]] || { echo "❌ NPM switch failed (HTTP ${SWITCH_CODE})"; exit 1; }
             echo "🔁 switch upstream → ${GREEN}:${PORT_IN}"
 
-            # ---------------------------------------------------------
-            # 7) 이전 blue 종료(최초 배포면 생략)
-            # ---------------------------------------------------------
             if [[ "${BLUE}" != "none" ]]; then
               docker stop "${BLUE}" >/dev/null 2>&1 || true
               docker rm "${BLUE}" >/dev/null 2>&1 || true
               echo "🧹 removed old blue: ${BLUE}"
             fi
 
-            # ---------------------------------------------------------
-            # 8) 이미지 정리(현재 태그/ latest 제외) - 결과 없음도 오류 아님
-            #     - pipefail과 grep의 종료코드(1)를 고려해 블록 전체에 || true 적용
-            # ---------------------------------------------------------
             {
               docker images --format '{{.Repository}}:{{.Tag}}' \
                 | grep -F "ghcr.io/${OWNER_LC}/${IMAGE_REPOSITORY}:" \
@@ -370,7 +301,6 @@ jobs:
 
             echo "🏁 Blue/Green switch complete. now blue = ${GREEN}"
           SCRIPT_EOF
-          )
 
           PARAMS=$(jq -nc --arg s "$DEPLOY_SCRIPT" '{"commands":[$s]}')
 

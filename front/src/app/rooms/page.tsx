@@ -116,6 +116,17 @@ function RoomsContent() {
   const [createError, setCreateError] = useState("");
   const [creating, setCreating] = useState(false);
 
+  // 방 정보 수정 state
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showEditQuizSetModal, setShowEditQuizSetModal] = useState(false);
+  const [editRoomName, setEditRoomName] = useState("");
+  const [editSelectedQuizSetId, setEditSelectedQuizSetId] = useState<number | null>(null);
+  const [editSelectedQuizSet, setEditSelectedQuizSet] = useState<QuizSet | null>(null);
+  const [editMaxPlayers, setEditMaxPlayers] = useState(4);
+  const [editMaxQuizzes, setEditMaxQuizzes] = useState(10);
+  const [editError, setEditError] = useState("");
+  const [editing, setEditing] = useState(false);
+
   // 게임 state
   const [gameState, setGameState] = useState<GameState>("waiting");
   const [currentQuestion, setCurrentQuestion] = useState<QuizBroadcastResponse | null>(null);
@@ -247,6 +258,7 @@ function RoomsContent() {
       const roomDetail = roomsRes.data.data.find((r: any) => r.gameSessionId === gameSessionId);
 
       const enrichedRoom = {
+        roomName: roomDetail?.roomName || "방 제목",
         ...res.data.data,
         quizSetTitle: quizSetRes.data.data.title,
         // maxPlayer, maxQuizzes는 이제 join 응답에서 바로 옴
@@ -283,7 +295,14 @@ function RoomsContent() {
                   message: data.message || `${data.sender}님이 입장했습니다.`,
                   type: "SYSTEM",
                 }]);
-                if (data.data) setCurrentRoom((prev: any) => ({ ...prev, ...data.data }));
+                if (data.data) {
+                  setCurrentRoom((prev: any) => ({ ...prev, ...data.data }));
+                  if (data.data.quizSetId) {
+                    api.get(`/quizsets/${data.data.quizSetId}/info`).then(res => {
+                      setCurrentRoom((prev: any) => ({ ...prev, quizSetTitle: res.data.data.title }));
+                    }).catch(console.error);
+                  }
+                }
                 break;
 
               case "LEAVE":
@@ -494,6 +513,97 @@ function RoomsContent() {
     }
   };
 
+  const handleOpenEditModal = async () => {
+    if (!currentRoom) return;
+    setEditRoomName(currentRoom.roomName || "");
+    setEditMaxPlayers(currentRoom.maxPlayers || 4);
+    setEditMaxQuizzes(currentRoom.maxQuizzes || 10);
+    setEditSelectedQuizSetId(currentRoom.quizSetId || null);
+    if (currentRoom.quizSetId) {
+      setEditSelectedQuizSet({ id: currentRoom.quizSetId, title: currentRoom.quizSetTitle || "", totalQuizCount: currentRoom.maxQuizzes } as any);
+    } else {
+      setEditSelectedQuizSet(null);
+    }
+    setEditError("");
+
+    const userId = localStorage.getItem("userId");
+    try {
+      const promises: Promise<any>[] = [api.get("/quizsets")];
+      if (userId) promises.push(api.get(`/users/${userId}/bookmarks`));
+      const [quizSetsRes, bookmarksRes] = await Promise.all(promises);
+      const allQuizSets: QuizSet[] = quizSetsRes.data.data.content ?? quizSetsRes.data.data;
+      setQuizSets(allQuizSets);
+      setMyQuizSets(allQuizSets.filter((q: any) => q.creatorNickname === myNickname));
+
+      if (bookmarksRes) {
+        const bookmarkIds = bookmarksRes.data.data.map((b: any) => b.quizSetId);
+        setBookmarkedQuizSetIds(new Set(bookmarkIds));
+        const bookmarked = allQuizSets.filter((q: QuizSet) => bookmarkIds.includes(q.id));
+        setBookmarkedQuizSets(bookmarked);
+      }
+    } catch (err) {
+      console.error("퀴즈셋 조회 실패", err);
+    }
+    setShowEditModal(true);
+  };
+
+  const handleUpdateRoom = async () => {
+    setEditError("");
+    const finalRoomName = editRoomName.trim() || currentRoom?.roomName || "방 제목";
+    if (!editSelectedQuizSetId) { setEditError("퀴즈셋을 선택하세요."); return; }
+    if (editMaxQuizzes < 5) { setEditError("문제 수는 최소 5개 이상이어야 합니다."); return; }
+    
+    setEditing(true);
+    try {
+      await api.patch(`/rooms/${currentRoom.gameSessionId}`, {
+        roomName: finalRoomName,
+        quizSetId: editSelectedQuizSetId,
+        maxPlayers: editMaxPlayers,
+        maxQuizzes: editMaxQuizzes,
+      });
+      setShowEditModal(false);
+    } catch (err: any) {
+      setEditError(err.response?.data?.message || "방 정보 수정에 실패했습니다.");
+    } finally {
+      setEditing(false);
+    }
+  };
+
+  const handleEditSelectQuizSet = (quiz: QuizSet) => {
+    setEditSelectedQuizSet(quiz);
+    setEditSelectedQuizSetId(quiz.id);
+    setEditMaxQuizzes(quiz.totalQuizCount);
+    setShowEditQuizSetModal(false);
+    setQuizSetSearch("");
+  };
+
+  const handleAiGenerateForEdit = async () => {
+    const finalRoomName = editRoomName.trim() || currentRoom?.roomName || "방 제목";
+    if (!aiTopic.trim()) { setEditError("주제를 입력하세요."); return; }
+    setEditError("");
+    setAiGenerating(true);
+    try {
+      const res = await api.post(`/ai/quizzes?topic=${encodeURIComponent(aiTopic)}`);
+      const quizSetId = res.data.data.quizSetId;
+      setEditSelectedQuizSetId(quizSetId);
+      setEditSelectedQuizSet({ id: quizSetId, title: `[AI] ${aiTopic}`, totalQuizCount: 5 } as any);
+      setEditMaxQuizzes(5);
+      
+      await api.patch(`/rooms/${currentRoom.gameSessionId}`, {
+        roomName: finalRoomName,
+        quizSetId,
+        maxPlayers: editMaxPlayers,
+        maxQuizzes: 5,
+      });
+      setShowEditQuizSetModal(false);
+      setShowEditModal(false);
+    } catch (err: any) {
+      setEditError(err.response?.data?.message || "입력한 주제로는 퀴즈를 생성할 수 없습니다.");
+    } finally {
+      setAiGenerating(false);
+    }
+  };
+
   const handleReport = async () => {
     if (!reportReason.trim()) return;
     setReporting(true);
@@ -563,9 +673,16 @@ function RoomsContent() {
         {gameState === "waiting" && (
           <div className="border-b-[3px] border-dark bg-white px-6 py-3 flex items-center justify-between">
             <span className="font-title text-xl">답정너</span>
-            <button onClick={handleLeaveRoom} className="px-4 py-2 bg-white text-dark font-bold border-[3px] border-dark rounded-xl shadow-kitsch-sm hover:shadow-kitsch hover:-translate-y-0.5 transition-all text-sm">
-              ← 나가기
-            </button>
+            <div className="flex items-center gap-2">
+              {hostNickname === myNickname && (
+                <button onClick={handleOpenEditModal} className="px-4 py-2 bg-cream text-dark font-bold border-[3px] border-dark rounded-xl shadow-kitsch-sm hover:shadow-kitsch hover:-translate-y-0.5 transition-all text-sm">
+                  ⚙️ 방 설정
+                </button>
+              )}
+              <button onClick={handleLeaveRoom} className="px-4 py-2 bg-white text-dark font-bold border-[3px] border-dark rounded-xl shadow-kitsch-sm hover:shadow-kitsch hover:-translate-y-0.5 transition-all text-sm">
+                ← 나가기
+              </button>
+            </div>
           </div>
         )}
 
@@ -968,6 +1085,179 @@ function RoomsContent() {
             </div>
           )}
         </div>
+        {showEditModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white border-[3px] border-dark rounded-2xl shadow-kitsch-lg p-8 w-full max-w-md">
+              <h2 className="font-title text-2xl mb-6">방 설정 수정</h2>
+              {editError && (
+                <div className="mb-4 px-4 py-3 bg-red-50 border-2 border-red-300 rounded-xl text-sm text-red-600 font-bold">{editError}</div>
+              )}
+              <div className="mb-4">
+                <label className="block text-sm font-bold mb-2">방 제목</label>
+                <input type="text" placeholder="비워두면 기존 제목이 유지됩니다" value={editRoomName} onChange={(e) => { setEditRoomName(e.target.value); setEditError(""); }} className="w-full px-4 py-3 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none transition-colors" />
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-bold mb-2">퀴즈셋</label>
+                <button
+                  onClick={() => setShowEditQuizSetModal(true)}
+                  className="w-full px-4 py-3 bg-cream border-[3px] border-dark rounded-xl text-sm text-left hover:border-primary transition-colors"
+                >
+                  {editSelectedQuizSet
+                    ? `${editSelectedQuizSet.title} (${editSelectedQuizSet.totalQuizCount}문제)`
+                    : "퀴즈셋을 선택하세요"}
+                </button>
+              </div>
+              {showEditQuizSetModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]">
+                  <div className="bg-white border-[3px] border-dark rounded-2xl shadow-kitsch-lg p-6 w-full max-w-lg max-h-[80vh] flex flex-col">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-title text-xl">퀴즈셋 선택</h3>
+                      {editError && (
+                        <div className="mb-4 px-4 py-3 bg-red-50 border-2 border-red-300 rounded-xl text-sm text-red-600 font-bold">
+                          {editError}
+                        </div>
+                      )}
+                      <button
+                        onClick={() => { setShowEditQuizSetModal(false); setQuizSetSearch(""); }}
+                        className="text-gray-400 hover:text-dark font-bold text-lg"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    {/* AI 퀴즈 생성 */}
+                    <div className="mb-4">
+                      <label className="block text-sm font-bold mb-2">
+                        <input
+                          type="checkbox"
+                          checked={useAiQuiz}
+                          onChange={(e) => {
+                            setUseAiQuiz(e.target.checked);
+                            if (e.target.checked) {
+                              setEditSelectedQuizSetId(null);
+                              setEditSelectedQuizSet(null);
+                            }
+                          }}
+                          className="mr-2"
+                        />
+                        🤖 AI로 퀴즈 생성하기
+                      </label>
+                      {useAiQuiz && (
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            placeholder="주제를 입력하세요 (예: 한국사, 축구, 과학)"
+                            value={aiTopic}
+                            onChange={(e) => { setAiTopic(e.target.value); setEditError(""); }}
+                            className="flex-1 px-4 py-3 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none"
+                          />
+                          <button
+                            onClick={handleAiGenerateForEdit}
+                            disabled={aiGenerating || !aiTopic.trim()}
+                            className="px-4 py-3 bg-secondary font-bold border-[3px] border-dark rounded-xl text-sm shadow-kitsch disabled:opacity-50"
+                          >
+                            {aiGenerating ? "생성 중..." : "생성"}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 검색 */}
+                    <input
+                      type="text"
+                      placeholder="퀴즈셋 검색..."
+                      value={quizSetSearch}
+                      onChange={(e) => setQuizSetSearch(e.target.value)}
+                      className="w-full px-4 py-2 bg-cream border-[3px] border-dark rounded-xl text-sm outline-none focus:border-primary mb-4"
+                    />
+
+                    {/* 탭 */}
+                    <div className="flex gap-2 mb-4">
+                      {([
+                        { key: "all", label: "전체" },
+                        { key: "mine", label: "내 퀴즈셋" },
+                        { key: "bookmark", label: "북마크" },
+                        { key: "ai", label: "🤖 AI 생성" },
+                      ] as const).map((tab) => (
+                        <button
+                          key={tab.key}
+                          onClick={() => setQuizSetTab(tab.key)}
+                          className={`px-4 py-2 border-[3px] border-dark rounded-full font-bold text-sm transition-colors ${quizSetTab === tab.key ? "bg-secondary" : "bg-white hover:bg-gray-50"
+                            }`}
+                        >
+                          {tab.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* 목록 */}
+                    <div className="flex-1 overflow-y-auto flex flex-col gap-2">
+                      {(quizSetTab === "all" ? quizSets.filter((q) => !q.title.startsWith("[AI]"))
+                        : quizSetTab === "mine" ? myQuizSets.filter((q) => !q.title.startsWith("[AI]"))
+                          : quizSetTab === "bookmark" ? bookmarkedQuizSets.filter((q) => !q.title.startsWith("[AI]"))
+                            : quizSets.filter((q) => q.title.startsWith("[AI]"))
+                      )
+                        .filter((q) => q.title.toLowerCase().includes(quizSetSearch.toLowerCase()))
+                        .map((q) => (
+                          <button
+                            key={q.id}
+                            onClick={() => handleEditSelectQuizSet(q)}
+                            className={`w-full flex items-center justify-between px-4 py-3 border-[3px] rounded-xl text-left transition-all hover:-translate-y-0.5 ${editSelectedQuizSetId === q.id
+                              ? "border-primary bg-primary/5 shadow-kitsch-sm"
+                              : "border-dark bg-white hover:shadow-kitsch-sm"
+                              }`}
+                          >
+                            <div>
+                              <p className="font-bold text-sm">{q.title}</p>
+                              <p className="text-xs text-gray-400">{(q as any).creatorNickname}</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {bookmarkedQuizSetIds.has(q.id) && (
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="#FFFF00" stroke="#2B2D42" strokeWidth="2.5">
+                                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                                </svg>
+                              )}
+                              <span className="text-xs font-bold text-gray-400">{q.totalQuizCount}문제</span>
+                            </div>
+                          </button>
+                        ))}
+                      {(quizSetTab === "all" ? quizSets.filter((q) => !q.title.startsWith("[AI]"))
+                        : quizSetTab === "mine" ? myQuizSets.filter((q) => !q.title.startsWith("[AI]"))
+                          : quizSetTab === "bookmark" ? bookmarkedQuizSets.filter((q) => !q.title.startsWith("[AI]"))
+                            : quizSets.filter((q) => q.title.startsWith("[AI]"))
+                      )
+                        .filter((q) => q.title.toLowerCase().includes(quizSetSearch.toLowerCase())).length === 0 && (
+                          <div className="text-center py-10">
+                            <p className="font-hand text-gray-400">퀴즈셋이 없어요!</p>
+                          </div>
+                        )}
+                    </div>
+                  </div>
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-3 mb-6">
+                <div>
+                  <label className="block text-sm font-bold mb-2">최대 인원</label>
+                  <select value={editMaxPlayers} onChange={(e) => setEditMaxPlayers(Number(e.target.value))} className="w-full px-4 py-3 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none transition-colors">
+                    {[2, 3, 4, 5, 6, 7, 8].map((n) => <option key={n} value={n}>{n}명</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-bold mb-2">문제 수</label>
+                  <input type="number" min={5} max={quizSets.find((q) => q.id === editSelectedQuizSetId)?.totalQuizCount || 50} value={editMaxQuizzes} onChange={(e) => setEditMaxQuizzes(Number(e.target.value))} className="w-full px-4 py-3 bg-cream border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none transition-colors" />
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <button onClick={handleUpdateRoom} disabled={editing} className="flex-1 py-4 bg-primary text-white font-bold text-lg border-[3px] border-dark rounded-xl shadow-kitsch hover:shadow-kitsch-lg hover:-translate-y-0.5 transition-all disabled:opacity-50">
+                  {editing ? "저장 중..." : "설정 저장"}
+                </button>
+                <button onClick={() => setShowEditModal(false)} className="px-6 py-4 bg-white text-dark font-bold border-[3px] border-dark rounded-xl shadow-kitsch-sm hover:shadow-kitsch hover:-translate-y-0.5 transition-all">
+                  취소
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* 신고 모달 */}
         {showReportModal && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">

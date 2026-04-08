@@ -22,7 +22,6 @@ on:
     paths:
       - ".github/workflows/*.yml"
       - ".github/workflows/*.yaml"
-      - "back/.env"
       - "back/src/**"
       - "back/build.gradle.kts"
       - "back/settings.gradle.kts"
@@ -248,7 +247,7 @@ jobs:
               --restart unless-stopped \
               --network "${NET}" \
               -e TZ=Asia/Seoul \
-              -v /tmp/.env:/app/.env:ro \
+              --env-file /tmp/.env \
               "${IMAGE}"
 
             echo "⏱ health-check: ${GREEN}"

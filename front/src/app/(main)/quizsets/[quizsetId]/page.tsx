@@ -370,9 +370,14 @@ export default function QuizSetDetailPage({ params }: { params: Promise<{ quizse
   useEffect(() => {
     const fetchQuizSet = async () => {
       try {
-        const res = await api.get(`/quizsets/${quizsetId}/info`);
-        console.log("퀴즈셋 조회 시도:", quizsetId);
-        setQuizSet(res.data.data);
+        const [infoRes, quizzesRes] = await Promise.all([
+          api.get(`/quizsets/${quizsetId}/info`),
+          api.get(`/quizsets/${quizsetId}/quizzes`),
+        ]);
+        setQuizSet({
+          ...infoRes.data.data,
+          quizzes: quizzesRes.data.data,
+        });
       } catch (err) {
         console.error("퀴즈셋 조회 실패", err);
       } finally {

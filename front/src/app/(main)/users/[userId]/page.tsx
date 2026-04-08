@@ -75,6 +75,16 @@ export default function MyPage() {
     setIsCapsLockOn(e.getModifierState("CapsLock"));
   };
 
+  const handleNicknameChange = (value: string) => {
+    if (/[^ㄱ-힣a-zA-Z0-9]/.test(value)) {
+      setUpdateError("닉네임에 특수문자는 사용할 수 없습니다.");
+    } else {
+      setUpdateError("");
+    }
+    const filtered = value.replace(/[^ㄱ-힣a-zA-Z0-9]/g, "");
+    setNewNickname(filtered);
+  };
+
   const handleUpdate = async () => {
     setUpdateError("");
     if (!newNickname.trim() && !newPassword.trim()) {
@@ -310,7 +320,7 @@ export default function MyPage() {
               type="text"
               placeholder="새 닉네임 (변경 시에만 입력)"
               value={newNickname}
-              onChange={(e) => setNewNickname(e.target.value)}
+              onChange={(e) => handleNicknameChange(e.target.value)}
               className="w-full px-4 py-3 bg-white border-[3px] border-dark rounded-xl text-sm focus:border-primary outline-none"
             />
             <button

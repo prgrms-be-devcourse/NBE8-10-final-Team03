@@ -105,6 +105,8 @@ function RoomsContent() {
   const [aiGenerating, setAiGenerating] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
   const leaveGuardActive = useRef(false);
+  const [showRoomEndedModal, setShowRoomEndedModal] = useState(false);
+  const [showLeaveConfirmModal, setShowLeaveConfirmModal] = useState(false);
 
   // 방 만들기 모달
   const [showModal, setShowModal] = useState(false);
@@ -153,6 +155,7 @@ function RoomsContent() {
           const target = content.find((q: QuizSet) => q.id === targetId);
           if (target) {
             setSelectedQuizSetId(target.id);
+            setSelectedQuizSet(target);
             setMaxQuizzes(target.totalQuizCount);
           }
           setShowModal(true);
@@ -234,6 +237,7 @@ function RoomsContent() {
   };
 
   const handleJoinRoom = async (gameSessionId: number) => {
+    setShowRoomEndedModal(false);
     try {
       const res = await api.post(`/rooms/${gameSessionId}/join`);
       console.log("✅ join 응답:", res.data.data);
@@ -295,15 +299,8 @@ function RoomsContent() {
                   setCurrentRoom((prev: any) => ({ ...prev, players: data.data.players }));
                 }
                 break;
-
               case "ROOM_ENDED":
-                alert("방장이 나가 방이 삭제되었습니다.");
-                stompClientRef.current?.deactivate();
-                stompClientRef.current = null;
-                setStompConnected(false);
-                setChatMessages([]);
-                setCurrentRoom(null);
-                setViewMode("lobby");
+                setShowRoomEndedModal(true);
                 break;
 
               case "QUIZ":
@@ -366,15 +363,16 @@ function RoomsContent() {
   };
 
   const handleLeaveRoom = async () => {
+    setShowLeaveConfirmModal(false);
     if (!currentRoom) return;
+    stompClientRef.current?.deactivate();
+    stompClientRef.current = null;
+    setStompConnected(false);
     try {
       await api.delete(`/rooms/${currentRoom.gameSessionId}/leave`);
     } catch (err) {
       console.error("퇴장 실패", err);
     }
-    stompClientRef.current?.deactivate();
-    stompClientRef.current = null;
-    setStompConnected(false);
     setChatMessages([]);
     setCurrentRoom(null);
     setCurrentQuestion(null);
@@ -442,11 +440,6 @@ function RoomsContent() {
         setBookmarkedQuizSets(bookmarked);
       }
 
-      if (allQuizSets.length > 0 && !selectedQuizSet) {
-        setSelectedQuizSet(allQuizSets[0]);
-        setSelectedQuizSetId(allQuizSets[0].id);
-        setMaxQuizzes(allQuizSets[0].totalQuizCount);
-      }
     } catch (err) {
       console.error("퀴즈셋 조회 실패", err);
     }
@@ -547,7 +540,7 @@ function RoomsContent() {
         {gameState === "waiting" && (
           <div className="border-b-[3px] border-dark bg-white px-6 py-3 flex items-center justify-between">
             <span className="font-title text-xl">답정너</span>
-            <button onClick={handleLeaveRoom} className="px-4 py-2 bg-white text-dark font-bold border-[3px] border-dark rounded-xl shadow-kitsch-sm hover:shadow-kitsch hover:-translate-y-0.5 transition-all text-sm">
+            <button onClick={() => setShowLeaveConfirmModal(true)} className="px-4 py-2 bg-white text-dark font-bold border-[3px] border-dark rounded-xl shadow-kitsch-sm hover:shadow-kitsch hover:-translate-y-0.5 transition-all text-sm">
               ← 나가기
             </button>
           </div>
@@ -611,7 +604,7 @@ function RoomsContent() {
                       방장이 게임을 시작할 때까지 기다려주세요...
                     </div>
                   )}
-                  <button onClick={handleLeaveRoom} className="px-8 py-4 bg-white text-dark font-bold border-[3px] border-dark rounded-2xl shadow-kitsch-sm hover:shadow-kitsch hover:-translate-y-0.5 transition-all">
+                  <button onClick={() => setShowLeaveConfirmModal(true)} className="px-8 py-4 bg-white text-dark font-bold border-[3px] border-dark rounded-2xl shadow-kitsch-sm hover:shadow-kitsch hover:-translate-y-0.5 transition-all">
                     나가기
                   </button>
                 </div>
@@ -988,7 +981,57 @@ function RoomsContent() {
             </div>
           </div>
         )}
-
+        {showRoomEndedModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white border-[3px] border-dark rounded-2xl shadow-kitsch p-8 max-w-sm w-full mx-4 text-center">
+              <div className="text-5xl mb-4">🚪</div>
+              <h3 className="font-title text-2xl mb-2">방이 삭제되었습니다</h3>
+              <p className="text-sm text-gray-400 mb-6">방장이 나가 방이 삭제되었습니다.</p>
+              <button
+                onClick={() => {
+                  stompClientRef.current?.deactivate();
+                  stompClientRef.current = null;
+                  setStompConnected(false);
+                  setChatMessages([]);
+                  setCurrentRoom(null);
+                  setShowRoomEndedModal(false);
+                  setViewMode("lobby");
+                }}
+                className="w-full py-3 bg-primary text-white font-bold border-[3px] border-dark rounded-xl shadow-kitsch hover:shadow-kitsch-lg hover:-translate-y-0.5 transition-all"
+              >
+                로비로 돌아가기
+              </button>
+            </div>
+          </div>
+        )}
+        {showLeaveConfirmModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white border-[3px] border-dark rounded-2xl shadow-kitsch p-8 max-w-sm w-full mx-4 text-center">
+              <div className="text-5xl mb-4">🚪</div>
+              <h3 className="font-title text-2xl mb-2">방을 나가시겠습니까?</h3>
+              <p className="text-sm text-gray-400 mb-6">
+                {hostNickname === myNickname ? "방장이 나가면 방이 삭제됩니다." : "게임에서 퇴장됩니다."}
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowLeaveConfirmModal(false)}
+                  className="flex-1 py-3 bg-cream font-bold border-[3px] border-dark rounded-xl shadow-kitsch-sm hover:shadow-kitsch transition-all"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={() => {
+                    setShowLeaveConfirmModal(false);
+                    handleLeaveRoom();
+                  }}
+                  className="flex-1 py-3 bg-primary text-white font-bold border-[3px] border-dark rounded-xl shadow-kitsch hover:shadow-kitsch-lg transition-all"
+                >
+                  나가기
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -1009,7 +1052,6 @@ function RoomsContent() {
           <div className="mb-6">
             <h1 className="font-title text-4xl mb-1">게임 대기실</h1>
             <p className="font-hand text-lg text-gray-400">참여할 퀴즈방을 선택하세요</p>
-            <button onClick={fetchLobbyData} className="font-title text-gray-400">(새로고침)</button>
           </div>
 
           <div className="flex gap-2 mb-6">
@@ -1022,6 +1064,17 @@ function RoomsContent() {
                 {f.label}
               </button>
             ))}
+            <div className="flex-1" />
+            <button
+              onClick={fetchLobbyData}
+              className="flex items-center gap-2 px-5 py-2 border-[3px] border-dark rounded-full font-bold text-sm bg-white shadow-kitsch-sm hover:shadow-kitsch hover:-translate-y-0.5 transition-all"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                <path d="M3 3v5h5" />
+              </svg>
+              새로고침
+            </button>
           </div>
 
           <div className="flex flex-col gap-3 mb-6">

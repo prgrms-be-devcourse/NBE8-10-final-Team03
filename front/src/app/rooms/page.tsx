@@ -265,8 +265,7 @@ function RoomsContent() {
         onConnect: () => {
           setStompConnected(true);
           client.subscribe(`/topic/rooms/${gameSessionId}/chat`, (msg) => {
-            const data = JSON.parse(msg.body);
-            console.log("📨 STOMP 메시지:", data);
+            const data = JSON.parse(msg.body);            
 
             switch (data.type) {
               case "CHAT":
@@ -318,11 +317,6 @@ function RoomsContent() {
                 playerRef.current = null;
                 setTimeLeft(data.data.timeLimit);
                 setGameState("playing");
-                setChatMessages((prev) => [...prev, {
-                  sender: "SYSTEM",
-                  message: data.message,
-                  type: "SYSTEM",
-                }]);
                 break;
 
               case "RESULT":
@@ -332,21 +326,11 @@ function RoomsContent() {
                     setRoundResult(data.data);
                     setScoreboard(data.data.scoreboard);
                     setGameState("roundResult");
-                    setChatMessages((prev) => [...prev, {
-                      sender: "SYSTEM",
-                      message: `정답: ${data.data.correctAnswer}`,
-                      type: "SYSTEM",
-                    }]);
                   }, 3000);
                 } else {
                   setRoundResult(data.data);
                   setScoreboard(data.data.scoreboard);
-                  setGameState("roundResult");
-                  setChatMessages((prev) => [...prev, {
-                    sender: "SYSTEM",
-                    message: `정답: ${data.data.correctAnswer}`,
-                    type: "SYSTEM",
-                  }]);
+                  setGameState("roundResult");                  
                 }
                 break;
 

@@ -83,7 +83,7 @@ class AdminServiceTest {
         // given
         QuizSet quizSet = QuizSet.builder().title("기본 제목").build();
         ReflectionTestUtils.setField(quizSet, "id", 100L);
-        QuizSetUpdateRequest request = new QuizSetUpdateRequest("수정 제목", "설명");
+        QuizSetUpdateRequest request = new QuizSetUpdateRequest("수정 제목", "설명", null);
 
         given(userRepository.findById(adminId)).willReturn(Optional.of(admin));
         given(quizSetRepository.findById(100L)).willReturn(Optional.of(quizSet));

@@ -27,7 +27,7 @@ import lombok.NoArgsConstructor;
  * {@link BaseEntity}를 상속받아 생성 및 수정 시간을 자동으로 관리합니다.
  *
  * <p><b>주요 생성자:</b><br>
- * {@link #QuizSet(String, String, User, Integer, List)} <br>
+ * {@link #QuizSet(String, String, String, User, Integer, List)} <br>
  * 빌더 패턴을 통해 제목, 설명, 제작자, 총 퀴즈 수를 입력받아 인스턴스를 생성합니다. <br>
  *
  * @author MintyU
@@ -66,6 +66,12 @@ public class QuizSet extends BaseEntity {
     private Integer totalQuizCount = 0;
 
     /**
+     * 퀴즈 세트의 썸네일 이미지 URL입니다.
+     */
+    @Column(length = 500)
+    private String thumbnailUrl;
+
+    /**
      * 이 퀴즈 세트에 포함된 개별 퀴즈 목록입니다.
      */
     @OneToMany(mappedBy = "quizSet", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -81,9 +87,10 @@ public class QuizSet extends BaseEntity {
      * @param quizzes 퀴즈 목록
      */
     @Builder
-    private QuizSet(String title, String description, User creator, Integer totalQuizCount, List<Quiz> quizzes) {
+    private QuizSet(String title, String description, String thumbnailUrl, User creator, Integer totalQuizCount, List<Quiz> quizzes) {
         this.title = title;
         this.description = description;
+        this.thumbnailUrl = thumbnailUrl;
         this.creator = creator;
         this.totalQuizCount = (totalQuizCount != null) ? totalQuizCount : 0;
         if (quizzes != null) {
@@ -115,12 +122,15 @@ public class QuizSet extends BaseEntity {
      * @param title 새로운 제목
      * @param description 새로운 설명
      */
-    public void update(String title, String description) {
+    public void update(String title, String description, String thumbnailUrl) {
         if (title != null && !title.isBlank()) {
             this.title = title;
         }
         if (description != null) {
             this.description = description;
+        }
+        if (thumbnailUrl != null) {
+            this.thumbnailUrl = thumbnailUrl;
         }
     }
 

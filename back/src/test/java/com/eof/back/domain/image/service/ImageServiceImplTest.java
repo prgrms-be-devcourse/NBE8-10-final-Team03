@@ -86,7 +86,7 @@ class ImageServiceImplTest {
         @Test
         @DisplayName("실패 - 허용되지 않는 확장자면 IMAGE_INVALID_EXTENSION 예외가 발생한다")
         void fail_invalidExtension() {
-            MockMultipartFile file = new MockMultipartFile("file", "test.webp", "image/webp", new byte[100]);
+            MockMultipartFile file = new MockMultipartFile("file", "test.bmp", "image/bmp", new byte[100]);
 
             assertThatThrownBy(() -> imageService.uploadImage(file, 1L))
                     .isInstanceOf(ImageException.class)

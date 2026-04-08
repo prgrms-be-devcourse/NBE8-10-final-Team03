@@ -56,6 +56,7 @@ public class QuizSetServiceImpl implements QuizSetService {
         QuizSet quizSet = QuizSet.builder()
                 .title(request.title())
                 .description(request.description())
+                .thumbnailUrl(request.thumbnailUrl())
                 .creator(creator)
                 .build();
 
@@ -106,7 +107,7 @@ public class QuizSetServiceImpl implements QuizSetService {
         QuizSet quizSet = findQuizSetById(id);
         validateCreator(quizSet, userId);
 
-        quizSet.update(request.title(), request.description());
+        quizSet.update(request.title(), request.description(), request.thumbnailUrl());
         return quizSet.getId();
     }
 

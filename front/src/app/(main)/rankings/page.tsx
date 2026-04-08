@@ -126,11 +126,6 @@ export default function RankingsPage() {
                     }`}
                 >
                   <span className="font-title text-2xl w-12 text-center">{r.rank}</span>
-                  <img
-                    src={`/images/profile/${r.profileImage || 1}.png`}
-                    alt="프로필"
-                    className="w-10 h-10 rounded-full border-2 border-dark object-cover mr-4"
-                  />
                   <div className="flex-1">
                     <p className="font-bold text-sm">
                       {r.nickname}

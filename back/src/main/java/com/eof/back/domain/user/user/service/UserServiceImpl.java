@@ -54,7 +54,10 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND));
 
-        verifyCurrentPasswordIfLocal(user, request.currentPassword());
+        if (request.password() != null || request.nickname() != null) {
+            verifyCurrentPasswordIfLocal(user, request.currentPassword());
+        }
+
         updateNicknameIfPresent(user, request.nickname());
         updatePasswordIfPresent(user, request.password());
         updateProfileImageIfPresent(user, request.profileImage());  // 추가

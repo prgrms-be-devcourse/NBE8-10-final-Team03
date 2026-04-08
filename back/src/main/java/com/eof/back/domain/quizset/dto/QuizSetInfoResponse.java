@@ -15,6 +15,7 @@ public record QuizSetInfoResponse(
         Long id,
         String title,
         String description,
+        String thumbnailUrl,
         String creatorNickname,
         Integer totalQuizCount
 ) {
@@ -35,6 +36,7 @@ public record QuizSetInfoResponse(
                 .id(quizSet.getId())
                 .title(quizSet.getTitle())
                 .description(quizSet.getDescription())
+                .thumbnailUrl(quizSet.getThumbnailUrl())
                 .creatorNickname(quizSet.getCreator().getNickname())
                 .totalQuizCount(quizSet.getTotalQuizCount())
                 .build();

@@ -66,6 +66,12 @@ public class QuizSet extends BaseEntity {
     private Integer totalQuizCount = 0;
 
     /**
+     * 퀴즈 세트의 썸네일 이미지 URL입니다.
+     */
+    @Column(length = 500)
+    private String thumbnailUrl;
+
+    /**
      * 이 퀴즈 세트에 포함된 개별 퀴즈 목록입니다.
      */
     @OneToMany(mappedBy = "quizSet", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -81,9 +87,10 @@ public class QuizSet extends BaseEntity {
      * @param quizzes 퀴즈 목록
      */
     @Builder
-    private QuizSet(String title, String description, User creator, Integer totalQuizCount, List<Quiz> quizzes) {
+    private QuizSet(String title, String description, String thumbnailUrl, User creator, Integer totalQuizCount, List<Quiz> quizzes) {
         this.title = title;
         this.description = description;
+        this.thumbnailUrl = thumbnailUrl;
         this.creator = creator;
         this.totalQuizCount = (totalQuizCount != null) ? totalQuizCount : 0;
         if (quizzes != null) {
@@ -115,12 +122,15 @@ public class QuizSet extends BaseEntity {
      * @param title 새로운 제목
      * @param description 새로운 설명
      */
-    public void update(String title, String description) {
+    public void update(String title, String description, String thumbnailUrl) {
         if (title != null && !title.isBlank()) {
             this.title = title;
         }
         if (description != null) {
             this.description = description;
+        }
+        if (thumbnailUrl != null) {
+            this.thumbnailUrl = thumbnailUrl;
         }
     }
 

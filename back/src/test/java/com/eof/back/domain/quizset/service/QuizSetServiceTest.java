@@ -227,7 +227,7 @@ class QuizSetServiceTest {
                 .build();
         ReflectionTestUtils.setField(quizSet, "id", 100L);
 
-        QuizSetUpdateRequest request = new QuizSetUpdateRequest("수정 제목", "수정 설명");
+        QuizSetUpdateRequest request = new QuizSetUpdateRequest("수정 제목", "수정 설명", null);
 
         given(quizSetRepository.findById(100L)).willReturn(Optional.of(quizSet));
 

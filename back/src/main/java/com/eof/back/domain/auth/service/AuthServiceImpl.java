@@ -221,6 +221,26 @@ public class AuthServiceImpl implements AuthService {
         return new LoginResult(accessToken, refreshToken, user.getId(), user.getNickname(), user.getRole().name(), user.getProfileImage());
     }
 
+    @Override
+    @Transactional
+    public LoginResult reissueAfterNicknameChange(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND));
+
+        long storedVersion = tokenVersionStore.findByUserId(userId)
+                .orElseThrow(() -> new AuthException(AuthErrorCode.TOKEN_INVALID));
+
+        String newAccessToken = jwtTokenProvider.createAccessToken(
+                userId, user.getUsername(), user.getRole().name(), user.getNickname(), storedVersion);
+        String newRefreshToken = jwtTokenProvider.createRefreshToken(
+                userId, user.getUsername(), user.getRole().name(), user.getNickname(), storedVersion);
+
+        LocalDateTime refreshTokenExpiredAt = LocalDateTime.now().plusSeconds(refreshTokenExpireSeconds);
+        refreshTokenStore.save(userId, newRefreshToken, refreshTokenExpiredAt);
+
+        return new LoginResult(newAccessToken, newRefreshToken, userId, user.getNickname(), user.getRole().name(), user.getProfileImage());
+    }
+
     private RefreshToken validateAndGetRefreshToken(String refreshToken) {
 
         // JWT 서명 및 만료 검증

@@ -218,6 +218,24 @@ class AdminServiceTest {
     }
 
     @Test
+    @DisplayName("사용자 목록 조회 성공 - 키워드 없음")
+    void getUsers_NoKeyword_Success() {
+        // given
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(0, 10);
+        org.springframework.data.domain.Slice<User> slice = new org.springframework.data.domain.SliceImpl<>(java.util.List.of(user));
+
+        given(userRepository.findById(adminId)).willReturn(Optional.of(admin));
+        given(userRepository.findAllBy(pageable)).willReturn(slice);
+
+        // when
+        var response = adminService.getUsers(null, pageable, adminId);
+
+        // then
+        assertThat(response.getContent()).hasSize(1);
+        verify(userRepository).findAllBy(pageable);
+    }
+
+    @Test
     @DisplayName("퀴즈 수정 성공")
     void updateQuiz_Success() {
         // given
@@ -384,6 +402,34 @@ class AdminServiceTest {
 
         // when & then
         assertThatThrownBy(() -> adminService.deleteReport(reportId, adminId))
+                .isInstanceOf(com.eof.back.global.exception.exceptions.QuizReportException.class);
+    }
+
+    @Test
+    @DisplayName("퀴즈 세트 삭제 실패 - 퀴즈 세트 없음")
+    void deleteQuizSet_Fail_NotFound() {
+        // given
+        Long quizSetId = 100L;
+        given(userRepository.findById(adminId)).willReturn(Optional.of(admin));
+        given(quizSetRepository.existsById(quizSetId)).willReturn(false);
+
+        // when & then
+        assertThatThrownBy(() -> adminService.deleteQuizSet(quizSetId, adminId))
+                .isInstanceOf(com.eof.back.global.exception.exceptions.QuizSetException.class);
+    }
+
+    @Test
+    @DisplayName("퀴즈 리포트 처리 실패 - 이미 처리된 신고")
+    void processReport_Fail_AlreadyProcessed() {
+        // given
+        Long reportId = 50L;
+        QuizReport report = mock(QuizReport.class);
+        given(userRepository.findById(adminId)).willReturn(Optional.of(admin));
+        given(quizReportRepository.findById(reportId)).willReturn(Optional.of(report));
+        given(report.getStatus()).willReturn(com.eof.back.domain.quizreport.entity.QuizReportStatus.PROCESSED);
+
+        // when & then
+        assertThatThrownBy(() -> adminService.processReport(reportId, adminId))
                 .isInstanceOf(com.eof.back.global.exception.exceptions.QuizReportException.class);
     }
 

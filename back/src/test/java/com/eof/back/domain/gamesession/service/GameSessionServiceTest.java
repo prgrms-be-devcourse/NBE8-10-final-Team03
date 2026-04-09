@@ -27,6 +27,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -290,7 +291,6 @@ public class GameSessionServiceTest {
         User mockHost = mock(User.class);
         given(mockHost.getId()).willReturn(userId);
 
-        QuizSet mockOldQuizSet = mock(QuizSet.class);
         QuizSet mockNewQuizSet = mock(QuizSet.class);
 
         GameSession mockSession = mock(GameSession.class);
@@ -305,6 +305,51 @@ public class GameSessionServiceTest {
 
         verify(mockSession, times(1)).updateRoom("새로운 방 이름", mockNewQuizSet, 15, 5);
         verify(messagingTemplate, times(1)).convertAndSend(any(String.class), any(Object.class));
+    }
+
+    @Test
+    @DisplayName("게임 세션 생성 실패 - 유저 없음")
+    void createGameSession_Fail_UserNotFound() {
+        given(userRepository.findById(anyLong())).willReturn(Optional.empty());
+        assertThatThrownBy(() -> gameSessionService.createGameSession(1L, mock(GameSessionCreateRequest.class)))
+                .isInstanceOf(com.eof.back.global.exception.exceptions.AuthException.class);
+    }
+
+    @Test
+    @DisplayName("게임 세션 생성 실패 - 퀴즈 세트 없음")
+    void createGameSession_Fail_QuizSetNotFound() {
+        GameSessionCreateRequest request = new GameSessionCreateRequest("방", 1L, 4, 10);
+        given(userRepository.findById(anyLong())).willReturn(Optional.of(mock(User.class)));
+        given(quizSetRepository.findById(anyLong())).willReturn(Optional.empty());
+        
+        assertThatThrownBy(() -> gameSessionService.createGameSession(1L, request))
+                .isInstanceOf(com.eof.back.global.exception.exceptions.QuizSetException.class);
+    }
+
+    @Test
+    @DisplayName("방 입장 실패 - 대기 상태가 아님")
+    void joinRoom_Fail_InvalidStatus() {
+        GameSession mockSession = mock(GameSession.class);
+        User mockUser = mock(User.class);
+        given(mockSession.getStatus()).willReturn(GameSessionStatus.START);
+        given(userRepository.findById(anyLong())).willReturn(Optional.of(mockUser));
+        given(gameSessionRepository.findByIdWithPlayers(anyLong())).willReturn(Optional.of(mockSession));
+
+        assertThatThrownBy(() -> gameSessionService.joinRoom(1L, 1L))
+                .isInstanceOf(GameSessionException.class);
+    }
+
+    @Test
+    @DisplayName("방 설정 수정 실패 - 방장이 아님")
+    void updateGameSession_Fail_NotHost() {
+        User mockHost = mock(User.class);
+        given(mockHost.getId()).willReturn(2L);
+        GameSession mockSession = mock(GameSession.class);
+        given(mockSession.getHost()).willReturn(mockHost);
+        given(gameSessionRepository.findByIdWithPlayers(anyLong())).willReturn(Optional.of(mockSession));
+
+        assertThatThrownBy(() -> gameSessionService.updateGameSession(1L, 1L, mock(com.eof.back.domain.gamesession.dto.GameSessionUpdateRequest.class)))
+                .isInstanceOf(GameSessionException.class);
     }
 
     private void setupMockSession(GameSession session, Long id, String roomName, String hostName, Long quizId, String quizTitle) {

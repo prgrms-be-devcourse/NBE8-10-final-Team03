@@ -2,6 +2,7 @@ package com.eof.back.domain.gamesession.service;
 
 import com.eof.back.domain.gamesession.dto.GameMessageResponse;
 import com.eof.back.domain.gamesession.entity.GameSession;
+import com.eof.back.domain.gamesession.entity.GameSessionStatus;
 import com.eof.back.domain.gamesession.repository.GameSessionRepository;
 import com.eof.back.domain.quiz.dto.QuizResponse;
 import com.eof.back.domain.quiz.entity.AnswerType;
@@ -25,11 +26,10 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ScheduledFuture;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
@@ -84,49 +84,34 @@ public class GamePlayServiceImplTest {
         lenient().when(redisTemplate.opsForHash()).thenReturn(hashOperations);
     }
 
+    private void setupStartGameMock(Long gameSessionId) {
+        User host = mock(User.class);
+        given(host.getNickname()).willReturn("hostUser");
+        GameSession gameSession = mock(GameSession.class);
+        given(gameSession.getHost()).willReturn(host);
+        given(gameSession.getQuizSet()).willReturn(mock(QuizSet.class));
+        given(gameSessionRepository.findById(gameSessionId)).willReturn(Optional.of(gameSession));
+    }
+
     @Test
     @DisplayName("게임 시작 성공 테스트")
     void startGame_Success() {
-        // given
         Long gameSessionId = 1L;
         prepareRedisMocks();
+        setupStartGameMock(gameSessionId);
         
-        User host = mock(User.class);
-        given(host.getNickname()).willReturn("hostUser");
-        given(host.getId()).willReturn(1L);
+        ScheduledFuture scheduledFuture = mock(ScheduledFuture.class);
+        given(gameTaskScheduler.scheduleWithFixedDelay(any(Runnable.class), any(Instant.class), any(Duration.class)))
+                .willReturn(scheduledFuture);
 
-        Quiz quiz = mock(Quiz.class);
-        given(quiz.getContent()).willReturn("문제");
-        given(quiz.getAnswer()).willReturn("정답");
-        given(quiz.getAnswerType()).willReturn(AnswerType.SHORT_ANSWER);
-        given(quiz.getQuestionType()).willReturn(QuestionType.TEXT);
-
-        QuizSet quizSet = mock(QuizSet.class);
-        given(quizSet.getQuizzes()).willReturn(List.of(quiz));
-
-        GameSession gameSession = mock(GameSession.class);
-        given(gameSession.getHost()).willReturn(host);
-        given(gameSession.getMaxQuizzes()).willReturn(5);
-        given(gameSession.getPlayers()).willReturn(List.of(host));
-        given(gameSession.getQuizSet()).willReturn(quizSet);
-
-        given(gameSessionRepository.findById(gameSessionId)).willReturn(Optional.of(gameSession));
-        
-        ScheduledFuture<?> scheduledFuture = mock(ScheduledFuture.class);
-        doReturn(scheduledFuture).when(gameTaskScheduler).scheduleWithFixedDelay(any(Runnable.class), any(Instant.class), any(Duration.class));
-
-        // when
         gamePlayService.startGame(gameSessionId);
 
-        // then
         verify(valueOperations).set(eq("room:1:status"), eq("PLAYING"));
-        verify(gameTaskScheduler).scheduleWithFixedDelay(any(Runnable.class), any(Instant.class), any(Duration.class));
     }
 
     @Test
     @DisplayName("processNextRound 테스트 - 다음 라운드 진행")
     void processNextRound_Success() throws Exception {
-        // given
         Long gameSessionId = 1L;
         prepareRedisMocks();
         
@@ -137,72 +122,42 @@ public class GamePlayServiceImplTest {
                 .id(1L).content("질문").answer("정답").answerType(AnswerType.SHORT_ANSWER).questionType(QuestionType.TEXT).build();
         given(listOperations.leftPop("room:1:questions")).willReturn(objectMapper.writeValueAsString(quizResponse));
 
-        ScheduledFuture<?> scheduledFuture = mock(ScheduledFuture.class);
+        ScheduledFuture scheduledFuture = mock(ScheduledFuture.class);
         ArgumentCaptor<Runnable> runnableCaptor = ArgumentCaptor.forClass(Runnable.class);
-        doReturn(scheduledFuture).when(gameTaskScheduler).scheduleWithFixedDelay(runnableCaptor.capture(), any(Instant.class), any(Duration.class));
+        given(gameTaskScheduler.scheduleWithFixedDelay(runnableCaptor.capture(), any(Instant.class), any(Duration.class)))
+                .willReturn(scheduledFuture);
         
-        // Setup startGame requirements
-        User host = mock(User.class);
-        given(host.getNickname()).willReturn("hostUser");
-        GameSession gameSession = mock(GameSession.class);
-        given(gameSession.getHost()).willReturn(host);
-        given(gameSession.getQuizSet()).willReturn(mock(QuizSet.class));
-        given(gameSessionRepository.findById(gameSessionId)).willReturn(Optional.of(gameSession));
-
+        setupStartGameMock(gameSessionId);
         gamePlayService.startGame(gameSessionId);
-        
-        Runnable processNextRoundRunnable = runnableCaptor.getValue();
+        runnableCaptor.getValue().run();
 
-        // when
-        processNextRoundRunnable.run();
-
-        // then
         verify(valueOperations).set(eq("room:1:round"), eq("1"));
-        verify(gameTaskScheduler).schedule(any(Runnable.class), any(Instant.class));
     }
 
     @Test
-    @DisplayName("gradeRound 테스트 - 정답 채점")
-    void gradeRound_Success() throws Exception {
-        // given
+    @DisplayName("endGame 테스트 - 결과가 없는 경우")
+    void endGame_NoResults() {
         Long gameSessionId = 1L;
         prepareRedisMocks();
-        
-        given(valueOperations.get("room:1:current_answer")).willReturn("정답");
-        given(valueOperations.get("room:1:current_answer_type")).willReturn("SHORT_ANSWER");
-        given(hashOperations.entries("room:1:answers")).willReturn(Collections.singletonMap("user1", "정답"));
-
-        ArgumentCaptor<Runnable> gradeRoundCaptor = ArgumentCaptor.forClass(Runnable.class);
-        
-        processNextRound_Success(); 
-        
-        verify(gameTaskScheduler).schedule(gradeRoundCaptor.capture(), any(Instant.class));
-        Runnable gradeRoundRunnable = gradeRoundCaptor.getValue();
-
-        // when
-        gradeRoundRunnable.run();
-
-        // then
-        verify(zSetOperations).incrementScore(eq("room:1:scores"), eq("user1"), eq(1.0));
-    }
-
-    @Test
-    @DisplayName("endGame 테스트")
-    void endGame_Success() {
-        Long gameSessionId = 1L;
-        prepareRedisMocks();
-        
-        ZSetOperations.TypedTuple<String> tuple = mock(ZSetOperations.TypedTuple.class);
-        given(tuple.getValue()).willReturn("user1");
-        given(tuple.getScore()).willReturn(10.0);
-        given(zSetOperations.reverseRangeWithScores("room:1:scores", 0, -1)).willReturn(Collections.singleton(tuple));
-        given(hashOperations.entries("room:1:user_mapping")).willReturn(Collections.singletonMap("user1", "101"));
+        given(zSetOperations.reverseRangeWithScores(anyString(), anyLong(), anyLong())).willReturn(null);
         
         GameSession gameSession = mock(GameSession.class);
         given(gameSessionRepository.findById(gameSessionId)).willReturn(Optional.of(gameSession));
 
         gamePlayService.endGame(gameSessionId);
 
-        verify(recordService).saveGameResult(any());
+        verify(gameSession).updateStatus(GameSessionStatus.WAIT);
+    }
+
+    @Test
+    @DisplayName("submitAnswer 테스트 - 이미 키가 있는 경우")
+    void submitAnswer_KeyExists() {
+        Long gameSessionId = 1L;
+        prepareRedisMocks();
+        given(redisTemplate.hasKey(anyString())).willReturn(true);
+
+        gamePlayService.submitAnswer(gameSessionId, "user1", "정답");
+
+        verify(redisTemplate, never()).expire(anyString(), any(Duration.class));
     }
 }

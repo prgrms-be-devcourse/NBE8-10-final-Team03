@@ -268,4 +268,38 @@ class AdminServiceTest {
         verify(quizRepository).delete(quiz);
         verify(quizSet).decreaseQuizCount();
     }
+
+    @Test
+    @DisplayName("퀴즈 삭제 실패 - 경로 불일치 (다른 퀴즈 세트의 퀴즈)")
+    void deleteQuiz_Fail_PathInconsistency() {
+        // given
+        Long quizSetId = 100L;
+        Long otherQuizSetId = 999L;
+        Long quizId = 200L;
+        
+        QuizSet quizSet = mock(QuizSet.class);
+        given(quizSet.getId()).willReturn(otherQuizSetId); // 다른 세트 ID
+        
+        Quiz quiz = mock(Quiz.class);
+        given(quiz.getQuizSet()).willReturn(quizSet);
+        
+        given(userRepository.findById(adminId)).willReturn(Optional.of(admin));
+        given(quizRepository.findById(quizId)).willReturn(Optional.of(quiz));
+
+        // when & then
+        assertThatThrownBy(() -> adminService.deleteQuiz(quizSetId, quizId, adminId))
+                .isInstanceOf(com.eof.back.global.exception.exceptions.QuizException.class);
+    }
+
+    @Test
+    @DisplayName("사용자 정지 실패 - 대상 사용자 없음")
+    void suspendUser_Fail_UserNotFound() {
+        // given
+        given(userRepository.findById(adminId)).willReturn(Optional.of(admin));
+        given(userRepository.findById(userId)).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> adminService.suspendUser(userId, "사유", 7, adminId))
+                .isInstanceOf(AuthException.class);
+    }
 }

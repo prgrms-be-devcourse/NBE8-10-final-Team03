@@ -124,6 +124,32 @@ class QuizServiceTest {
                     .isInstanceOf(AuthException.class)
                     .hasFieldOrPropertyWithValue("errorCode", AuthErrorCode.USER_AUTH_FAIL);
         }
+
+        @Test
+        @DisplayName("실패 - 객관식인데 선택지가 누락됨")
+        void fail_multipleChoiceOptionsRequired() {
+            // given
+            QuizCreateRequest request = new QuizCreateRequest(QuestionType.TEXT, AnswerType.MULTIPLE_CHOICE, "문제", "정답", null, null, null, null, "1", "2", null, "4");
+            given(quizSetRepository.findById(quizSetId)).willReturn(Optional.of(quizSet));
+
+            // when & then
+            assertThatThrownBy(() -> quizService.createQuiz(quizSetId, request, userId))
+                    .isInstanceOf(QuizException.class)
+                    .hasFieldOrPropertyWithValue("errorCode", QuizErrorCode.QUIZ_MULTIPLE_CHOICE_OPTIONS_REQUIRED);
+        }
+
+        @Test
+        @DisplayName("실패 - 영상/음성 문제인데 URL이 누락됨")
+        void fail_videoUrlRequired() {
+            // given
+            QuizCreateRequest request = new QuizCreateRequest(QuestionType.VIDEO, AnswerType.SHORT_ANSWER, "문제", "정답", null, null, null, null, null, null, null, null);
+            given(quizSetRepository.findById(quizSetId)).willReturn(Optional.of(quizSet));
+
+            // when & then
+            assertThatThrownBy(() -> quizService.createQuiz(quizSetId, request, userId))
+                    .isInstanceOf(QuizException.class)
+                    .hasFieldOrPropertyWithValue("errorCode", QuizErrorCode.QUIZ_VIDEO_URL_REQUIRED);
+        }
     }
 
     @Nested
@@ -226,6 +252,40 @@ class QuizServiceTest {
             // then
             assertThat(updatedId).isEqualTo(quizId);
             assertThat(quiz.getContent()).isEqualTo("수정된 내용");
+        }
+
+        @Test
+        @DisplayName("실패 - 객관식으로 수정하는데 선택지가 누락됨")
+        void fail_updateMultipleChoiceOptionsRequired() {
+            // given
+            Long quizId = 100L;
+            Quiz quiz = Quiz.builder().quizSet(quizSet).questionType(QuestionType.TEXT).answerType(AnswerType.SHORT_ANSWER).build();
+            ReflectionTestUtils.setField(quiz, "id", quizId);
+            QuizUpdateRequest request = new QuizUpdateRequest(null, AnswerType.MULTIPLE_CHOICE, null, null, null, null, null, null, "1", null, "3", "4");
+
+            given(quizRepository.findById(quizId)).willReturn(Optional.of(quiz));
+
+            // when & then
+            assertThatThrownBy(() -> quizService.updateQuiz(quizSetId, quizId, request, userId))
+                    .isInstanceOf(QuizException.class)
+                    .hasFieldOrPropertyWithValue("errorCode", QuizErrorCode.QUIZ_MULTIPLE_CHOICE_OPTIONS_REQUIRED);
+        }
+
+        @Test
+        @DisplayName("실패 - 영상 문제로 수정하는데 URL이 누락됨")
+        void fail_updateVideoUrlRequired() {
+            // given
+            Long quizId = 100L;
+            Quiz quiz = Quiz.builder().quizSet(quizSet).questionType(QuestionType.TEXT).answerType(AnswerType.SHORT_ANSWER).build();
+            ReflectionTestUtils.setField(quiz, "id", quizId);
+            QuizUpdateRequest request = new QuizUpdateRequest(QuestionType.VIDEO, null, null, null, null, "", null, null, null, null, null, null);
+
+            given(quizRepository.findById(quizId)).willReturn(Optional.of(quiz));
+
+            // when & then
+            assertThatThrownBy(() -> quizService.updateQuiz(quizSetId, quizId, request, userId))
+                    .isInstanceOf(QuizException.class)
+                    .hasFieldOrPropertyWithValue("errorCode", QuizErrorCode.QUIZ_VIDEO_URL_REQUIRED);
         }
     }
 

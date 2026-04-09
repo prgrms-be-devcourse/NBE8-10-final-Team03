@@ -200,6 +200,45 @@ public class GameSessionControllerTest {
                 .andExpect(jsonPath("$.data.quizSetId").value(20L));
     }
 
+    @Test
+    @WithMockUser
+    @DisplayName("게임 세션 생성 실패 - 방 이름 공백")
+    void createGameSession_Fail_InvalidRoomName() throws Exception {
+        GameSessionCreateRequest request = new GameSessionCreateRequest("", 10L, 4, 10);
+
+        mockMvc.perform(post("/api/v1/rooms")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @WithMockUser
+    @DisplayName("게임 세션 생성 실패 - 최소 인원 미달")
+    void createGameSession_Fail_MinPlayers() throws Exception {
+        GameSessionCreateRequest request = new GameSessionCreateRequest("방", 10L, 1, 10);
+
+        mockMvc.perform(post("/api/v1/rooms")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @WithMockUser
+    @DisplayName("게임 세션 생성 실패 - 최소 문제 수 미달")
+    void createGameSession_Fail_MinQuizzes() throws Exception {
+        GameSessionCreateRequest request = new GameSessionCreateRequest("방", 10L, 4, 0);
+
+        mockMvc.perform(post("/api/v1/rooms")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
+
     @org.springframework.boot.test.context.TestConfiguration
     static class MockSecurityConfig implements org.springframework.web.servlet.config.annotation.WebMvcConfigurer {
         @Override

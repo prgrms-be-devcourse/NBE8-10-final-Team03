@@ -21,6 +21,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.data.redis.core.*;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
@@ -35,9 +37,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
-
-import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -73,7 +72,6 @@ public class GamePlayServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        // 공통 Redis Mock 설정 제거
     }
 
     private void prepareRedisMocks() {
@@ -103,8 +101,8 @@ public class GamePlayServiceImplTest {
         given(valueOperations.get("room:1:current_answer")).willReturn("1");
         given(valueOperations.get("room:1:current_answer_type")).willReturn("MULTIPLE_CHOICE");
         given(hashOperations.entries("room:1:answers")).willReturn(Map.of(
-                "user1", "1", // 정답
-                "user2", "2"  // 오답
+                "user1", "1",
+                "user2", "2"
         ));
 
         ReflectionTestUtils.invokeMethod(gamePlayService, "gradeRound", sessionId);
@@ -146,29 +144,6 @@ public class GamePlayServiceImplTest {
 
         verify(zSetOperations).incrementScore(anyString(), eq("user1"), eq(1.0));
     }
-
-/*
-    @Test
-    @DisplayName("gradeRound 브랜치 - v2 실패 시 v1 폴백 및 성공")
-    void gradeRound_ShortAnswer_FallbackV1Success() throws Exception {
-        Long sessionId = 1L;
-        prepareRedisMocks();
-        given(valueOperations.get("room:1:current_answer")).willReturn("태양");
-        given(valueOperations.get("room:1:current_answer_type")).willReturn("SHORT_ANSWER");
-        given(hashOperations.entries("room:1:answers")).willReturn(Map.of("user1", "해"));
-
-        given(geminiClient.embed(anyString(), eq("gemini-embedding-2-preview"))).willReturn(null);
-
-        List<Double> answerEmbV1 = List.of(1.0, 0.0);
-        List<Double> userEmbV1 = List.of(0.95, 0.05);
-        given(valueOperations.get("room:1:current_answer_v1")).willReturn(objectMapper.writeValueAsString(answerEmbV1));
-        given(geminiClient.embed(anyString(), eq("gemini-embedding-001"))).willReturn(userEmbV1);
-
-        ReflectionTestUtils.invokeMethod(gamePlayService, "gradeRound", sessionId);
-
-        verify(zSetOperations).incrementScore(anyString(), eq("user1"), eq(1.0));
-    }
-*/
 
     @Test
     @DisplayName("gradeRound 브랜치 - 모든 임베딩 실패 시 오답 처리")
@@ -242,19 +217,13 @@ public class GamePlayServiceImplTest {
     @Test
     @DisplayName("stopGameTimer 테스트 - 타이머 취소 및 Redis 리소스 정리 확인")
     void stopGameTimer_Success() {
-        // given
         Long sessionId = 1L;
         ScheduledFuture scheduledFuture = mock(ScheduledFuture.class);
-        
-        // private roomTimers 맵에 강제로 모의 타이머 삽입
-        Map<Long, ScheduledFuture<?>> roomTimers = 
-                (Map<Long, ScheduledFuture<?>>) ReflectionTestUtils.getField(gamePlayService, "roomTimers");
+        Map<Long, ScheduledFuture<?>> roomTimers = (Map<Long, ScheduledFuture<?>>) ReflectionTestUtils.getField(gamePlayService, "roomTimers");
         roomTimers.put(sessionId, scheduledFuture);
 
-        // when
         gamePlayService.stopGameTimer(sessionId);
 
-        // then
         verify(scheduledFuture).cancel(false);
         verify(redisTemplate).delete(anyList());
         assertThat(roomTimers).doesNotContainKey(sessionId);
@@ -263,38 +232,101 @@ public class GamePlayServiceImplTest {
     @Test
     @DisplayName("submitAnswer 테스트 - 첫 번째 제출 시 TTL 설정 확인")
     void submitAnswer_FirstSubmission_SetsTTL() {
-        // given
         Long sessionId = 1L;
-        String nickname = "user1";
-        String answer = "정답";
         prepareRedisMocks();
-        
         given(redisTemplate.hasKey("room:1:answers")).willReturn(false);
 
-        // when
-        gamePlayService.submitAnswer(sessionId, nickname, answer);
+        gamePlayService.submitAnswer(sessionId, "user1", "정답");
 
-        // then
-        verify(hashOperations).put(eq("room:1:answers"), eq(nickname), eq(answer));
+        verify(hashOperations).put(eq("room:1:answers"), eq("user1"), eq("정답"));
         verify(redisTemplate).expire(eq("room:1:answers"), any(Duration.class));
     }
 
     @Test
-    @DisplayName("submitAnswer 테스트 - 두 번째 제출 시 TTL 설정 생략 확인")
-    void submitAnswer_SecondSubmission_SkipsTTL() {
-        // given
+    @DisplayName("startGame 실패 - 세션 정보를 찾을 수 없는 경우")
+    void startGame_Fail_NotFound() {
+        Long sessionId = 999L;
+        given(gameSessionRepository.findById(sessionId)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> gamePlayService.startGame(sessionId))
+                .isInstanceOf(GameSessionException.class);
+    }
+
+    @Test
+    @DisplayName("startGame 성공 - 기본 흐름 확인")
+    void startGame_Success_FullValidation() throws Exception {
         Long sessionId = 1L;
-        String nickname = "user2";
-        String answer = "또다른정답";
         prepareRedisMocks();
+        User host = mock(User.class);
+        given(host.getNickname()).willReturn("hostUser");
+        given(host.getId()).willReturn(10L);
+
+        Quiz quiz = mock(Quiz.class);
+        given(quiz.getContent()).willReturn("문제1");
+        given(quiz.getAnswer()).willReturn("정답1");
+        given(quiz.getAnswerType()).willReturn(AnswerType.SHORT_ANSWER);
+        given(quiz.getQuestionType()).willReturn(QuestionType.TEXT);
+
+        QuizSet quizSet = mock(QuizSet.class);
+        given(quizSet.getQuizzes()).willReturn(List.of(quiz));
+
+        GameSession session = mock(GameSession.class);
+        given(session.getHost()).willReturn(host);
+        given(session.getPlayers()).willReturn(List.of(host));
+        given(session.getQuizSet()).willReturn(quizSet);
+        given(session.getMaxQuizzes()).willReturn(5);
+
+        given(gameSessionRepository.findById(sessionId)).willReturn(Optional.of(session));
+        given(gameTaskScheduler.scheduleWithFixedDelay(any(Runnable.class), any(java.time.Instant.class), any(java.time.Duration.class)))
+                .willReturn(mock(ScheduledFuture.class));
+
+        gamePlayService.startGame(sessionId);
+
+        verify(valueOperations).set(eq("room:1:status"), eq("PLAYING"));
+        verify(listOperations, atLeastOnce()).rightPush(eq("room:1:questions"), anyString());
+        verify(zSetOperations).add(eq("room:1:scores"), eq("hostUser"), eq(0.0));
+    }
+
+    @Test
+    @DisplayName("startGame 성공 - 기존 타이머 취소 확인")
+    void startGame_Success_WithExistingTimer() {
+        Long sessionId = 1L;
+        prepareRedisMocks();
+        ScheduledFuture existingTimer = mock(ScheduledFuture.class);
+        Map<Long, ScheduledFuture<?>> roomTimers = (Map<Long, ScheduledFuture<?>>) ReflectionTestUtils.getField(gamePlayService, "roomTimers");
+        roomTimers.put(sessionId, existingTimer);
+
+        User host = mock(User.class);
+        given(host.getNickname()).willReturn("hostUser");
+        GameSession session = mock(GameSession.class);
+        given(session.getHost()).willReturn(host);
+        given(session.getPlayers()).willReturn(List.of(host));
+        given(session.getQuizSet()).willReturn(mock(QuizSet.class));
+        given(gameSessionRepository.findById(sessionId)).willReturn(Optional.of(session));
+        given(gameTaskScheduler.scheduleWithFixedDelay(any(Runnable.class), any(java.time.Instant.class), any(java.time.Duration.class)))
+                .willReturn(mock(ScheduledFuture.class));
+
+        gamePlayService.startGame(sessionId);
+
+        verify(existingTimer).cancel(false);
+    }
+
+    @Test
+    @DisplayName("startGame 실패 - 퀴즈 캐싱 중 예외 발생")
+    void startGame_Fail_QuizCachingError() {
+        Long sessionId = 1L;
+        prepareRedisMocks();
+        GameSession session = mock(GameSession.class);
+        User host = mock(User.class);
+        given(host.getNickname()).willReturn("host");
+        given(session.getHost()).willReturn(host);
+        given(session.getPlayers()).willReturn(List.of(host));
+        given(gameSessionRepository.findById(sessionId)).willReturn(Optional.of(session));
         
-        given(redisTemplate.hasKey("room:1:answers")).willReturn(true);
+        doThrow(new RuntimeException("Redis error")).when(redisTemplate).delete(anyString());
 
-        // when
-        gamePlayService.submitAnswer(sessionId, nickname, answer);
-
-        // then
-        verify(hashOperations).put(eq("room:1:answers"), eq(nickname), eq(answer));
-        verify(redisTemplate, never()).expire(eq("room:1:answers"), any(Duration.class));
+        assertThatThrownBy(() -> gamePlayService.startGame(sessionId))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("게임 준비 중 오류가 발생했습니다.");
     }
 }

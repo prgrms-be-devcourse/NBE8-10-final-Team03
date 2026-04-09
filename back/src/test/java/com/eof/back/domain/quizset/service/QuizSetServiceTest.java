@@ -3,10 +3,15 @@ package com.eof.back.domain.quizset.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willDoNothing;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import com.eof.back.domain.gamesession.repository.GameSessionRepository;
+import com.eof.back.domain.image.service.ImageService;
 import com.eof.back.domain.quiz.entity.Quiz;
 import com.eof.back.domain.quiz.repository.QuizRepository;
 import com.eof.back.domain.quizset.dto.QuizSetCreateRequest;
@@ -62,6 +67,9 @@ class QuizSetServiceTest {
 
     @Mock
     private GameRecordRepository gameRecordRepository;
+
+    @Mock
+    private ImageService imageService;
 
     @Test
     @DisplayName("퀴즈 세트 생성 성공")
@@ -237,6 +245,57 @@ class QuizSetServiceTest {
         // then
         assertThat(updatedId).isEqualTo(100L);
         assertThat(quizSet.getTitle()).isEqualTo("수정 제목");
+    }
+
+    @Test
+    @DisplayName("퀴즈 세트 수정 성공 - 썸네일 삭제 (thumbnailUrl 빈 문자열)")
+    void updateQuizSet_ThumbnailDelete_Success() {
+        // given
+        User creator = User.builder().nickname("별명").role(Role.USER).build();
+        ReflectionTestUtils.setField(creator, "id", 1L);
+        QuizSet quizSet = QuizSet.builder()
+                .title("기존 제목")
+                .thumbnailUrl("https://s3.example.com/old-thumb.jpg")
+                .creator(creator)
+                .build();
+        ReflectionTestUtils.setField(quizSet, "id", 100L);
+
+        QuizSetUpdateRequest request = new QuizSetUpdateRequest("기존 제목", null, "");
+
+        given(quizSetRepository.findById(100L)).willReturn(Optional.of(quizSet));
+        willDoNothing().given(imageService).deleteImage(anyString(), eq(1L));
+
+        // when
+        quizSetService.updateQuizSet(100L, request, 1L);
+
+        // then
+        verify(imageService).deleteImage("https://s3.example.com/old-thumb.jpg", 1L);
+        assertThat(quizSet.getThumbnailUrl()).isNull();
+    }
+
+    @Test
+    @DisplayName("퀴즈 세트 수정 성공 - thumbnailUrl null이면 기존 썸네일 유지")
+    void updateQuizSet_ThumbnailNotChanged_WhenNull() {
+        // given
+        User creator = User.builder().nickname("별명").role(Role.USER).build();
+        ReflectionTestUtils.setField(creator, "id", 1L);
+        QuizSet quizSet = QuizSet.builder()
+                .title("기존 제목")
+                .thumbnailUrl("https://s3.example.com/old-thumb.jpg")
+                .creator(creator)
+                .build();
+        ReflectionTestUtils.setField(quizSet, "id", 100L);
+
+        QuizSetUpdateRequest request = new QuizSetUpdateRequest("수정 제목", null, null);
+
+        given(quizSetRepository.findById(100L)).willReturn(Optional.of(quizSet));
+
+        // when
+        quizSetService.updateQuizSet(100L, request, 1L);
+
+        // then
+        verify(imageService, never()).deleteImage(anyString(), any());
+        assertThat(quizSet.getThumbnailUrl()).isEqualTo("https://s3.example.com/old-thumb.jpg");
     }
 
     @Test

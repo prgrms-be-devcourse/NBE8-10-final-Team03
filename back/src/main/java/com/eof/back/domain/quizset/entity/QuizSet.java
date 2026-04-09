@@ -118,9 +118,11 @@ public class QuizSet extends BaseEntity {
     /**
      * 퀴즈 세트의 정보를 수정합니다. (PATCH 목적)
      * null이 아닌 필드만 업데이트합니다.
+     * thumbnailUrl이 빈 문자열("")이면 썸네일을 삭제(null)합니다.
      *
      * @param title 새로운 제목
      * @param description 새로운 설명
+     * @param thumbnailUrl 새로운 썸네일 URL (null=변경없음, ""=삭제)
      */
     public void update(String title, String description, String thumbnailUrl) {
         if (title != null && !title.isBlank()) {
@@ -130,7 +132,7 @@ public class QuizSet extends BaseEntity {
             this.description = description;
         }
         if (thumbnailUrl != null) {
-            this.thumbnailUrl = thumbnailUrl;
+            this.thumbnailUrl = thumbnailUrl.isBlank() ? null : thumbnailUrl;
         }
     }
 

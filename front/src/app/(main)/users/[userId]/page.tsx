@@ -91,7 +91,7 @@ export default function MyPage() {
       setUpdateError("닉네임 또는 비밀번호를 입력하세요.");
       return;
     }
-    if (!isOAuthUser && newPassword.trim() && !currentPassword.trim()) {
+    if (!isOAuthUser && (newPassword.trim() || newNickname.trim()) && !currentPassword.trim()) {
       setUpdateError("현재 비밀번호를 입력하세요.");
       return;
     }
@@ -102,7 +102,7 @@ export default function MyPage() {
     setUpdating(true);
     try {
       const body: any = {};
-      if (!isOAuthUser && newPassword.trim()) body.currentPassword = currentPassword;
+      if (!isOAuthUser && (newPassword.trim() || newNickname.trim())) body.currentPassword = currentPassword;
       if (newNickname.trim()) body.nickname = newNickname;
       if (newPassword.trim()) body.password = newPassword;
       await api.patch(`/users/${myUserId}`, body);
@@ -280,7 +280,7 @@ export default function MyPage() {
             {!isOAuthUser && (
               <input
                 type="password"
-                placeholder="현재 비밀번호 (비밀번호 변경 시 필요)"
+                placeholder="현재 비밀번호 (닉네임/비밀번호 변경 시 필요)"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
                 onKeyDown={handleCapsLock}

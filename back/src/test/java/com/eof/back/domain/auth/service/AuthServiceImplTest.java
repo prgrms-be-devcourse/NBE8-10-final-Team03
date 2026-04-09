@@ -700,4 +700,66 @@ public class AuthServiceImplTest {
                             .isEqualTo(AuthErrorCode.USER_ALREADY_DELETED));
         }
     }
+
+    @Nested
+    @DisplayName("reissueAfterNicknameChange")
+    class ReissueAfterNicknameChange {
+
+        @Test
+        @DisplayName("성공 - DB의 최신 닉네임으로 토큰을 재발급한다")
+        void success() {
+            // given
+            User user = mock(User.class);
+            given(user.getUsername()).willReturn("testUser");
+            given(user.getNickname()).willReturn("새닉네임");
+            given(user.getRole()).willReturn(Role.USER);
+            given(user.getProfileImage()).willReturn(1);
+
+            given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
+            given(tokenVersionStore.findByUserId(USER_ID)).willReturn(Optional.of(TOKEN_VERSION));
+            given(jwtTokenProvider.createAccessToken(USER_ID, "testUser", "USER", "새닉네임", TOKEN_VERSION))
+                    .willReturn(NEW_ACCESS_TOKEN);
+            given(jwtTokenProvider.createRefreshToken(USER_ID, "testUser", "USER", "새닉네임", TOKEN_VERSION))
+                    .willReturn(NEW_REFRESH_TOKEN);
+
+            // when
+            LoginResult result = authService.reissueAfterNicknameChange(USER_ID);
+
+            // then
+            assertThat(result.accessToken()).isEqualTo(NEW_ACCESS_TOKEN);
+            assertThat(result.refreshToken()).isEqualTo(NEW_REFRESH_TOKEN);
+            assertThat(result.nickname()).isEqualTo("새닉네임");
+
+            verify(tokenVersionStore, never()).increment(any()); // 세션 유지 - version 증가 없음
+            verify(refreshTokenStore).save(eq(USER_ID), eq(NEW_REFRESH_TOKEN), any(LocalDateTime.class));
+        }
+
+        @Test
+        @DisplayName("실패 - 존재하지 않는 사용자면 USER_NOT_FOUND 예외가 발생한다")
+        void fail_userNotFound() {
+            // given
+            given(userRepository.findById(USER_ID)).willReturn(Optional.empty());
+
+            // when & then
+            assertThatThrownBy(() -> authService.reissueAfterNicknameChange(USER_ID))
+                    .isInstanceOf(AuthException.class)
+                    .satisfies(e -> assertThat(((AuthException) e).getErrorCode())
+                            .isEqualTo(AuthErrorCode.USER_NOT_FOUND));
+        }
+
+        @Test
+        @DisplayName("실패 - tokenVersion이 없으면 TOKEN_INVALID 예외가 발생한다")
+        void fail_tokenVersionNotFound() {
+            // given
+            User user = mock(User.class);
+            given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
+            given(tokenVersionStore.findByUserId(USER_ID)).willReturn(Optional.empty());
+
+            // when & then
+            assertThatThrownBy(() -> authService.reissueAfterNicknameChange(USER_ID))
+                    .isInstanceOf(AuthException.class)
+                    .satisfies(e -> assertThat(((AuthException) e).getErrorCode())
+                            .isEqualTo(AuthErrorCode.TOKEN_INVALID));
+        }
+    }
 }

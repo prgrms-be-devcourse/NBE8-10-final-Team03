@@ -92,6 +92,36 @@ class AiQuizServiceImplTest {
                 .isInstanceOf(QuizSetException.class);
     }
 
+    @Test
+    @DisplayName("AI 퀴즈 생성 - candidates가 없는 경우 예외")
+    void generateQuiz_noCandidate_throwsException() {
+        String geminiResponse = "{\"candidates\": []}";
+
+        given(geminiClient.call(anyString())).willReturn(geminiResponse);
+
+        assertThatThrownBy(() -> aiQuizService.generateQuiz("주제", 1L))
+                .isInstanceOf(QuizSetException.class);
+    }
+
+    @Test
+    @DisplayName("AI 퀴즈 생성 - parts가 없는 경우 예외")
+    void generateQuiz_noPart_throwsException() {
+        String geminiResponse = """
+                {
+                  "candidates": [{
+                    "content": {
+                      "parts": []
+                    }
+                  }]
+                }
+                """;
+
+        given(geminiClient.call(anyString())).willReturn(geminiResponse);
+
+        assertThatThrownBy(() -> aiQuizService.generateQuiz("주제", 1L))
+                .isInstanceOf(QuizSetException.class);
+    }
+
     private User createUser() {
         return User.builder()
                 .username("testuser")

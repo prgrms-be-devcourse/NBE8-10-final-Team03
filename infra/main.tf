@@ -262,7 +262,7 @@ docker run -d \
   --network common \
   -p 5432:5432 \
   -e POSTGRES_DB=${var.app_1_db_name} \
-  -e POSTGRES_USER=lldj
+  -e POSTGRES_USER=lldj \
   -e POSTGRES_PASSWORD=${var.password_1} \
   -e TZ=Asia/Seoul \
   -v /dockerProjects/postgres/volumes/data:/var/lib/postgresql/data \

@@ -313,4 +313,55 @@ class QuizSetServiceTest {
         // then
         verify(quizSetRepository).deleteByIdAndCreatorId(quizSetId, userId);
     }
+
+    @Test
+    @DisplayName("퀴즈 세트 삭제 실패 - 존재하지 않는 퀴즈 세트")
+    void deleteQuizSet_Fail_NotFound() {
+        // given
+        Long quizSetId = 100L;
+        Long userId = 1L;
+
+        given(quizSetRepository.deleteByIdAndCreatorId(quizSetId, userId)).willReturn(0);
+        given(quizSetRepository.existsById(quizSetId)).willReturn(false);
+
+        // when & then
+        assertThatThrownBy(() -> quizSetService.deleteQuizSet(quizSetId, userId))
+                .isInstanceOf(QuizSetException.class)
+                .hasFieldOrPropertyWithValue("errorCode", QuizSetErrorCode.QUIZ_SET_NOT_FOUND);
+    }
+
+    @Test
+    @DisplayName("퀴즈 세트 삭제 실패 - 작성자가 아님")
+    void deleteQuizSet_Fail_AccessDenied() {
+        // given
+        Long quizSetId = 100L;
+        Long userId = 1L;
+
+        given(quizSetRepository.deleteByIdAndCreatorId(quizSetId, userId)).willReturn(0);
+        given(quizSetRepository.existsById(quizSetId)).willReturn(true);
+
+        // when & then
+        assertThatThrownBy(() -> quizSetService.deleteQuizSet(quizSetId, userId))
+                .isInstanceOf(QuizSetException.class)
+                .hasFieldOrPropertyWithValue("errorCode", QuizSetErrorCode.QUIZ_SET_ACCESS_DENIED);
+    }
+
+    @Test
+    @DisplayName("퀴즈 세트 수정 실패 - 작성자가 아님")
+    void updateQuizSet_Fail_NotCreator() {
+        // given
+        User creator = User.builder().nickname("작성자").build();
+        ReflectionTestUtils.setField(creator, "id", 1L);
+        QuizSet quizSet = QuizSet.builder().creator(creator).build();
+        ReflectionTestUtils.setField(quizSet, "id", 100L);
+
+        QuizSetUpdateRequest request = new QuizSetUpdateRequest("제목", null, null);
+
+        given(quizSetRepository.findById(100L)).willReturn(Optional.of(quizSet));
+
+        // when & then
+        assertThatThrownBy(() -> quizSetService.updateQuizSet(100L, request, 2L)) // 다른 유저 ID
+                .isInstanceOf(QuizSetException.class)
+                .hasFieldOrPropertyWithValue("errorCode", QuizSetErrorCode.QUIZ_SET_ACCESS_DENIED);
+    }
 }

@@ -4,6 +4,7 @@ import com.eof.back.domain.gamesession.dto.ChatMessageRequest;
 import com.eof.back.domain.gamesession.dto.QuizAnswerRequest;
 import com.eof.back.domain.gamesession.repository.GameSessionRepository;
 import com.eof.back.domain.gamesession.service.GamePlayService;
+import com.eof.back.global.exception.exceptions.AuthException;
 import com.eof.back.global.jwt.UserPrincipal;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -16,6 +17,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -56,6 +58,16 @@ public class GamePlayControllerTest {
     }
 
     @Test
+    @DisplayName("채팅 메시지 전송 실패 - 인증 정보 없음")
+    void chat_Fail_NullAuthentication() {
+        Long gameSessionId = 1L;
+        ChatMessageRequest request = new ChatMessageRequest("안녕하세요");
+
+        assertThatThrownBy(() -> gamePlayController.chat(gameSessionId, request, null))
+                .isInstanceOf(AuthException.class);
+    }
+
+    @Test
     @DisplayName("게임 시작 테스트")
     void startGame_Success() {
         Long gameSessionId = 1L;
@@ -63,6 +75,15 @@ public class GamePlayControllerTest {
         gamePlayController.startGame(gameSessionId, authentication);
 
         verify(gamePlayService).startGame(gameSessionId);
+    }
+
+    @Test
+    @DisplayName("게임 시작 실패 - 인증 정보 없음")
+    void startGame_Fail_NullAuthentication() {
+        Long gameSessionId = 1L;
+
+        assertThatThrownBy(() -> gamePlayController.startGame(gameSessionId, null))
+                .isInstanceOf(AuthException.class);
     }
 
     @Test

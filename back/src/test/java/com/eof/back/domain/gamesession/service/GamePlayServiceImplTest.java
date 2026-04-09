@@ -181,6 +181,49 @@ public class GamePlayServiceImplTest {
     }
 
     @Test
+    @DisplayName("processNextRound 브랜치 테스트 - 라운드 종료 시 게임 종료 처리 확인")
+    void processNextRound_EndGame() {
+        // given
+        Long sessionId = 1L;
+        prepareRedisMocks();
+        given(valueOperations.get("room:1:round")).willReturn("5");
+        given(valueOperations.get("room:1:max_round")).willReturn("5");
+
+        // when
+        ReflectionTestUtils.invokeMethod(gamePlayService, "processNextRound", sessionId);
+
+        // then
+        verify(self).endGame(sessionId);
+        verify(messagingTemplate).convertAndSend(eq("/topic/rooms/1/chat"), any(com.eof.back.domain.gamesession.dto.GameMessageResponse.class));
+    }
+
+    @Test
+    @DisplayName("processNextRound 브랜치 테스트 - 예외 발생 시 catch 블록 실행 및 타이머 중지 확인")
+    void processNextRound_Exception_CatchBlock() {
+        // given
+        Long sessionId = 1L;
+        prepareRedisMocks();
+        
+        // 1. Redis 호출 시 런타임 예외 발생 유도
+        given(valueOperations.get(anyString())).willThrow(new RuntimeException("Redis connection failed"));
+
+        // 2. 리소스 정리를 확인하기 위해 모의 타이머 주입
+        ScheduledFuture<?> mockFuture = mock(ScheduledFuture.class);
+        Map<Long, ScheduledFuture<?>> roomTimers = 
+                (Map<Long, ScheduledFuture<?>>) ReflectionTestUtils.getField(gamePlayService, "roomTimers");
+        roomTimers.put(sessionId, mockFuture);
+
+        // when
+        ReflectionTestUtils.invokeMethod(gamePlayService, "processNextRound", sessionId);
+
+        // then
+        // catch 블록 내부에서 stopGameTimer(sessionId)가 호출되어야 함
+        verify(mockFuture).cancel(false);
+        verify(redisTemplate).delete(anyList()); // stopGameTimer 내부 로직
+        assertThat(roomTimers).doesNotContainKey(sessionId);
+    }
+
+    @Test
     @DisplayName("endGame 상세 검증 - 점수 집계, 유저 매핑, 결과 저장 및 상태 변경 확인")
     void endGame_Success_FullValidation() {
         Long sessionId = 1L;
@@ -212,6 +255,25 @@ public class GamePlayServiceImplTest {
         assertThat(requestCaptor.getValue().sessionId()).isEqualTo(1L);
         assertThat(requestCaptor.getValue().playerResults()).hasSize(2);
         verify(session).updateStatus(GameSessionStatus.WAIT);
+    }
+
+    @Test
+    @DisplayName("endGame 브랜치 테스트 - 점수 튜플이 빈 경우")
+    void endGame_NoResults() {
+        // given
+        Long sessionId = 1L;
+        prepareRedisMocks();
+        given(zSetOperations.reverseRangeWithScores(anyString(), anyLong(), anyLong())).willReturn(null);
+        
+        GameSession session = mock(GameSession.class);
+        given(gameSessionRepository.findById(sessionId)).willReturn(Optional.of(session));
+
+        // when
+        gamePlayService.endGame(sessionId);
+
+        // then
+        verify(session).updateStatus(GameSessionStatus.WAIT);
+        verify(recordService, never()).saveGameResult(any());
     }
 
     @Test

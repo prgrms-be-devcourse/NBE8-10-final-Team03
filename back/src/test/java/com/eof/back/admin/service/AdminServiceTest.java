@@ -292,6 +292,102 @@ class AdminServiceTest {
     }
 
     @Test
+    @DisplayName("특정 신고 내역 조회 성공")
+    void getReport_Success() {
+        // given
+        Long reportId = 50L;
+        QuizReport report = mock(QuizReport.class);
+        QuizSet mockQuizSet = mock(QuizSet.class);
+        User mockReporter = mock(User.class);
+        
+        given(report.getId()).willReturn(reportId);
+        given(report.getReason()).willReturn("사유");
+        given(report.getStatus()).willReturn(com.eof.back.domain.quizreport.entity.QuizReportStatus.PENDING);
+        given(report.getQuizSet()).willReturn(mockQuizSet);
+        given(report.getReporter()).willReturn(mockReporter);
+        given(mockQuizSet.getId()).willReturn(200L);
+        given(mockReporter.getNickname()).willReturn("reporter");
+        
+        given(userRepository.findById(adminId)).willReturn(Optional.of(admin));
+        given(quizReportRepository.findById(reportId)).willReturn(Optional.of(report));
+
+        // when
+        var response = adminService.getReport(reportId, adminId);
+
+        // then
+        assertThat(response).isNotNull();
+        verify(quizReportRepository).findById(reportId);
+    }
+
+    @Test
+    @DisplayName("특정 신고 내역 조회 실패 - 신고 내역 없음")
+    void getReport_Fail_NotFound() {
+        // given
+        Long reportId = 50L;
+        given(userRepository.findById(adminId)).willReturn(Optional.of(admin));
+        given(quizReportRepository.findById(reportId)).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> adminService.getReport(reportId, adminId))
+                .isInstanceOf(com.eof.back.global.exception.exceptions.QuizReportException.class);
+    }
+
+    @Test
+    @DisplayName("전체 신고 내역 조회 성공")
+    void getAllReports_Success() {
+        // given
+        QuizReport report = mock(QuizReport.class);
+        QuizSet mockQuizSet = mock(QuizSet.class);
+        User mockReporter = mock(User.class);
+
+        given(report.getId()).willReturn(50L);
+        given(report.getReason()).willReturn("사유");
+        given(report.getStatus()).willReturn(com.eof.back.domain.quizreport.entity.QuizReportStatus.PENDING);
+        given(report.getQuizSet()).willReturn(mockQuizSet);
+        given(report.getReporter()).willReturn(mockReporter);
+        given(mockQuizSet.getId()).willReturn(200L);
+        given(mockReporter.getNickname()).willReturn("reporter");
+
+        given(userRepository.findById(adminId)).willReturn(Optional.of(admin));
+        given(quizReportRepository.findAll()).willReturn(java.util.List.of(report));
+
+        // when
+        var response = adminService.getAllReports(adminId);
+
+        // then
+        assertThat(response).hasSize(1);
+        verify(quizReportRepository).findAll();
+    }
+
+    @Test
+    @DisplayName("신고 내역 삭제 성공")
+    void deleteReport_Success() {
+        // given
+        Long reportId = 50L;
+        given(userRepository.findById(adminId)).willReturn(Optional.of(admin));
+        given(quizReportRepository.existsById(reportId)).willReturn(true);
+
+        // when
+        adminService.deleteReport(reportId, adminId);
+
+        // then
+        verify(quizReportRepository).deleteById(reportId);
+    }
+
+    @Test
+    @DisplayName("신고 내역 삭제 실패 - 신고 내역 없음")
+    void deleteReport_Fail_NotFound() {
+        // given
+        Long reportId = 50L;
+        given(userRepository.findById(adminId)).willReturn(Optional.of(admin));
+        given(quizReportRepository.existsById(reportId)).willReturn(false);
+
+        // when & then
+        assertThatThrownBy(() -> adminService.deleteReport(reportId, adminId))
+                .isInstanceOf(com.eof.back.global.exception.exceptions.QuizReportException.class);
+    }
+
+    @Test
     @DisplayName("사용자 정지 실패 - 대상 사용자 없음")
     void suspendUser_Fail_UserNotFound() {
         // given

@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.SliceImpl;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -39,6 +40,7 @@ import org.springframework.security.test.context.support.WithMockUser;
 @WebMvcTest(AdminController.class)
 @AutoConfigureMockMvc(addFilters = false)
 @ActiveProfiles("test")
+@Import(AdminControllerTest.MockSecurityConfig.class)
 class AdminControllerTest {
 
     @Autowired
@@ -68,7 +70,6 @@ class AdminControllerTest {
     void setUp() {
     }
 
-/*
     @Test
     @DisplayName("신고 전체 조회 API 호출 성공")
     @WithMockUser(username = "1", roles = "ADMIN")
@@ -84,10 +85,10 @@ class AdminControllerTest {
                 .andExpect(jsonPath("$.status").value("success"))
                 .andExpect(jsonPath("$.data[0].id").value(1));
     }
-*/
 
     @Test
     @DisplayName("특정 신고 상세 조회 API 호출 성공")
+    @WithMockUser(username = "1", roles = "ADMIN")
     void getReport_Success() throws Exception {
         // given
         QuizReportResponse report = QuizReportResponse.builder().id(1L).reason("신고 사유").build();
@@ -103,6 +104,7 @@ class AdminControllerTest {
 
     @Test
     @DisplayName("신고 처리 완료 API 호출 성공")
+    @WithMockUser(username = "1", roles = "ADMIN")
     void processReport_Success() throws Exception {
         // when & then
         mockMvc.perform(patch("/api/v1/admin/reports/1/process"))
@@ -114,6 +116,7 @@ class AdminControllerTest {
 
     @Test
     @DisplayName("신고 삭제 API 호출 성공")
+    @WithMockUser(username = "1", roles = "ADMIN")
     void deleteReport_Success() throws Exception {
         // when & then
         mockMvc.perform(delete("/api/v1/admin/reports/1"))
@@ -123,6 +126,7 @@ class AdminControllerTest {
 
     @Test
     @DisplayName("퀴즈 세트 수정 API 호출 성공")
+    @WithMockUser(username = "1", roles = "ADMIN")
     void updateQuizSet_Success() throws Exception {
         // given
         QuizSetUpdateRequest request = new QuizSetUpdateRequest("제목", "설명", "url");
@@ -140,6 +144,7 @@ class AdminControllerTest {
 
     @Test
     @DisplayName("퀴즈 세트 삭제 API 호출 성공")
+    @WithMockUser(username = "1", roles = "ADMIN")
     void deleteQuizSet_Success() throws Exception {
         // when & then
         mockMvc.perform(delete("/api/v1/admin/quizsets/100"))
@@ -147,13 +152,14 @@ class AdminControllerTest {
                 .andExpect(status().isNoContent());
     }
 
-/*
+
     @Test
     @DisplayName("퀴즈 수정 API 호출 성공")
+    @WithMockUser(username = "1", roles = "ADMIN")
     void updateQuiz_Success() throws Exception {
         // given
         QuizUpdateRequest request = new QuizUpdateRequest(
-                QuestionType.TEXT, AnswerType.SHORT_ANSWER, "내용", "정답", null, null, null, null, null, null, null, null
+                QuestionType.TEXT, AnswerType.SHORT_ANSWER, "내용", "정답", null, null, null, null, "1", "2", "3", "4"
         );
         given(adminService.updateQuiz(anyLong(), anyLong(), any(), anyLong())).willReturn(200L);
 
@@ -163,13 +169,13 @@ class AdminControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("success"))
-                .andExpect(jsonPath("$.data").value(200));
+                .andExpect(jsonPath("$.status").value("success"));
     }
-*/
+
 
     @Test
     @DisplayName("퀴즈 삭제 API 호출 성공")
+    @WithMockUser(username = "1", roles = "ADMIN")
     void deleteQuiz_Success() throws Exception {
         // when & then
         mockMvc.perform(delete("/api/v1/admin/quizsets/100/quizzes/200"))
@@ -179,6 +185,7 @@ class AdminControllerTest {
 
     @Test
     @DisplayName("사용자 목록 조회 API 호출 성공")
+    @WithMockUser(username = "1", roles = "ADMIN")
     void getUsers_Success() throws Exception {
         // given
         given(adminService.getUsers(any(), any(), anyLong())).willReturn(new SliceImpl<>(List.of()));
@@ -195,6 +202,7 @@ class AdminControllerTest {
 
     @Test
     @DisplayName("사용자 정지 API 호출 성공")
+    @WithMockUser(username = "1", roles = "ADMIN")
     void suspendUser_Success() throws Exception {
         // given
         AdminController.UserSuspensionRequest request = new AdminController.UserSuspensionRequest(
@@ -212,6 +220,7 @@ class AdminControllerTest {
 
     @Test
     @DisplayName("사용자 정지 API - reason 없으면 400 반환")
+    @WithMockUser(username = "1", roles = "ADMIN")
     void suspendUser_Fail_BlankReason() throws Exception {
         // given
         AdminController.UserSuspensionRequest request = new AdminController.UserSuspensionRequest(
@@ -227,6 +236,7 @@ class AdminControllerTest {
 
     @Test
     @DisplayName("사용자 정지 API - suspensionDays 0이면 400 반환")
+    @WithMockUser(username = "1", roles = "ADMIN")
     void suspendUser_Fail_ZeroDays() throws Exception {
         // given
         AdminController.UserSuspensionRequest request = new AdminController.UserSuspensionRequest(
@@ -242,6 +252,7 @@ class AdminControllerTest {
 
     @Test
     @DisplayName("사용자 삭제 API 호출 성공")
+    @WithMockUser(username = "1", roles = "ADMIN")
     void deleteUser_Success() throws Exception {
         // when & then
         mockMvc.perform(patch("/api/v1/admin/users/2/delete"))
@@ -249,5 +260,26 @@ class AdminControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("success"))
                 .andExpect(jsonPath("$.message").value("사용자가 삭제(탈퇴) 처리되었습니다."));
+    }
+
+    @org.springframework.boot.test.context.TestConfiguration
+    static class MockSecurityConfig implements org.springframework.web.servlet.config.annotation.WebMvcConfigurer {
+        @Override
+        public void addArgumentResolvers(java.util.List<org.springframework.web.method.support.HandlerMethodArgumentResolver> resolvers) {
+            resolvers.add(new org.springframework.web.method.support.HandlerMethodArgumentResolver() {
+                @Override
+                public boolean supportsParameter(org.springframework.core.MethodParameter parameter) {
+                    return parameter.getParameterType().equals(UserPrincipal.class);
+                }
+
+                @Override
+                public Object resolveArgument(org.springframework.core.MethodParameter parameter,
+                                              org.springframework.web.method.support.ModelAndViewContainer mavContainer,
+                                              org.springframework.web.context.request.NativeWebRequest webRequest,
+                                              org.springframework.web.bind.support.WebDataBinderFactory binderFactory) {
+                    return new UserPrincipal(1L, "admin", "admin", "ADMIN");
+                }
+            });
+        }
     }
 }

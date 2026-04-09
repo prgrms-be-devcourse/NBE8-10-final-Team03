@@ -1,5 +1,7 @@
 package com.eof.back.domain.user.user.controller;
 
+import com.eof.back.domain.auth.dto.LoginResult;
+import com.eof.back.domain.auth.service.AuthService;
 import com.eof.back.domain.user.user.dto.UserInfoResponse;
 import com.eof.back.domain.user.user.dto.UserUpdateResponse;
 import com.eof.back.domain.user.user.service.UserService;
@@ -25,6 +27,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -40,6 +44,9 @@ class UserControllerTest {
 
     @MockitoBean
     private UserService userService;
+
+    @MockitoBean
+    private AuthService authService;
 
     @MockitoBean
     private JwtTokenProvider jwtTokenProvider;
@@ -90,20 +97,44 @@ class UserControllerTest {
     class UpdateMyInfo {
 
         @Test
-        @DisplayName("성공 - 사용자 정보를 수정하고 반환한다")
-        void success() throws Exception {
+        @DisplayName("성공 - 닉네임 변경 시 토큰 재발급 후 쿠키에 설정한다")
+        void success_withNickname_reissuesToken() throws Exception {
             Long userId = 1L;
+            LoginResult loginResult = new LoginResult("newAccessToken", "newRefreshToken", userId, "새닉네임", "USER", null);
 
             given(userService.updateInfo(eq(userId), any()))
                     .willReturn(new UserUpdateResponse(userId, "새닉네임"));
+            given(authService.reissueAfterNicknameChange(userId))
+                    .willReturn(loginResult);
 
             mockMvc.perform(patch("/api/v1/users/1")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"nickname\":\"새닉네임\",\"password\":\"newPass12\"}"))
+                            .content("{\"nickname\":\"새닉네임\"}"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.data.userId").value(1))
                     .andExpect(jsonPath("$.data.nickname").value("새닉네임"))
                     .andExpect(jsonPath("$.message").value("내 정보 수정이 완료되었습니다."));
+
+            verify(authService).reissueAfterNicknameChange(userId);
+            verify(cookieUtil).addAllTokenCookies(any(), eq("newAccessToken"), eq("newRefreshToken"));
+        }
+
+        @Test
+        @DisplayName("성공 - 닉네임 없이 수정 시 토큰 재발급하지 않는다")
+        void success_withoutNickname_noReissue() throws Exception {
+            Long userId = 1L;
+
+            given(userService.updateInfo(eq(userId), any()))
+                    .willReturn(new UserUpdateResponse(userId, "기존닉네임"));
+
+            mockMvc.perform(patch("/api/v1/users/1")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"currentPassword\":\"oldPass12\",\"password\":\"newPass12\"}"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.message").value("내 정보 수정이 완료되었습니다."));
+
+            verify(authService, never()).reissueAfterNicknameChange(any());
+            verify(cookieUtil, never()).addAllTokenCookies(any(), any(), any());
         }
 
         @Test
@@ -114,7 +145,7 @@ class UserControllerTest {
 
             mockMvc.perform(patch("/api/v1/users/1")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"nickname\":\"새닉네임\",\"password\":\"newPass12\"}"))
+                            .content("{\"nickname\":\"새닉네임\"}"))
                     .andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.message").value("해당 사용자를 찾을 수 없습니다."));
         }

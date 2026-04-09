@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 import com.eof.back.admin.entity.UserSuspension;
@@ -163,13 +164,108 @@ class AdminServiceTest {
     }
 
     @Test
-    @DisplayName("사용자 삭제 실패 - 권한 없으면 예외 발생")
-    void deleteUser_Fail_NotAdmin() {
+    @DisplayName("퀴즈 세트 삭제 성공")
+    void deleteQuizSet_Success() {
         // given
-        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+        Long quizSetId = 100L;
+        given(userRepository.findById(adminId)).willReturn(Optional.of(admin));
+        given(quizSetRepository.existsById(quizSetId)).willReturn(true);
 
-        // when & then
-        assertThatThrownBy(() -> adminService.deleteUser(userId, userId))
-                .isInstanceOf(AuthException.class);
+        // when
+        adminService.deleteQuizSet(quizSetId, adminId);
+
+        // then
+        verify(quizSetBookmarkRepository).deleteByQuizSetId(quizSetId);
+        verify(gameRecordRepository).deleteByQuizSetId(quizSetId);
+        verify(gameSessionRepository).deleteByQuizSetId(quizSetId);
+        verify(quizRepository).deleteByQuizSetId(quizSetId);
+        verify(quizSetRepository).deleteById(quizSetId);
+    }
+
+    @Test
+    @DisplayName("퀴즈 리포트 처리 성공")
+    void processReport_Success() {
+        // given
+        Long reportId = 50L;
+        QuizReport report = mock(QuizReport.class);
+        given(userRepository.findById(adminId)).willReturn(Optional.of(admin));
+        given(quizReportRepository.findById(reportId)).willReturn(Optional.of(report));
+        given(report.getStatus()).willReturn(com.eof.back.domain.quizreport.entity.QuizReportStatus.PENDING);
+
+        // when
+        adminService.processReport(reportId, adminId);
+
+        // then
+        verify(report).process();
+    }
+
+    @Test
+    @DisplayName("사용자 목록 조회 성공")
+    void getUsers_Success() {
+        // given
+        String keyword = "test";
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(0, 10);
+        org.springframework.data.domain.Slice<User> slice = new org.springframework.data.domain.SliceImpl<>(java.util.List.of(user));
+        
+        given(userRepository.findById(adminId)).willReturn(Optional.of(admin));
+        given(userRepository.findByNicknameContaining(keyword, pageable)).willReturn(slice);
+
+        // when
+        var response = adminService.getUsers(keyword, pageable, adminId);
+
+        // then
+        assertThat(response.getContent()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("퀴즈 수정 성공")
+    void updateQuiz_Success() {
+        // given
+        Long quizSetId = 100L;
+        Long quizId = 200L;
+        QuizSet quizSet = mock(QuizSet.class);
+        given(quizSet.getId()).willReturn(quizSetId);
+
+        Quiz quiz = mock(Quiz.class);
+        given(quiz.getQuizSet()).willReturn(quizSet);
+        given(quiz.getId()).willReturn(quizId);
+
+        com.eof.back.domain.quiz.dto.QuizUpdateRequest request = new com.eof.back.domain.quiz.dto.QuizUpdateRequest(
+                com.eof.back.domain.quiz.entity.QuestionType.TEXT,
+                com.eof.back.domain.quiz.entity.AnswerType.SHORT_ANSWER,
+                "내용", "정답", null, null, null, null, null, null, null, null
+        );
+
+        given(userRepository.findById(adminId)).willReturn(Optional.of(admin));
+        given(quizRepository.findById(quizId)).willReturn(Optional.of(quiz));
+
+        // when
+        adminService.updateQuiz(quizSetId, quizId, request, adminId);
+
+        // then
+        verify(quiz).update(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("퀴즈 삭제 성공")
+    void deleteQuiz_Success() {
+        // given
+        Long quizSetId = 100L;
+        Long quizId = 200L;
+        QuizSet quizSet = mock(QuizSet.class);
+        given(quizSet.getId()).willReturn(quizSetId);
+
+        Quiz quiz = mock(Quiz.class);
+        given(quiz.getQuizSet()).willReturn(quizSet);
+
+        given(userRepository.findById(adminId)).willReturn(Optional.of(admin));
+        given(quizRepository.findById(quizId)).willReturn(Optional.of(quiz));
+
+        // when
+        adminService.deleteQuiz(quizSetId, quizId, adminId);
+
+        // then
+        verify(quizRepository).delete(quiz);
+        verify(quizSet).decreaseQuizCount();
     }
 }

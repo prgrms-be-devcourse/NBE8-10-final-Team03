@@ -6,6 +6,7 @@ plugins {
     java
     id("org.springframework.boot") version "4.0.3"
     id("io.spring.dependency-management") version "1.1.7"
+    jacoco
 }
 
 group = "com.eof"
@@ -16,6 +17,10 @@ java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(21)
     }
+}
+
+jacoco {
+    toolVersion = "0.8.12"
 }
 
 configurations {
@@ -77,4 +82,38 @@ dependencies {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+    finalizedBy("jacocoTestReport")
+}
+
+tasks.jacocoTestReport {
+    dependsOn(tasks.test)
+    reports {
+        xml.required.set(true)
+        csv.required.set(false)
+        html.required.set(true)
+    }
+
+    classDirectories.setFrom(
+        files(classDirectories.files.map {
+            fileTree(it) {
+                exclude(
+                    "**/BackApplication*",
+                    "**/global/**",
+                    "**/dto/**",
+                    "**/entity/**",
+                    "**/repository/**",
+                    "**/*Request*",
+                    "**/*Response*",
+                    "**/*Exception*",
+                    "**/*ErrorCode*",
+                    "**/*Config*",
+                    "**/*Constants*",
+                    "**/*Interceptor*",
+                    "**/*Handler*",
+                    "**/*Store*",
+                    "**/*Registry*"
+                )
+            }
+        })
+    )
 }

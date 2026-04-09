@@ -77,4 +77,38 @@ class RankingServiceImplTest {
         assertThat(response.myRank()).isNull();
         assertThat(response.rankings()).isEmpty();
     }
-}
+
+    @Test
+    @DisplayName("주간 랭킹 조회 - 성공")
+    void getWeeklyRankings_Success() {
+        // given
+        List<RankingResponse.RankingItem> items = List.of(
+                new RankingResponse.RankingItem(1, "주간1", 100L, 1)
+        );
+        given(rankingCacheService.getWeeklyRankingItems()).willReturn(items);
+
+        // when
+        RankingResponse response = rankingService.getWeeklyRankings(1L);
+
+        // then
+        assertThat(response.rankings()).hasSize(1);
+        assertThat(response.rankings().get(0).nickname()).isEqualTo("주간1");
+    }
+
+    @Test
+    @DisplayName("월간 랭킹 조회 - 성공")
+    void getMonthlyRankings_Success() {
+        // given
+        List<RankingResponse.RankingItem> items = List.of(
+                new RankingResponse.RankingItem(1, "월간1", 200L, 1)
+        );
+        given(rankingCacheService.getMonthlyRankingItems()).willReturn(items);
+
+        // when
+        RankingResponse response = rankingService.getMonthlyRankings(1L);
+
+        // then
+        assertThat(response.rankings()).hasSize(1);
+        assertThat(response.rankings().get(0).nickname()).isEqualTo("월간1");
+    }
+    }

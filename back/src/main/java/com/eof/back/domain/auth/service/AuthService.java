@@ -76,4 +76,14 @@ public interface AuthService {
      * @throws com.eof.back.global.exception.exceptions.AuthException 사용자가 없거나 이미 탈퇴한 경우
      */
     void withdraw(Long userId);
+
+    /**
+     * 닉네임 변경 후 현재 세션을 유지한 채 토큰을 재발급합니다.
+     * tokenVersion을 증가시키지 않아 기존 세션을 유지하면서,
+     * DB에서 최신 닉네임을 읽어 새 토큰에 반영합니다.
+     *
+     * @param userId 사용자 ID
+     * @return 새로 발급된 토큰 및 사용자 기본 정보
+     */
+    LoginResult reissueAfterNicknameChange(Long userId);
 }

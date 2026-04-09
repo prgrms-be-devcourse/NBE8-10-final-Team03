@@ -1,11 +1,15 @@
 package com.eof.back.domain.user.user.controller;
 
+import com.eof.back.domain.auth.dto.LoginResult;
+import com.eof.back.domain.auth.service.AuthService;
 import com.eof.back.domain.user.user.dto.UserInfoResponse;
 import com.eof.back.domain.user.user.dto.UserUpdateRequest;
 import com.eof.back.domain.user.user.dto.UserUpdateResponse;
 import com.eof.back.domain.user.user.service.UserService;
+import com.eof.back.global.jwt.CookieUtil;
 import com.eof.back.global.response.CommonResponse;
 import com.eof.back.global.response.Response;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -29,6 +33,8 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
 
     private final UserService userService;
+    private final AuthService authService;
+    private final CookieUtil cookieUtil;
 
     /**
      * 사용자의 정보를 조회합니다.
@@ -59,9 +65,15 @@ public class UserController {
     @PatchMapping
     public ResponseEntity<Response<UserUpdateResponse>> updateMyInfo(
             @PathVariable Long userId,
-            @RequestBody @Valid UserUpdateRequest request
+            @RequestBody @Valid UserUpdateRequest request,
+            HttpServletResponse servletResponse
     ) {
         UserUpdateResponse response = userService.updateInfo(userId, request);
+
+        if (request.nickname() != null) {
+            LoginResult loginResult = authService.reissueAfterNicknameChange(userId);
+            cookieUtil.addAllTokenCookies(servletResponse, loginResult.accessToken(), loginResult.refreshToken());
+        }
 
         return ResponseEntity.ok(
                 CommonResponse.success(response, "내 정보 수정이 완료되었습니다.")

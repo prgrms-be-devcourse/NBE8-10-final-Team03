@@ -3,13 +3,18 @@ package com.eof.back.admin.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
+import static org.mockito.BDDMockito.willDoNothing;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import com.eof.back.admin.entity.UserSuspension;
 import com.eof.back.admin.repository.UserSuspensionRepository;
 import com.eof.back.domain.auth.store.RefreshTokenStore;
+import com.eof.back.domain.image.service.ImageService;
 import com.eof.back.domain.quiz.entity.Quiz;
 import com.eof.back.domain.quiz.repository.QuizRepository;
 import com.eof.back.domain.quizreport.entity.QuizReport;
@@ -63,6 +68,8 @@ class AdminServiceTest {
     private RefreshTokenStore refreshTokenStore;
     @Mock
     private TokenVersionStore tokenVersionStore;
+    @Mock
+    private ImageService imageService;
 
     private User admin;
     private User user;
@@ -94,6 +101,51 @@ class AdminServiceTest {
 
         // then
         assertThat(quizSet.getTitle()).isEqualTo("수정 제목");
+    }
+
+    @Test
+    @DisplayName("관리자 권한으로 퀴즈 세트 수정 성공 - 썸네일 삭제 (빈 문자열)")
+    void updateQuizSet_ThumbnailDelete_Success() {
+        // given
+        QuizSet quizSet = QuizSet.builder()
+                .title("기본 제목")
+                .thumbnailUrl("https://s3.example.com/old-thumb.jpg")
+                .build();
+        ReflectionTestUtils.setField(quizSet, "id", 100L);
+        QuizSetUpdateRequest request = new QuizSetUpdateRequest("기본 제목", null, "");
+
+        given(userRepository.findById(adminId)).willReturn(Optional.of(admin));
+        given(quizSetRepository.findById(100L)).willReturn(Optional.of(quizSet));
+        willDoNothing().given(imageService).deleteImage(anyString(), eq(adminId));
+
+        // when
+        adminService.updateQuizSet(100L, request, adminId);
+
+        // then
+        verify(imageService).deleteImage("https://s3.example.com/old-thumb.jpg", adminId);
+        assertThat(quizSet.getThumbnailUrl()).isNull();
+    }
+
+    @Test
+    @DisplayName("관리자 권한으로 퀴즈 세트 수정 성공 - thumbnailUrl null이면 기존 썸네일 유지")
+    void updateQuizSet_ThumbnailNotChanged_WhenNull() {
+        // given
+        QuizSet quizSet = QuizSet.builder()
+                .title("기본 제목")
+                .thumbnailUrl("https://s3.example.com/old-thumb.jpg")
+                .build();
+        ReflectionTestUtils.setField(quizSet, "id", 100L);
+        QuizSetUpdateRequest request = new QuizSetUpdateRequest("수정 제목", "설명", null);
+
+        given(userRepository.findById(adminId)).willReturn(Optional.of(admin));
+        given(quizSetRepository.findById(100L)).willReturn(Optional.of(quizSet));
+
+        // when
+        adminService.updateQuizSet(100L, request, adminId);
+
+        // then
+        verify(imageService, never()).deleteImage(anyString(), any());
+        assertThat(quizSet.getThumbnailUrl()).isEqualTo("https://s3.example.com/old-thumb.jpg");
     }
 
     @Test

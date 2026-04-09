@@ -1,6 +1,7 @@
 package com.eof.back.domain.quizset.service;
 
 import com.eof.back.domain.gamesession.repository.GameSessionRepository;
+import com.eof.back.domain.image.service.ImageService;
 import com.eof.back.domain.quiz.repository.QuizRepository;
 import com.eof.back.domain.quizset.dto.QuizSetCreateRequest;
 import com.eof.back.domain.quizset.dto.QuizSetInfoResponse;
@@ -44,6 +45,7 @@ public class QuizSetServiceImpl implements QuizSetService {
     private final QuizSetBookmarkRepository quizSetBookmarkRepository;
     private final GameSessionRepository gameSessionRepository;
     private final GameRecordRepository gameRecordRepository;
+    private final ImageService imageService;
 
     /**
      * {@inheritDoc}
@@ -107,7 +109,12 @@ public class QuizSetServiceImpl implements QuizSetService {
         QuizSet quizSet = findQuizSetById(id);
         validateCreator(quizSet, userId);
 
-        quizSet.update(request.title(), request.description(), request.thumbnailUrl());
+        String newThumbnailUrl = request.thumbnailUrl();
+        if (newThumbnailUrl != null && newThumbnailUrl.isBlank()) {
+            imageService.deleteImage(quizSet.getThumbnailUrl(), userId);
+        }
+
+        quizSet.update(request.title(), request.description(), newThumbnailUrl);
         return quizSet.getId();
     }
 

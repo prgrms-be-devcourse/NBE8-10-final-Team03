@@ -426,7 +426,7 @@ export default function QuizSetDetailPage({ params }: { params: Promise<{ quizse
       await api.patch(`/quizsets/${quizsetId}`, {
         title: editTitle,
         description: editDescription,
-        thumbnailUrl: editThumbnailUrl || undefined,
+        thumbnailUrl: editThumbnailUrl,
       });
       setQuizSet((prev) => prev ? { ...prev, title: editTitle, description: editDescription, thumbnailUrl: editThumbnailUrl || undefined } : prev);
       setIsEditing(false);

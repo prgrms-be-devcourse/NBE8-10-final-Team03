@@ -5,6 +5,7 @@ import com.eof.back.admin.entity.UserSuspension;
 import com.eof.back.admin.repository.UserSuspensionRepository;
 import com.eof.back.domain.auth.store.RefreshTokenStore;
 import com.eof.back.global.token.TokenVersionStore;
+import com.eof.back.domain.image.service.ImageService;
 import com.eof.back.domain.quiz.dto.QuizUpdateRequest;
 import com.eof.back.domain.quiz.entity.Quiz;
 import com.eof.back.domain.quiz.repository.QuizRepository;
@@ -63,6 +64,7 @@ public class AdminServiceImpl implements AdminService {
     private final GameSessionRepository gameSessionRepository;
     private final RefreshTokenStore refreshTokenStore;
     private final TokenVersionStore tokenVersionStore;
+    private final ImageService imageService;
 
     /**
      * {@inheritDoc}
@@ -72,7 +74,13 @@ public class AdminServiceImpl implements AdminService {
     public Long updateQuizSet(Long id, QuizSetUpdateRequest request, Long adminId) {
         validateAdminRole(adminId);
         QuizSet quizSet = findQuizSetById(id);
-        quizSet.update(request.title(), request.description(), request.thumbnailUrl());
+
+        String newThumbnailUrl = request.thumbnailUrl();
+        if (newThumbnailUrl != null && newThumbnailUrl.isBlank()) {
+            imageService.deleteImage(quizSet.getThumbnailUrl(), adminId);
+        }
+
+        quizSet.update(request.title(), request.description(), newThumbnailUrl);
         return quizSet.getId();
     }
 

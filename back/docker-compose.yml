@@ -34,7 +34,6 @@ services:
   grafana:
     image: grafana/grafana:latest
     container_name: dabjeongneo-grafana
-
     restart: always
     ports:
       - "3001:3000"

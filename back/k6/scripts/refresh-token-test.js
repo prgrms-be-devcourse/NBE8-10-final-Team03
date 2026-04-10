@@ -41,6 +41,12 @@ export default function () {
         return;
     }
 
+    // Secure:true 쿠키는 HTTP에서 자동 전송 안 됨 → 수동으로 jar에 재등록
+    const accessToken  = loginRes.cookies['accessToken']  && loginRes.cookies['accessToken'][0].value;
+    const refreshToken = loginRes.cookies['refreshToken'] && loginRes.cookies['refreshToken'][0].value;
+    if (accessToken)  jar.set(BASE_URL, 'accessToken',  accessToken,  { secure: false });
+    if (refreshToken) jar.set(BASE_URL, 'refreshToken', refreshToken, { secure: false });
+
     sleep(1);
 
     // 2. reissue 3회 반복

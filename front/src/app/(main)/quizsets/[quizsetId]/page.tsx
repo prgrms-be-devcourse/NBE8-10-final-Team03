@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import api from "@/lib/api";
 import YouTube from "react-youtube";
+import TimeInput from "@/components/common/TimeInput";
 
 const getYoutubeId = (url: string) => {
   if (!url) return null;
@@ -176,25 +177,17 @@ function QuizEditItem({
             onChange={(e) => setForm({ ...form, videoUrl: e.target.value })}
             className="w-full px-3 py-2 bg-white border-2 border-gray-300 rounded-xl text-sm outline-none mb-3"
           />
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-bold mb-1">시작 시간 (초)</label>
-              <input
-                type="number"
-                value={form.startTime || ""}
-                onChange={(e) => setForm({ ...form, startTime: e.target.value ? Number(e.target.value) : undefined })}
-                className="w-full px-3 py-2 bg-white border-2 border-gray-300 rounded-xl text-sm outline-none"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold mb-1">종료 시간 (초)</label>
-              <input
-                type="number"
-                value={form.endTime || ""}
-                onChange={(e) => setForm({ ...form, endTime: e.target.value ? Number(e.target.value) : undefined })}
-                className="w-full px-3 py-2 bg-white border-2 border-gray-300 rounded-xl text-sm outline-none"
-              />
-            </div>
+          <div className="flex gap-6 mb-3">
+            <TimeInput
+              label="시작 시간 (선택)"
+              value={form.startTime}
+              onChange={(val) => setForm({ ...form, startTime: val })}
+            />
+            <TimeInput
+              label="종료 시간 (선택)"
+              value={form.endTime}
+              onChange={(val) => setForm({ ...form, endTime: val })}
+            />
           </div>
 
           {/* 미리보기 영역 */}

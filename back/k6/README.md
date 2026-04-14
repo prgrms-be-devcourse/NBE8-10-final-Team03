@@ -76,6 +76,7 @@ docker compose --profile loadtest run --rm k6 run --out influxdb=http://influxdb
 | `setup-users.js` | 부하테스트용 유저 50명 사전 생성 (1회 실행) | ✅ |
 | `refresh-token-test.js` | 로그인 → reissue 3회 → 로그아웃 | ❌ |
 | `ranking-test.js` | 랭킹 조회 (all / weekly / monthly 분산) | ❌ |
+| `lobby-scenario-test.js` | 복합 시나리오 (browser 30VU + creator 20VU 동시) | ❌ (자체 정리) |
 
 ---
 
@@ -90,6 +91,9 @@ docker compose --profile loadtest run --rm k6 run --out influxdb=http://influxdb
 
 # 3. 랭킹 조회 부하테스트
 docker compose --profile loadtest run --rm k6 run --out influxdb=http://influxdb:8086/k6 ranking-test.js
+
+# 4. 복합 시나리오 부하테스트 (browser + creator 동시)
+docker compose --profile loadtest run --rm k6 run --out influxdb=http://influxdb:8086/k6 lobby-scenario-test.js
 ```
 
 ---
@@ -123,9 +127,11 @@ bash k6/cleanup.sh
 | 실패율 | HTTP 요청 실패 비율. 0에 가까울수록 안정적 |
 | VU | 동시 가상 사용자 수 |
 
-**threshold (통과 기준):**
-- 실패율 < 1%
-- p95 응답시간 < 500ms
+**threshold (통과 기준, 로컬 환경):**
+- 실패율 < 5%
+- p95 응답시간 < 3000ms
+
+> EC2 목표: 실패율 < 1%, p95 < 1000ms
 
 ---
 

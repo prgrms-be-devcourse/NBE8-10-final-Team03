@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
 import YouTube from "react-youtube";
+import TimeInput from "@/components/common/TimeInput";
 
 const getYoutubeId = (url: string) => {
   if (!url) return null;
@@ -307,27 +308,17 @@ export default function QuizSetCreatePage() {
                   onChange={(e) => updateQuiz(index, "videoUrl", e.target.value)}
                   className="w-full px-4 py-2 mb-3 bg-white border-[2px] border-gray-300 rounded-lg text-sm outline-none"
                 />
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-bold mb-1">시작 시간 (초 - 선택)</label>
-                    <input
-                      type="number"
-                      placeholder="예: 30"
-                      value={quiz.startTime || ""}
-                      onChange={(e) => updateQuiz(index, "startTime", e.target.value ? Number(e.target.value) : undefined)}
-                      className="w-full px-3 py-2 bg-white border-[2px] border-gray-300 rounded-lg text-sm outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold mb-1">종료 시간 (초 - 선택)</label>
-                    <input
-                      type="number"
-                      placeholder="예: 60"
-                      value={quiz.endTime || ""}
-                      onChange={(e) => updateQuiz(index, "endTime", e.target.value ? Number(e.target.value) : undefined)}
-                      className="w-full px-3 py-2 bg-white border-[2px] border-gray-300 rounded-lg text-sm outline-none"
-                    />
-                  </div>
+                <div className="flex gap-6">
+                  <TimeInput
+                    label="시작 시간 (선택)"
+                    value={quiz.startTime}
+                    onChange={(val) => updateQuiz(index, "startTime", val)}
+                  />
+                  <TimeInput
+                    label="종료 시간 (선택)"
+                    value={quiz.endTime}
+                    onChange={(val) => updateQuiz(index, "endTime", val)}
+                  />
                 </div>
 
                 {/* 미리보기 영역 */}

@@ -38,9 +38,9 @@ import java.util.stream.Stream;
 public class GamePlayServiceImpl implements GamePlayService {
 
     private static final int GAME_START_DELAY_SEC = 5;
-    private static final int QUIZ_TIME_LIMIT_SEC = 10;
-    private static final int GRADING_TIME_SEC = 3;
-    private static final int RESULT_SHOW_TIME_SEC = 5;
+    private static final int QUIZ_TIME_LIMIT_SEC = 15;
+    private static final int GRADING_TIME_SEC = 2;
+    private static final int RESULT_SHOW_TIME_SEC = 3;
     private static final int ROUND_INTERVAL_SEC = QUIZ_TIME_LIMIT_SEC + GRADING_TIME_SEC + RESULT_SHOW_TIME_SEC;
     private static final Duration REDIS_KEY_TTL = Duration.ofHours(1);
 
@@ -187,7 +187,7 @@ public class GamePlayServiceImpl implements GamePlayService {
     }
 
     /**
-     * 15초마다 스케줄러에 의해 실행되는 문제 출제 로직
+     * 20초마다 스케줄러에 의해 실행되는 문제 출제 로직
      */
     private void processNextRound(Long gameSessionId) {
         try {

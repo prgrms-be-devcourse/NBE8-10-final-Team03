@@ -334,7 +334,6 @@
               "mode": "off"
             }
           },
-          "decimals": 2,
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
@@ -348,8 +347,7 @@
                 "value": 80
               }
             ]
-          },
-          "unit": "reqps"
+          }
         },
         "overrides": []
       },
@@ -535,80 +533,33 @@
         "type": "influxdb",
         "uid": "${DS_INFLUXDB}"
       },
-      "description": "check 결과의 평균값을 기준으로 각 검증 항목 성공률을 원형 차트로 봅니다.",
+      "description": "API별 실패율을 출력합니다",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "palette-classic"
           },
           "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
             "hideFrom": {
               "legend": false,
               "tooltip": false,
               "viz": false
+            },
+            "lineWidth": 0,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
             }
           },
-          "decimals": 2,
-          "mappings": [],
-          "max": 1,
-          "min": 0,
-          "unit": "percentunit"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 14
-      },
-      "id": 8,
-      "options": {
-        "displayLabels": [
-          "name",
-          "percent"
-        ],
-        "legend": {
-          "displayMode": "table",
-          "placement": "right",
-          "showLegend": true
-        },
-        "pieType": "pie",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "sort": "desc",
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "12.4.2",
-      "targets": [
-        {
-          "query": "SELECT mean(\"value\") FROM \"checks\" WHERE $timeFilter GROUP BY \"check\"",
-          "rawQuery": true,
-          "refId": "A",
-          "resultFormat": "time_series"
-        }
-      ],
-      "title": "체크 성공률 분포",
-      "type": "piechart"
-    },
-    {
-      "datasource": {
-        "type": "influxdb",
-        "uid": "${DS_INFLUXDB}"
-      },
-      "description": "엔드포인트별 평균 응답 시간을 한눈에 비교합니다. 새 테스트가 추가돼도 자동으로 항목이 생깁니다.",
-      "fieldConfig": {
-        "defaults": {
-          "decimals": 2,
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
@@ -618,61 +569,55 @@
                 "value": 0
               },
               {
-                "color": "yellow",
-                "value": 300
-              },
-              {
                 "color": "red",
-                "value": 1000
+                "value": 80
               }
             ]
-          },
-          "unit": "ms"
+          }
         },
         "overrides": []
       },
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 12,
+        "x": 0,
         "y": 14
       },
-      "id": 7,
+      "id": 10,
       "options": {
-        "displayMode": "gradient",
+        "barRadius": 0,
+        "barWidth": 0.75,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
         "legend": {
           "calcs": [],
           "displayMode": "list",
           "placement": "bottom",
-          "showLegend": false
+          "showLegend": true
         },
-        "maxVizHeight": 300,
-        "minVizHeight": 16,
-        "minVizWidth": 8,
-        "namePlacement": "auto",
-        "orientation": "horizontal",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
+        "orientation": "auto",
+        "showValue": "auto",
+        "stacking": "none",
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
         },
-        "showUnfilled": true,
-        "sizing": "auto",
-        "valueMode": "color"
+        "xField": "api",
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
       },
       "pluginVersion": "12.4.2",
       "targets": [
         {
-          "query": "SELECT mean(\"value\") FROM \"http_req_duration\" WHERE $timeFilter GROUP BY \"url\"",
+          "query": "SELECT mean(\"value\") FROM \"http_req_failed\" WHERE $timeFilter GROUP BY \"api\"",
           "rawQuery": true,
           "refId": "A",
-          "resultFormat": "time_series"
+          "resultFormat": "table"
         }
       ],
-      "title": "URL별 평균 응답 시간",
-      "type": "bargauge"
+      "title": "API별 실패율",
+      "type": "barchart"
     },
     {
       "datasource": {
@@ -773,8 +718,8 @@
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 0,
-        "y": 22
+        "x": 12,
+        "y": 14
       },
       "id": 9,
       "options": {
@@ -813,19 +758,10 @@
         "type": "influxdb",
         "uid": "${DS_INFLUXDB}"
       },
-      "description": "엔드포인트별 요청 수, 평균 응답 시간, p95 응답 시간을 표로 정리합니다.",
+      "description": "API별 평균 응답 시간을 한눈에 비교합니다. 새 테스트가 추가돼도 자동으로 항목이 생깁니다.",
       "fieldConfig": {
         "defaults": {
-          "custom": {
-            "align": "auto",
-            "cellOptions": {
-              "type": "auto"
-            },
-            "footer": {
-              "reducers": []
-            },
-            "inspect": false
-          },
+          "decimals": 2,
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
@@ -835,11 +771,85 @@
                 "value": 0
               },
               {
+                "color": "yellow",
+                "value": 300
+              },
+              {
                 "color": "red",
-                "value": 80
+                "value": 1000
               }
             ]
-          }
+          },
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 22
+      },
+      "id": 7,
+      "options": {
+        "displayMode": "gradient",
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "maxVizHeight": 300,
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "namePlacement": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true,
+        "sizing": "auto",
+        "valueMode": "color"
+      },
+      "pluginVersion": "12.4.2",
+      "targets": [
+        {
+          "query": "SELECT mean(\"value\") FROM \"http_req_duration\" WHERE $timeFilter GROUP BY \"api\"",
+          "rawQuery": true,
+          "refId": "A",
+          "resultFormat": "time_series"
+        }
+      ],
+      "title": "API별 평균 응답 시간",
+      "type": "bargauge"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_INFLUXDB}"
+      },
+      "description": "check 결과의 평균값을 기준으로 각 검증 항목 성공률을 원형 차트로 봅니다.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "decimals": 2,
+          "mappings": [],
+          "max": 1,
+          "min": 0,
+          "unit": "percentunit"
         },
         "overrides": []
       },
@@ -849,22 +859,40 @@
         "x": 12,
         "y": 22
       },
-      "id": 10,
+      "id": 8,
       "options": {
-        "cellHeight": "sm",
-        "showHeader": true
+        "displayLabels": [],
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "pieType": "pie",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "sort": "desc",
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
       },
       "pluginVersion": "12.4.2",
       "targets": [
         {
-          "query": "SELECT count(\"value\") AS \"요청 수\", mean(\"value\") AS \"평균 응답 시간(ms)\", percentile(\"value\",95) AS \"p95 응답 시간(ms)\" FROM \"http_req_duration\" WHERE $timeFilter GROUP BY \"url\"",
+          "query": "SELECT mean(\"value\") FROM \"checks\" WHERE $timeFilter GROUP BY \"check\"",
           "rawQuery": true,
           "refId": "A",
-          "resultFormat": "table"
+          "resultFormat": "time_series"
         }
       ],
-      "title": "URL별 성능 요약표",
-      "type": "table"
+      "title": "체크 성공률 분포",
+      "type": "piechart"
     }
   ],
   "preload": false,

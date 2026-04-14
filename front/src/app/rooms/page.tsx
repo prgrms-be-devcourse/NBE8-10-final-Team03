@@ -151,7 +151,7 @@ function RoomsContent() {
   // 미디어 재생 state
   const playerRef = useRef<YouTubePlayer>(null);
   const [isPlayingMedia, setIsPlayingMedia] = useState(false);
-
+  const [isBuffering, setIsBuffering] = useState(true);
   useEffect(() => {
     setMyNickname(localStorage.getItem("nickname"));
     setMyUserId(localStorage.getItem("userId"));
@@ -330,6 +330,7 @@ function RoomsContent() {
                 setShortAnswerInput("");
                 setAnswerSubmitted(false);
                 setIsPlayingMedia(false);
+                setIsBuffering(true);
                 playerRef.current = null;
                 setTimeLeft(data.data.timeLimit);
                 setGameState("playing");
@@ -813,6 +814,17 @@ function RoomsContent() {
                       {getYoutubeId(currentQuestion.videoUrl) ? (
                         <>
                           <div className={`relative ${currentQuestion.questionType === "AUDIO" ? "w-0 h-0 overflow-hidden opacity-0" : "w-full max-w-2xl bg-black rounded-xl border-[3px] border-dark overflow-hidden aspect-video pointer-events-none select-none"}`}>
+                            {/* 버퍼링 / 로딩 중일 때 영상 제목/정보창을 가리는 오버레이 */}
+                            {currentQuestion.questionType === "VIDEO" && isBuffering && (
+                              <div className="absolute inset-0 bg-black flex flex-col items-center justify-center z-10 border-[3px] border-dark rounded-xl">
+                                <div className="flex gap-3">
+                                  <div className="w-4 h-4 rounded-full bg-primary animate-bounce"></div>
+                                  <div className="w-4 h-4 rounded-full bg-accent animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                                  <div className="w-4 h-4 rounded-full bg-secondary animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                                </div>
+                                <p className="text-white mt-4 font-bold text-sm">영상을 불러오는 중입니다...</p>
+                              </div>
+                            )}
                             <YouTube
                               videoId={getYoutubeId(currentQuestion.videoUrl)!}
                               opts={{
@@ -836,9 +848,18 @@ function RoomsContent() {
                                 e.target.playVideo();
                               }}
                               onStateChange={(e) => {
-                                // 1: PLAYING, 기타: buffering, paused 등
-                                if (e.data === 1) setIsPlayingMedia(true);
-                                else setIsPlayingMedia(false);
+                                // -1: UNSTARTED, 0: ENDED, 1: PLAYING, 2: PAUSED, 3: BUFFERING, 5: VIDEO CUED
+                                if (e.data === 1) {
+                                  setIsPlayingMedia(true);
+                                  setIsBuffering(false); // 재생 시작 시 가림막 해제
+                                } else if (e.data === 0) {
+                                  setIsBuffering(true); // 반복재생 전 가림막 표시
+                                  // 영상이 문제 시간보다 짧아서 일찍 끝난 경우, 다시 처음(또는 지정된 구간)부터 재생되도록 루프 처리
+                                  e.target.seekTo(currentQuestion.startTime || 0);
+                                  e.target.playVideo();
+                                } else if (e.data === 3 || e.data === -1) {
+                                  setIsBuffering(true); // 처음에 불러오거나 버퍼링일 때 가림막 표시
+                                }
                               }}
                               className="w-full h-full pointer-events-none"
                               iframeClassName="w-full h-full pointer-events-none"
